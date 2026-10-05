@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Launcher (MainActivity) -->
+    <string name="main_wait_runtime">Wait for the runtime operation to finish</string>
+    <string name="main_wait_proton_install">Wait for the compatibility tool install to finish</string>
+    <string name="main_wait_desktop_install">Wait for the desktop app install to finish</string>
+    <string name="main_wait_install_game">Wait for the install to finish before launching a game</string>
+    <string name="main_saves_close_session">Close the Steam session first, so the game can\'t save over the import</string>
+    <!-- Busy line while saves are imported; %1$s is the game's name -->
+    <string name="main_saves_importing">Importing into %1$s</string>
+    <!-- %1$d files, %2$s the save layout (e.g. GameHub zip), %3$s the game's name -->
+    <plurals name="main_saves_imported">
+        <item quantity="one">Imported %1$d file from the %2$s into %3$s</item>
+        <item quantity="other">Imported %1$d files from the %2$s into %3$s</item>
+    </plurals>
+    <plurals name="main_saves_imported_backup">
+        <item quantity="one">Imported %1$d file from the %2$s into %3$s. Old saves backed up to Download/DroidDeck/Saves/backups</item>
+        <item quantity="other">Imported %1$d files from the %2$s into %3$s. Old saves backed up to Download/DroidDeck/Saves/backups</item>
+    </plurals>
+    <string name="main_saves_pick_zip">Choose a save zip for %1$s</string>
+    <!-- Busy line while saves are exported; %1$s is the game's name -->
+    <string name="main_saves_exporting">Exporting %1$s</string>
+    <!-- %1$d files, %2$s the save layout (e.g. GameHub zip), %3$s the zip's path -->
+    <plurals name="main_saves_exported">
+        <item quantity="one">Exported %1$d file as a %2$s: %3$s</item>
+        <item quantity="other">Exported %1$d files as a %2$s: %3$s</item>
+    </plurals>
+    <!-- %1$s is the game's name, %2$s the save layout -->
+    <string name="main_saves_pick_folder">Choose where to save %1$s (%2$s)</string>
+    <!-- %1$s is what was being done (e.g. Importing into Portal 2, Swapping), %2$s the error -->
+    <string name="main_action_failed">%1$s failed: %2$s</string>
+    <string name="main_no_logs_yet">No session logs yet: run a session first.</string>
+    <string name="main_no_logs_to_clear">No session logs to clear.</string>
+    <plurals name="main_logs_cleared">
+        <item quantity="one">Cleared %1$d session log folder.</item>
+        <item quantity="other">Cleared %1$d session log folders.</item>
+    </plurals>
+    <string name="main_wadb_pair_failed">Wireless debugging pairing failed</string>
+    <string name="main_wadb_command_failed">Wireless debugging command failed</string>
+    <string name="main_wadb_unavailable">Wireless debugging is unavailable</string>
+    <string name="main_adb_copied">ADB command copied</string>
+    <string name="main_pick_roms">Choose the ROMs folder</string>
+    <string name="main_non_adreno_title">Not an Adreno GPU</string>
+    <!-- %1$s is the GPU's name, %2$.0f the download size in MB -->
+    <string name="main_non_adreno_text">Turnip supports Adreno GPUs. On %1$s, Steam may show a black screen. Download: %2$.0f MB.</string>
+    <string name="main_install_anyway">Install anyway</string>
+    <string name="main_remove_runtime_title">Remove Linux runtime</string>
+    <string name="main_remove_runtime_text">This deletes the runtime, the Steam client inside it, and every game installed there.</string>
+    <!-- Toast; %1$s is a list of components, separated by commas -->
+    <string name="main_applied">Applied: %1$s</string>
+    <string name="android_app_open_failed_primary">Could not open %1$s on the primary screen</string>
+    <!-- %1$s is the app, %2$s the name of the display -->
+    <string name="android_app_open_failed_on">Could not open %1$s on %2$s</string>
+    <!-- %1$s is the app, %2$d the display's number -->
+    <string name="android_app_open_failed_display">Could not open %1$s on display %2$d</string>
+    <!-- Components page busy lines, shown with … after them -->
+    <string name="comp_busy_importing">Importing</string>
+    <string name="comp_busy_swapping">Swapping</string>
+    <string name="comp_busy_restoring">Restoring</string>
+    <string name="comp_busy_cancelling">Cancelling</string>
+    <string name="comp_busy_deleting">Deleting</string>
+    <string name="comp_cannot_read">cannot read the file</string>
+    <!-- %1$s is a version or a name -->
+    <string name="comp_imported">Imported %1$s</string>
+    <string name="comp_swap_cancelled">The waiting swap was cancelled.</string>
+    <string name="comp_pick_wcp">Choose a component package (-linux .wcp)</string>
+    <string name="comp_nightlies_unreachable">The Nightlies could not be reached</string>
+    <!-- %1$s is the package version -->
+    <string name="comp_stored">Stored %1$s</string>
+    <string name="comp_download_failed">Download failed: %1$s</string>
+    <string name="drivers_pick_linux">Choose a Linux runtime driver (-Linux zip or Android + Linux bundle)</string>
+    <string name="drivers_pick_android">Choose a display driver (AdrenoTools zip or Android + Linux bundle)</string>
+    <string name="drivers_pick_any">Choose a driver zip or an Android + Linux bundle</string>
+    <!-- %1$s is a desktop app's name, %2$s what went wrong -->
+    <string name="main_pkg_problem">%1$s: %2$s</string>
+    <string name="main_removing_named">Removing %1$s…</string>
+    <string name="main_forgetting_named">Forgetting %1$s…</string>
+    <string name="main_pick_game_storage">Choose the game storage folder</string>
+    <string name="main_pick_added_games">Choose a folder of your own games</string>
+    <string name="main_pick_game_exe">Choose the game\'s .exe</string>
+    <string name="main_pick_decky_zip">Choose a Decky plugin ZIP</string>
+    <string name="main_storage_not_usable">Not usable: %1$s</string>
+    <!-- What is running, when it is a program without a known name -->
+    <string name="main_running_program">Program</string>
+    <string name="main_removing_runtime">Removing Linux runtime</string>
+    <string name="main_settings_main_screen">Could not open Settings on the bottom screen; opened it on the main screen.</string>
+    <string name="main_open_dev_options">Open Developer options in Settings</string>
+
+    <!-- Updates -->
+    <string name="upd_unknown_apps_failed">Couldn\'t open Android\'s \"Install unknown apps\" setting</string>
+    <string name="upd_couldnt_check">Couldn\'t check: %1$s</string>
+    <string name="upd_no_download">This build has no download for this copy of DroidDeck</string>
+    <string name="upd_stop_first">Stop the running session first, then update</string>
+    <!-- Update stages, shown with … after them -->
+    <string name="upd_stage_downloading">Downloading</string>
+    <string name="upd_stage_installing">Installing</string>
+    <string name="upd_stage_confirm">Waiting for you to confirm</string>
+    <string name="upd_failed">The update failed</string>
+    <string name="upd_not_offered">Android didn\'t offer to install the update</string>
+
+    <!-- Decky -->
+    <string name="decky_install_failed">Decky install failed: %1$s</string>
+    <string name="decky_plugin_starting">Starting plugin import…</string>
+    <string name="decky_plugin_failed">Plugin import failed: %1$s</string>
+    <string name="decky_plugin_installed">Plugin installed. Restart Steam to load it.</string>
+
+    <!-- GPU drivers -->
+    <string name="drivers_not_checked">Not checked yet - tap refresh to look for new drivers</string>
+    <string name="drivers_bundle_sets_display">Android + Linux: sets the display driver with it</string>
+    <string name="drivers_bundle_sets_runtime">Android + Linux: sets the runtime driver with it</string>
+    <string name="drivers_runtime_builtin">the Turnip built into the runtime</string>
+    <string name="drivers_system_vulkan">system Vulkan: no bundled build for this GPU</string>
+    <string name="drivers_bundled">%1$s (bundled)</string>
+    <string name="drivers_manual">Manual</string>
+    <!-- Driver mode, then the driver pair in use -->
+    <string name="drivers_summary">%1$s · %2$s</string>
+    <string name="drivers_half_published">Only one half is published right now</string>
+    <string name="drivers_pair_size">%1$.0f MB for both</string>
+    <!-- %1$s says why (the GPU's support status) -->
+    <string name="drivers_none_to_set">No drivers to set: %1$s</string>
+    <string name="drivers_checking_latest">Checking for the latest drivers…</string>
+    <string name="drivers_up_to_date_check_failed">Up to date (couldn\'t check: %1$s)</string>
+    <string name="drivers_recommended_unpublished">The recommended drivers aren\'t published right now</string>
+    <!-- %1$s is the driver pair's name, %2$s its version -->
+    <string name="drivers_downloading_pair">Downloading %1$s %2$s…</string>
+    <string name="drivers_updated_to">Updated to %1$s %2$s.</string>
+    <string name="drivers_updated_to_restart">Updated to %1$s %2$s. The display driver applies after DroidDeck restarts.</string>
+    <string name="drivers_switched_to">Switched to %1$s %2$s.</string>
+    <string name="drivers_switched_to_restart">Switched to %1$s %2$s. The display driver applies after DroidDeck restarts.</string>
+    <string name="drivers_using">Using %1$s %2$s.</string>
+    <string name="drivers_using_restart">Using %1$s %2$s. The display driver applies after DroidDeck restarts.</string>
+    <string name="drivers_not_a_driver">Not a driver zip: neither an AdrenoTools driver, a -Linux Turnip nor an Android + Linux bundle</string>
+    <string name="drivers_import_failed">Import failed: %1$s</string>
+    <string name="drivers_imported_unnamed">Imported driver</string>
+    <string name="drivers_using_bundle">Using %1$s as both the runtime and display driver.</string>
+    <string name="drivers_using_bundle_restart">Using %1$s as both the runtime and display driver. The display driver applies after DroidDeck restarts.</string>
+    <string name="drivers_deleted_bundle">Deleted %1$s (both drivers)</string>
+    <string name="drivers_deleted">Deleted %1$s</string>
+    <!-- %1$s lists the latest releases, %2$s when they were checked (e.g. 5 min ago) -->
+    <string name="drivers_release_status">Latest: %1$s · checked %2$s</string>
+    <!-- %1$s lists the latest releases, %2$s the sources that could not be reached, %3$s when they were checked -->
+    <string name="drivers_release_status_failed">Latest: %1$s · %2$s unreachable · checked %3$s</string>
+    <plurals name="drivers_ago_minutes">
+        <item quantity="one">%1$d min ago</item>
+        <item quantity="other">%1$d min ago</item>
+    </plurals>
+    <plurals name="drivers_ago_hours">
+        <item quantity="one">%1$d h ago</item>
+        <item quantity="other">%1$d h ago</item>
+    </plurals>
+    <plurals name="drivers_ago_days">
+        <item quantity="one">%1$d day ago</item>
+        <item quantity="other">%1$d days ago</item>
+    </plurals>
+    <string name="drivers_checking_sources">Checking Banners-Turnip, WinNative and DroidDeck…</string>
+    <string name="drivers_check_failed">check failed</string>
+    <!-- %1$s is the driver's name -->
+    <string name="drivers_installed_pick_either">Installed %1$s - pick it in either list to set both drivers</string>
+    <string name="drivers_installed_pick">Installed %1$s - pick it in the menu</string>
+
+    <!-- Session (SessionActivity) -->
+    <string name="session_wait_removal">Wait for runtime removal to finish</string>
+    <!-- Drawer title when the running program has no known name -->
+    <string name="session_title_game">Game</string>
+    <!-- Shown as "Auto (touchpad)" in the drawer's touch setting -->
+    <string name="session_touch_auto_touchpad">touchpad</string>
+    <!-- Shown as "Auto (direct)" in the drawer's touch setting -->
+    <string name="session_touch_auto_direct">direct</string>
+    <string name="session_swap_failed">Swap failed: %1$s</string>
+    <string name="session_desktop_paused">The desktop is paused</string>
+    <!-- %1$s is the program's name -->
+    <string name="session_named_paused">%1$s is paused</string>
+    <string name="session_program_paused">The program is paused</string>
+    <string name="session_starting_steam_desktop">Starting Steam on the desktop</string>
+    <string name="session_starting_desktop">Starting the desktop</string>
+    <!-- %1$s is the program's name -->
+    <string name="session_starting_named">Starting %1$s</string>
+    <string name="session_starting_program">Starting the program</string>
+    <string name="session_no_logs">No logs for this session.</string>
+    <string name="session_logs_archive_failed">Could not create the session log archive.</string>
+    <string name="session_logs_share_failed">Could not share the session logs.</string>
+    <string name="session_starting_session">Starting the session…</string>
+    <!-- Loading screen lines while packages download; %1$d and %2$d are megabytes -->
+    <string name="session_runtime_downloading">downloading the Linux runtime</string>
+    <string name="session_runtime_downloading_mb">downloading the Linux runtime · %1$d of %2$d MB</string>
+    <string name="session_runtime_checking">checking the Linux runtime</string>
+    <string name="session_runtime_unpacking">unpacking the Linux runtime</string>
+    <string name="session_desktop_downloading">downloading the desktop</string>
+    <string name="session_desktop_downloading_mb">downloading the desktop · %1$d of %2$d MB</string>
+    <string name="session_desktop_checking">checking the desktop</string>
+    <string name="session_desktop_unpacking">unpacking the desktop</string>
+    <string name="session_proton_downloading">downloading Proton Experimental (ARM64)</string>
+    <string name="session_proton_downloading_mb">downloading Proton Experimental (ARM64) · %1$d of %2$d MB</string>
+    <string name="session_proton_checking">checking Proton Experimental (ARM64)</string>
+    <string name="session_proton_unpacking">unpacking Proton Experimental (ARM64)</string>
+    <string name="session_runtime_catalog_unreachable">Could not reach the runtime catalog. Check the connection and press Play again.</string>
+    <string name="session_runtime_install_failed">The Linux runtime did not install. Check the runtime in Setup and press Play again.</string>
+    <string name="session_desktop_catalog_unreachable">Could not reach the desktop catalog. Check the connection and press Desktop again.</string>
+    <!-- %1$s says what went wrong -->
+    <string name="session_desktop_install_failed">The desktop did not install (%1$s). Check the connection and press Desktop again.</string>
+    <!-- %1$s is the program's name, or Steam -->
+    <string name="session_ended_named">%1$s stopped unexpectedly. Share the logs with a bug report, or try again.</string>
+    <string name="session_ended_program">The program stopped unexpectedly. Share the logs with a bug report, or try again.</string>
+    <string name="session_ended_desktop">The desktop stopped unexpectedly. Share the logs with a bug report, or try again.</string>
+    <!-- %1$d is the exit status, %2$s the log file's path -->
+    <string name="session_ended_detail">Exit status %1$d · %2$s</string>
+    <string name="session_ended_no_log">no log</string>
+    <!-- %1$d errors; %2$s, %3$s and %4$s are the Performance page and its two settings -->
+    <plurals name="session_hint_enosys">
+        <item quantity="one">The log shows %1$d \"Function not implemented\" error: proot\'s seccomp acceleration is failing a helper on this device. Try %2$s → \"%3$s\" (or \"%4$s\") and start again.</item>
+        <item quantity="other">The log shows %1$d \"Function not implemented\" errors: proot\'s seccomp acceleration is failing a helper on this device. Try %2$s → \"%3$s\" (or \"%4$s\") and start again.</item>
+    </plurals>
+</resources>
