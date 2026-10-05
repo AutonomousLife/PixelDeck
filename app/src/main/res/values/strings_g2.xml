@@ -1,0 +1,272 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Mode settings -->
+    <string name="mode_upscaler_hint">How the picture is resized to the screen; the sharpening modes sharpen where it is enlarged.</string>
+    <string name="mode_upscaler_note">The sharpening modes work only when the session is smaller than the screen; Linear, Nearest and Sharpen only work at any size. Costs a little GPU time.</string>
+    <string name="mode_decky_plugins">Plugins</string>
+    <string name="mode_decky_plugins_hint">Install a plugin ZIP for the next Steam session.</string>
+    <string name="mode_decky_plugin_downloading">Downloading…</string>
+    <string name="mode_decky_plugin_install_zip">Install from ZIP</string>
+    <!-- Store -->
+    <string name="store_cat_games">Games</string>
+    <string name="store_cat_audio_video">Audio &amp; Video</string>
+    <string name="store_cat_graphics">Graphics</string>
+    <string name="store_cat_internet">Internet</string>
+    <string name="store_cat_office">Office</string>
+    <string name="store_cat_developer">Developer</string>
+    <string name="store_cat_education">Education</string>
+    <string name="store_cat_science">Science</string>
+    <string name="store_cat_system">System</string>
+    <string name="store_cat_utilities">Utilities</string>
+    <string name="store_section_popular">Popular</string>
+    <string name="store_section_trending">Trending</string>
+    <!-- Store front-page section of recently added apps -->
+    <string name="store_section_new">New</string>
+    <!-- Store front-page section of recently updated apps -->
+    <string name="store_section_updated">Updated</string>
+    <string name="store_section_loading">loading…</string>
+    <string name="store_flatpak_setup">Flatpak setup</string>
+    <!-- %1$s is what failed (an app name or "Flatpak setup"), %2$s the error -->
+    <string name="store_problem">%1$s: %2$s</string>
+    <string name="store_updates_check_failed">Could not check Flathub for updates</string>
+    <!-- Library tiles -->
+    <!-- Subtitle of a game tile whose cover art was found -->
+    <string name="content_rom_installed">installed</string>
+    <!-- Subtitle of a game that is a folder rather than a single file -->
+    <string name="content_rom_folder">folder</string>
+    <!-- Launcher themes -->
+    <string name="theme_graphite">Graphite</string>
+    <string name="theme_graphite_detail">Graphite surfaces, with the logo\'s own orb blue for everything selected, focused or pressed.</string>
+    <string name="theme_paper">Paper on black</string>
+    <string name="theme_paper_detail">White is the primary, the icon\'s blue is the signal for rules, rings and dots.</string>
+    <string name="theme_icon_blue">Icon blue</string>
+    <string name="theme_icon_blue_detail">Black ground, white type, the blue for everything selected, focused or pressed.</string>
+    <string name="theme_electric">Electric navy</string>
+    <string name="theme_electric_detail">The blue brighter, on surfaces that lean navy instead of grey.</string>
+    <!-- PC keyboard key caps (keep them short; they label physical PC keys) -->
+    <string name="pckb_key_esc">Esc</string>
+    <string name="pckb_key_ins">Ins</string>
+    <string name="pckb_key_del">Del</string>
+    <string name="pckb_key_home">Home</string>
+    <string name="pckb_key_end">End</string>
+    <string name="pckb_key_pgup">PgUp</string>
+    <string name="pckb_key_pgdn">PgDn</string>
+    <string name="pckb_key_backspace">⌫ Backspace</string>
+    <string name="pckb_key_tab">Tab ⇥</string>
+    <string name="pckb_key_caps">Caps</string>
+    <string name="pckb_key_enter">Enter ⏎</string>
+    <string name="pckb_key_shift">⇧ Shift</string>
+    <string name="pckb_key_ctrl">Ctrl</string>
+    <string name="pckb_key_super">Super</string>
+    <string name="pckb_key_alt">Alt</string>
+    <string name="pckb_key_space">Space</string>
+    <string name="pckb_key_altgr">AltGr</string>
+    <!-- Terminal key strip on the second screen -->
+    <string name="second_key_tab">Tab</string>
+    <!-- A modifier key (%1$s, e.g. Ctrl) that is currently held -->
+    <string name="second_key_on">%1$s ✓</string>
+    <string name="second_key_ctrl_c">Ctrl+C</string>
+    <string name="second_key_ctrl_d">Ctrl+D</string>
+    <!-- Game file sync errors -->
+    <string name="game_sync_err_runtime">Install the runtime first</string>
+    <string name="game_sync_err_steam_library">Steam library is unavailable</string>
+    <string name="game_sync_err_previous_sd">Previous SD library is unavailable</string>
+    <string name="game_sync_err_game_storage">Game storage is unavailable</string>
+    <string name="game_sync_err_added_games">Added games folder is unavailable</string>
+    <string name="game_sync_err_manifests">Steam manifests are unavailable</string>
+    <!-- The systems RetroArch emulates, shown under its name -->
+    <string name="content_system_many">Many systems</string>
+    <!-- File manager -->
+    <string name="fm_drive_internal">Internal</string>
+    <string name="fm_drive_sd">SD card</string>
+    <string name="fm_drive_storage">Storage</string>
+    <string name="fm_select">Select</string>
+    <string name="fm_properties">Properties</string>
+    <string name="fm_favorite_add">Add to Favorites</string>
+    <string name="fm_favorite_remove">Remove from Favorites</string>
+    <string name="fm_rename">Rename</string>
+    <string name="fm_copy">Copy</string>
+    <string name="fm_cut">Cut</string>
+    <string name="fm_actions">Actions</string>
+    <string name="fm_favorites">Favorites</string>
+    <string name="fm_pin_current">Pin current folder</string>
+    <string name="fm_no_favorites">No favorites yet - pin a folder with its ⋮ menu to jump back here fast.</string>
+    <string name="fm_unpin_favorite">Remove from favorites</string>
+    <string name="fm_size_zero">0 bytes</string>
+    <!-- Size unit for sizes under 1 KB, shown after a number -->
+    <string name="fm_unit_bytes">bytes</string>
+    <string name="fm_prop_location">Location</string>
+    <string name="fm_prop_type">Type</string>
+    <string name="fm_prop_size">Size</string>
+    <string name="fm_prop_modified">Modified</string>
+    <string name="fm_type_folder">Folder</string>
+    <string name="fm_type_file">File</string>
+    <!-- File type in Properties; %1$s is the file extension in capitals, e.g. TXT -->
+    <string name="fm_type_ext_file">%1$s file</string>
+    <string name="fm_read_only">Read-only</string>
+    <string name="fm_read_only_hint">Stops games (and Wine) from overwriting or deleting this file.</string>
+    <string name="fm_read_only_failed">Couldn\'t change Read-only</string>
+    <string name="fm_hidden">Hidden</string>
+    <string name="fm_hidden_unsupported">This storage can\'t store the hidden flag.</string>
+    <string name="fm_hidden_hint">Marks the file hidden in Windows (Wine\'s hidden attribute).</string>
+    <string name="fm_hidden_failed">Couldn\'t change Hidden on this storage</string>
+    <string name="fm_done">Done</string>
+    <string name="fm_op_deleting">Deleting...</string>
+    <string name="fm_delete_failed">Delete failed</string>
+    <string name="fm_op_moving">Moving...</string>
+    <string name="fm_op_copying">Copying...</string>
+    <!-- %1$s is the file name -->
+    <string name="fm_op_moving_item">Moving - %1$s</string>
+    <string name="fm_op_copying_item">Copying - %1$s</string>
+    <!-- %1$d is the item number, %2$d the number of items, %3$s the file name -->
+    <string name="fm_op_moving_batch">Moving %1$d/%2$d - %3$s</string>
+    <string name="fm_op_copying_batch">Copying %1$d/%2$d - %3$s</string>
+    <!-- Paste result; %1$d items done, %2$d items failed -->
+    <string name="fm_paste_failed">%1$d done, %2$d failed</string>
+    <!-- Paste result; %1$d items done, %2$d items skipped -->
+    <string name="fm_paste_skipped">%1$d done, %2$d skipped</string>
+    <plurals name="fm_paste_moved">
+        <item quantity="one">%1$d item moved</item>
+        <item quantity="other">%1$d items moved</item>
+    </plurals>
+    <plurals name="fm_paste_copied">
+        <item quantity="one">%1$d item copied</item>
+        <item quantity="other">%1$d items copied</item>
+    </plurals>
+    <!-- %1$s is a file or folder name -->
+    <string name="fm_already_exists">\"%1$s\" already exists</string>
+    <string name="fm_op_renaming">Renaming...</string>
+    <string name="fm_rename_failed">Rename failed</string>
+    <string name="fm_op_creating_folder">Creating folder...</string>
+    <string name="fm_create_folder_failed">Could not create folder</string>
+    <string name="fm_new_folder">New Folder</string>
+    <string name="fm_folder_name">Folder name</string>
+    <string name="fm_create">Create</string>
+    <string name="fm_new_name">New name</string>
+    <string name="fm_delete_title">Delete?</string>
+    <!-- %1$s is a file or folder name -->
+    <string name="fm_delete_text">Delete \"%1$s\" permanently?</string>
+    <plurals name="fm_delete_items_title">
+        <item quantity="one">Delete %1$d item?</item>
+        <item quantity="other">Delete %1$d items?</item>
+    </plurals>
+    <string name="fm_cannot_undo">This can\'t be undone.</string>
+    <!-- After a list of the first five names in a delete confirmation -->
+    <plurals name="fm_and_more">
+        <item quantity="one">…and %1$d more</item>
+        <item quantity="other">…and %1$d more</item>
+    </plurals>
+    <!-- %1$d is the item number, %2$d the number of items, %3$s the file name -->
+    <string name="fm_op_deleting_batch">Deleting %1$d/%2$d - %3$s</string>
+    <plurals name="fm_delete_some_failed">
+        <item quantity="one">%1$d couldn\'t be deleted</item>
+        <item quantity="other">%1$d couldn\'t be deleted</item>
+    </plurals>
+    <string name="fm_conflict_merge_hint">Merge adds and replaces files inside the existing folder.</string>
+    <string name="fm_conflict_overwrite_hint">Overwrite replaces the existing file.</string>
+    <string name="fm_conflict_apply_all">Apply to all conflicts</string>
+    <string name="fm_conflict_merge">Merge</string>
+    <string name="fm_conflict_overwrite">Overwrite</string>
+    <string name="fm_conflict_keep_both">Keep both</string>
+    <string name="fm_conflict_skip">Skip</string>
+    <string name="fm_select_this_folder">Select this folder</string>
+    <string name="fm_back">Back</string>
+    <!-- %1$s is a storage name, e.g. SD card -->
+    <string name="fm_drive_not_readable">%1$s is mounted but not readable right now</string>
+    <string name="fm_list_view">List view</string>
+    <string name="fm_grid_view">Grid view</string>
+    <string name="fm_search">Search</string>
+    <string name="fm_sort">Sort</string>
+    <string name="fm_sort_name">Name</string>
+    <string name="fm_sort_date">Date modified</string>
+    <string name="fm_rows_comfortable">Comfortable rows</string>
+    <string name="fm_rows_compact">Compact rows</string>
+    <string name="fm_hide_hidden">Hide hidden files</string>
+    <string name="fm_show_hidden">Show hidden files</string>
+    <string name="fm_hide_favorites">Hide favorites</string>
+    <string name="fm_show_favorites">Show favorites</string>
+    <string name="fm_filter_folder">Filter this folder</string>
+    <!-- Free space on the storage being browsed; %1$s is a size, e.g. 12.50 GB -->
+    <string name="fm_free_space">%1$s free</string>
+    <string name="fm_selected_count">%1$d selected</string>
+    <!-- Selection bar: clear the selection -->
+    <string name="fm_select_none">None</string>
+    <!-- Selection bar: select every item -->
+    <string name="fm_select_all">All</string>
+    <string name="fm_paste">Paste</string>
+    <plurals name="fm_items">
+        <item quantity="one">%1$d item</item>
+        <item quantity="other">%1$d items</item>
+    </plurals>
+    <!-- %1$s is a file name or a number of items -->
+    <string name="fm_paste_here">Paste %1$s here</string>
+    <!-- %1$s is a file name or a number of items -->
+    <string name="fm_paste_move_here">Paste %1$s (move) here</string>
+    <string name="fm_rail_title">Files</string>
+    <string name="fm_rail_storage">STORAGE</string>
+    <!-- Rail section of shortcut folders (Downloads, ROMs, …) -->
+    <string name="fm_rail_quick">QUICK</string>
+    <string name="fm_rail_favorites">FAVORITES</string>
+    <string name="fm_rail_downloads">Downloads</string>
+    <!-- Downloads shortened to fit under an icon (about 8 characters) -->
+    <string name="fm_rail_downloads_short">Downlds</string>
+    <string name="fm_rail_roms">ROMs</string>
+    <string name="fm_rail_session_logs">Session logs</string>
+    <string name="fm_rail_pictures">Pictures</string>
+    <!-- %1$s is a folder name -->
+    <string name="fm_favorite_added">Added \"%1$s\" to Favorites</string>
+    <!-- %1$s is a folder name -->
+    <string name="fm_favorite_removed">Removed \"%1$s\" from Favorites</string>
+    <string name="fm_empty_directory">Empty directory</string>
+    <string name="fm_choose_folder">Choose a folder</string>
+    <string name="fm_choose_file">Choose a file</string>
+    <!-- On-screen controller tint colors -->
+    <string name="ctrl_tint_steam_blue">Steam blue</string>
+    <string name="ctrl_tint_sky">Sky</string>
+    <string name="ctrl_tint_white">White</string>
+    <string name="ctrl_tint_violet">Violet</string>
+    <string name="ctrl_tint_green">Green</string>
+    <string name="ctrl_tint_amber">Amber</string>
+    <string name="ctrl_tint_red">Red</string>
+    <string name="ctrl_tint_pink">Pink</string>
+    <!-- On-screen buttons that can be remapped -->
+    <string name="ctrl_button_a">A button</string>
+    <string name="ctrl_button_b">B button</string>
+    <string name="ctrl_button_x">X button</string>
+    <string name="ctrl_button_y">Y button</string>
+    <string name="ctrl_button_lb">Left bumper</string>
+    <string name="ctrl_button_rb">Right bumper</string>
+    <string name="ctrl_button_lt">Left trigger</string>
+    <string name="ctrl_button_rt">Right trigger</string>
+    <string name="ctrl_button_view">View button</string>
+    <string name="ctrl_button_menu">Menu button</string>
+    <!-- What a remapped on-screen button sends; letters and Steam are controller button names -->
+    <string name="ctrl_target_a" translatable="false">A</string>
+    <string name="ctrl_target_b" translatable="false">B</string>
+    <string name="ctrl_target_x" translatable="false">X</string>
+    <string name="ctrl_target_y" translatable="false">Y</string>
+    <string name="ctrl_target_lb" translatable="false">LB</string>
+    <string name="ctrl_target_rb" translatable="false">RB</string>
+    <string name="ctrl_target_lt" translatable="false">LT</string>
+    <string name="ctrl_target_rt" translatable="false">RT</string>
+    <string name="ctrl_target_l3" translatable="false">L3</string>
+    <string name="ctrl_target_r3" translatable="false">R3</string>
+    <string name="ctrl_target_steam" translatable="false">Steam</string>
+    <!-- Controller View button -->
+    <string name="ctrl_target_view">View</string>
+    <!-- Controller Menu button -->
+    <string name="ctrl_target_menu">Menu</string>
+    <string name="ctrl_target_up">D-pad up</string>
+    <string name="ctrl_target_down">D-pad down</string>
+    <string name="ctrl_target_left">D-pad left</string>
+    <string name="ctrl_target_right">D-pad right</string>
+    <!-- The on-screen button is not shown -->
+    <string name="ctrl_target_hidden">Hidden</string>
+    <string name="ctrl_editor_drag">Drag to move</string>
+    <string name="ctrl_editor_save">Save</string>
+    <!-- What the second screen shows during a session -->
+    <string name="second_mode_none">None</string>
+    <string name="second_mode_keyboard_trackpad">Keyboard + trackpad</string>
+    <string name="second_mode_terminal">Terminal</string>
+    <string name="second_mode_deck_controls">Deck grips + trackpads</string>
+</resources>

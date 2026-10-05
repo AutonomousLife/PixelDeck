@@ -205,9 +205,9 @@ fun ModeSettingsPage(s: ModeSettings, a: ModeSettingsActions) {
                 onPick = a.onFpsLimit,
             )
             ChoiceRow(
-                host, "upscaler", stringResource(R.string.drawer_scaling), "How the picture is resized to the screen; the sharpening modes sharpen where it is enlarged.",
+                host, "upscaler", stringResource(R.string.drawer_scaling), stringResource(R.string.mode_upscaler_hint),
                 com.droiddeck.launcher.session.SessionPrefs.upscalerChoices, s.upscaler,
-                note = "The sharpening modes work only when the session is smaller than the screen; Linear, Nearest and Sharpen only work at any size. Costs a little GPU time.",
+                note = stringResource(R.string.mode_upscaler_note),
                 onPick = a.onUpscaler,
             )
             SliderRow(
@@ -335,11 +335,11 @@ fun ModeSettingsPage(s: ModeSettings, a: ModeSettingsActions) {
                 onChange = a.onDeckyEnabled,
             )
             SettingsRow(
-                "Plugins",
-                "Install a plugin ZIP for the next Steam session.",
+                stringResource(R.string.mode_decky_plugins),
+                stringResource(R.string.mode_decky_plugins_hint),
             ) {
                 SecondaryButton(
-                    if (s.deckyStage?.startsWith("Downloading plugin binary") == true) "Downloading…" else "Install from ZIP",
+                    if (s.deckyStage?.startsWith("Downloading plugin binary") == true) stringResource(R.string.mode_decky_plugin_downloading) else stringResource(R.string.mode_decky_plugin_install_zip),
                     enabled = s.deckyInstalled != null && s.deckyStage == null && !s.deckySessionRunning,
                     onClick = a.onPickDeckyPluginZip,
                 )

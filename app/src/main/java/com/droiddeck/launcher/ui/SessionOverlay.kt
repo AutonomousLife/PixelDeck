@@ -427,7 +427,7 @@ fun SessionDrawer(open: Boolean, page: Int, controllerActive: Boolean, onPageCha
                                 ChoiceRow(host, "second-screen-mode", stringResource(R.string.drawer_second_screen_shows), null,
                                     (listOf(SecondScreenMode.NONE, SecondScreenMode.KEYBOARD_TRACKPAD, SecondScreenMode.TERMINAL) +
                                         (if (com.droiddeck.launcher.session.SessionState.deckPad) listOf(SecondScreenMode.DECK_CONTROLS) else emptyList()))
-                                        .map { it to it.label },
+                                        .map { it to stringResource(it.label) },
                                     a.secondScreenMode, chipModifier = focus.track(page, "second-screen-mode"), onPick = a.onSecondScreenMode)
                                 if (a.secondScreenDisplays.size > 1) ChoiceRow(host, "second-screen-display", stringResource(R.string.drawer_page_display), null,
                                     a.secondScreenDisplays.map { it.id to it.label }, a.selectedSecondScreenDisplay,
