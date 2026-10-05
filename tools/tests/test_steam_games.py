@@ -54,6 +54,17 @@ class ImportsTest(unittest.TestCase):
         self.assertEqual(self.folder, (self.steam / 'steamapps/common/DroidDeck-42').resolve())
         self.assertEqual(b'game', self.exe.read_bytes())
 
+    def test_explicit_non_steam_executable_is_not_promoted_to_owned_title(self):
+        self.snapshot()
+        self.game['nonSteam'] = True
+        with patch.object(imports.urllib.request, 'urlopen') as search:
+            self.assertIsNone(imports.identify(self.game))
+            search.assert_not_called()
+        games, routes = imports.route(self.steam, self.acct, [self.game])
+        self.assertEqual([self.game], games)
+        self.assertEqual({}, routes)
+        self.assertFalse((self.steam / 'steamapps/appmanifest_42.acf').exists())
+
     def test_migrates_only_unchanged_legacy_import_manifests(self):
         self.snapshot()
         imports.route(self.steam, self.acct, [self.game])

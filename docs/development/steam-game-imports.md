@@ -1,5 +1,17 @@
 # Steam game imports
 
+Games has a persistent **Add game** action, including for an empty library. Choose an
+executable and confirm its name to add one non-Steam game, or use **Import folder** to
+preview one game folder or a collection before importing. Folder imports retain Steam
+ownership matching; explicit executable entries remain non-Steam shortcuts. Advanced
+lets the user change the game folder when the inferred folder is not correct.
+
+Added entries appear in DroidDeck immediately. **Available next Steam start** means
+the executable or name differs from the last session's import listing. A running
+session cannot launch that pending entry; starting a new Steam session refreshes the
+binds and shortcuts. **Change executable** on an added game's page keeps its shortcut
+ID, so its Proton prefix and saves stay associated with the same game.
+
 Second Library still registers the selected Steam library. It now also scans Windows
 executables in its immediate game subfolders and `steamapps/common`, using the same
 importer as Added Games. Existing Steam manifests are preserved.

@@ -30,12 +30,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import kotlinx.coroutines.flow.first
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -63,12 +65,28 @@ import com.droiddeck.launcher.frontend.Library
  */
 @Composable
 internal fun GamesPage(s: FrontEndState, a: FrontEndActions, selected: String, onSelect: (String) -> Unit, modifier: Modifier) {
+    var adding by rememberSaveable { androidx.compose.runtime.mutableStateOf(false) }
+    if (adding) AddGameDialog(onDismiss = { adding = false }, onAdd = a.onAddGame, onImport = a.onImportGamesFolder)
+    Column(modifier) {
+        if (!s.shortcutPicker) {
+            Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(stringResource(R.string.content_games), fontSize = 22.sp, fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.weight(1f))
+                PrimaryButton(stringResource(R.string.games_add), enabled = !s.busy, compact = true, icon = Icons.Filled.Add) { adding = true }
+            }
+        }
+        GamesContent(s, a, selected, onSelect, Modifier.weight(1f).fillMaxWidth())
+    }
+}
+
+@Composable
+private fun GamesContent(s: FrontEndState, a: FrontEndActions, selected: String, onSelect: (String) -> Unit, modifier: Modifier) {
     val games = remember(s.steamGames) { s.steamGames.sortedByDescending { it.lastPlayed } }
     val narrow = LocalNarrowPane.current
     val current = games.firstOrNull { "app:${it.appId}" == selected } ?: games.firstOrNull()
     if (current == null) {
         Column(modifier = modifier.padding(horizontal = if (narrow) 16.dp else 22.dp, vertical = if (narrow) 12.dp else 18.dp)) {
-            Rise(0) { PageHeader(stringResource(R.string.content_games)) }
+            if (s.shortcutPicker) Rise(0) { PageHeader(stringResource(R.string.content_games)) }
             Rise(1) { Note(stringResource(if (s.shortcutPicker && s.shortcutLibraryScanning) R.string.game_shortcut_scanning else R.string.games_empty)) }
             if (!s.shortcutPicker) Rise(2) {
                 Actions { PrimaryButton(stringResource(R.string.games_play_steam), enabled = !s.busy, main = true, icon = Icons.Filled.PlayArrow, modifier = Modifier.padding(top = 12.dp), onClick = a.onPlay) }
@@ -135,8 +153,10 @@ private fun GameFileFolderActions(s: FrontEndState, a: FrontEndActions) {
 
 @Composable
 private fun GameActions(g: Library.SteamGame, s: FrontEndState, a: FrontEndActions) {
+    if (g.importPending) Note(stringResource(R.string.games_pending_steam))
     Actions {
-        PrimaryButton(stringResource(if (s.shortcutPicker) R.string.game_shortcut_choose else R.string.games_launch), enabled = !s.busy, main = true, icon = Icons.Filled.PlayArrow) { a.onSteamGame(g) }
+        PrimaryButton(stringResource(if (s.shortcutPicker) R.string.game_shortcut_choose else R.string.games_launch),
+            enabled = !s.busy && (s.shortcutPicker || !s.sessionRunning || !g.importPending), main = true, icon = Icons.Filled.PlayArrow) { a.onSteamGame(g) }
         g.gameFiles?.takeIf { it.isDirectory }?.let { dir ->
             SecondaryButton(stringResource(R.string.games_files), compact = true) { a.onBrowseFiles(dir) }
         }
@@ -146,6 +166,9 @@ private fun GameActions(g: Library.SteamGame, s: FrontEndState, a: FrontEndActio
             if (g.library == Library.ADDED) ManageSaves(g, dir, a)
         }
         if (!s.shortcutPicker) GameShortcutMenu(g, a)
+        if (!s.shortcutPicker && g.library == Library.ADDED && g.gameFiles != null) {
+            SecondaryButton(stringResource(R.string.games_change_exe), compact = true) { a.onChangeGameExe(g) }
+        }
         BusyChip(s)
     }
 }
@@ -242,10 +265,6 @@ private fun GameList(
         verticalArrangement = Arrangement.spacedBy(2.dp),
         modifier = modifier.verticalScroll(rememberScrollState()).padding(start = 12.dp, end = 10.dp, top = 16.dp, bottom = 16.dp),
     ) {
-        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(start = 6.dp, bottom = 10.dp)) {
-            Text(stringResource(R.string.content_games), fontSize = 22.sp, fontWeight = FontWeight.Bold, color = colors.onBackground, maxLines = 1)
-            Text(games.size.toString(), fontSize = 13.sp, color = colors.onSurfaceVariant, modifier = Modifier.padding(bottom = 3.dp))
-        }
         for (g in games) key(g.appId) {
             GameRow(g, g.appId == current.appId, onSelect = { onSelect(g) }, onLaunch = { onLaunch(g) })
         }

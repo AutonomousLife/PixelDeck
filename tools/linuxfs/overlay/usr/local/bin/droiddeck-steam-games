@@ -74,6 +74,8 @@ def manifest_ids(steamapps, name):
 
 
 def identify(game):
+    if game.get("nonSteam"):
+        return None
     folder = Path(game["folder"])
     steamapps = folder.parent.parent
     for library in ([steamapps] if folder.parent.name == "common" and steamapps.name == "steamapps" else []) + [folder.parent / WINNATIVE]:
@@ -344,6 +346,9 @@ def route(steam_root, acct, games):
         owned, candidates, sources = {}, {}, {}
     shortcuts, routes = [], {}
     for game in games:
+        if game.get("nonSteam"):
+            shortcuts.append(game)
+            continue
         folder = game.get("folder", "")
         appid = candidates.get(folder, candidates.get(legacy_path(folder)))
         stamp = source_stamp(game)

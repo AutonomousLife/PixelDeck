@@ -586,6 +586,18 @@ object SessionPrefs {
         prefs(context).edit().putString("addedGamesDirs", dirs.distinct().joinToString("\n")).remove("addedGamesDir").apply()
     }
 
+    fun addedGameEntries(context: Context): String = prefs(context).getString("addedGameEntries", "[]") ?: "[]"
+
+    fun setAddedGameEntries(context: Context, entries: String) {
+        prefs(context).edit().putString("addedGameEntries", entries).apply()
+    }
+
+    fun addedGameId(context: Context, folder: String): Long = prefs(context).getLong("addedId:$folder", 0L)
+
+    fun setAddedGameId(context: Context, folder: String, id: Long) {
+        prefs(context).edit().putLong("addedId:$folder", id).apply()
+    }
+
     /** Whether added games without art of their own get Steam's store art fetched for them. */
     fun addedGamesArt(context: Context): Boolean = prefs(context).getBoolean("addedGamesArt", true)
 

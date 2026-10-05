@@ -279,7 +279,7 @@ class MainActivity : ComponentActivity() {
         if (r.resultCode == RESULT_OK) InAppFilePicker.pickedPath(r.data)?.let { path ->
             SessionPrefs.setAddedGamesDirs(this, addedGamesDirs + path)
             addedGamesDirs = SessionPrefs.addedGamesDirs(this)
-        addedGamesArt = SessionPrefs.addedGamesArt(this)
+            addedGamesArt = SessionPrefs.addedGamesArt(this)
             refreshAddedGames()
             refresh()
         }
@@ -289,15 +289,23 @@ class MainActivity : ComponentActivity() {
         val folder = pendingAddedGame ?: return@registerForActivityResult
         pendingAddedGame = null
         if (r.resultCode == RESULT_OK) InAppFilePicker.pickedPath(r.data)?.let { path ->
-            SessionPrefs.setAddedGameExe(this, folder, path)
-            refreshAddedGames()
-            refresh()
+            updateGameImport { com.droiddeck.launcher.frontend.AddedGames.changeExecutable(this, folder, path) }
         }
     }
     private var addedGamesDirs by mutableStateOf<List<String>>(emptyList())
     private var addedGamesArt by mutableStateOf(true)
     @Volatile private var artFetchRunning = false
     private var addedGames by mutableStateOf<List<com.droiddeck.launcher.ui.AddedGameRow>>(emptyList())
+
+    private fun updateGameImport(action: () -> Unit) {
+        Thread({
+            val result = runCatching(action)
+            ui.post {
+                if (result.isSuccess) { refreshAddedGames(); refresh() }
+                else android.widget.Toast.makeText(this, R.string.games_import_failed, android.widget.Toast.LENGTH_LONG).show()
+            }
+        }, "game-import").start()
+    }
     private val pickRomsDir = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { r ->
         if (r.resultCode == RESULT_OK) InAppFilePicker.pickedPath(r.data)?.let { path ->
             SessionPrefs.setRomsDir(this, path)
@@ -437,6 +445,10 @@ class MainActivity : ComponentActivity() {
             return false
         }
         if (SessionState.running) {
+            if (game.importPending) {
+                android.widget.Toast.makeText(this, R.string.games_pending_steam, android.widget.Toast.LENGTH_LONG).show()
+                return false
+            }
             if (SessionState.mode != SessionService.MODE_STEAM || SessionState.stopRequested) {
                 android.widget.Toast.makeText(this, R.string.game_link_session_busy, android.widget.Toast.LENGTH_LONG).show()
                 return true
@@ -548,6 +560,17 @@ class MainActivity : ComponentActivity() {
                                 .putExtra(SessionService.EXTRA_STEAM_UI, "desktop"), steamSession = true)
                         },
                         onSteamGame = { g -> if (shortcutPicker) chooseGameShortcut(g) else launchGame(g) },
+                        onAddGame = { selection -> updateGameImport { com.droiddeck.launcher.frontend.AddedGames.add(this, selection) } },
+                        onImportGamesFolder = { folder -> updateGameImport {
+                            SessionPrefs.setAddedGamesDirs(this, SessionPrefs.addedGamesDirs(this) + folder.path)
+                            ui.post { addedGamesDirs = SessionPrefs.addedGamesDirs(this) }
+                        } },
+                        onChangeGameExe = { game ->
+                            game.gameFiles?.let { folder ->
+                                pendingAddedGame = folder.path
+                                pickAddedGameExe.launch(InAppFilePicker.buildIntent(this, listOf("exe"), getString(R.string.games_change_exe), folder.path))
+                            }
+                        },
                         onGameShortcut = { g -> com.droiddeck.launcher.frontend.GameShortcuts.pin(this, g) },
                         onExportGameFile = { g -> pickGameExport(g) },
                         onSyncGameFiles = { pickGameExport(null) },
@@ -1233,7 +1256,7 @@ class MainActivity : ComponentActivity() {
                 onPickAddedGamesDir = { pickAddedGamesDir.launch(InAppFilePicker.buildDirIntent(this, "Choose a folder of your own games", addedGamesDirs.lastOrNull())) },
                 onAddedGamesArt = { on -> SessionPrefs.setAddedGamesArt(this, on); addedGamesArt = on; if (on) refreshAddedGames() },
                 onForgetAddedGamesDir = { dir -> SessionPrefs.setAddedGamesDirs(this, addedGamesDirs - dir); addedGamesDirs = SessionPrefs.addedGamesDirs(this); refreshAddedGames(); refresh() },
-                onAddedGameExe = { folder, path -> SessionPrefs.setAddedGameExe(this, folder, path); refreshAddedGames(); refresh() },
+                onAddedGameExe = { folder, path -> updateGameImport { com.droiddeck.launcher.frontend.AddedGames.changeExecutable(this, folder, path) } },
                 onPickAddedGameExe = { folder ->
                     pendingAddedGame = folder
                     pickAddedGameExe.launch(InAppFilePicker.buildIntent(this, listOf("exe"), "Choose the game's .exe", folder))
@@ -1441,10 +1464,10 @@ class MainActivity : ComponentActivity() {
             // One update with the whole list: the wall places games by their position in it, so a
             // partial list first would shuffle every capsule when the rest arrived. LibraryCache
             // covers the wait.
-            val games = if (ready) Library.launchableGames(this) else emptyList()
+            val games = Library.launchableGames(this)
             val emus = Library.emulators(this) { id -> DesktopCatalog.installed(this, id) != null }
             val all = games.distinctBy { it.gameId }
-            if (ready) com.droiddeck.launcher.frontend.LibraryCache.save(this, all)
+            com.droiddeck.launcher.frontend.LibraryCache.save(this, all)
             ui.post {
                 if (scanGeneration == libraryScanGeneration) {
                     steamGames = all

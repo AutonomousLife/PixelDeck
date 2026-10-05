@@ -24,6 +24,7 @@ object Library {
         val hero: File? = null, val lastPlayed: Long = 0L,
         val gameFiles: File? = null, val protonPrefix: File? = null,
         val icon: File? = null,
+        val importPending: Boolean = false,
     ) {
         /** Decimal form used by Steam links and Android shortcuts, including unsigned shortcut ids. */
         val gameIdString: String get() = java.lang.Long.toUnsignedString(gameId)
@@ -147,6 +148,7 @@ object Library {
                 hero = art.hero ?: art.header, gameFiles = g.folder,
                 protonPrefix = protonPrefix(context, g.steamAppId?.toLong() ?: g.appId),
                 icon = art.icon?.takeIf { it.extension.lowercase() != "ico" },
+                importPending = AddedGames.pending(context, g),
             )
         }
     }).distinctBy { it.gameId }

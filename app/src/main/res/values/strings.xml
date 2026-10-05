@@ -41,7 +41,7 @@
     <string name="hud_fg_failed">%1$s: engine failed</string>
     <string name="hud_fg_needs_lossless">%1$s: needs Lossless Scaling</string>
     <string name="hud_fg_starting">%1$s  %2$s · starting</string>
-    <string name="added_games_import_hint">A folder with one subfolder per Windows game. Games you own on Steam use their Steam entries after Steam restarts; the rest become non-Steam shortcuts.</string>
+    <string name="added_games_import_hint">Choose one Windows game folder or a folder containing several games. Games you own on Steam use their Steam entries; the rest become non-Steam shortcuts.</string>
     <string name="second_library_import_hint">Adds a Steam library and scans it for Windows games. Owned games use their Steam entries; the rest become non-Steam shortcuts.</string>
     <string name="added_games_forget_hint">Forget removes the shortcuts next session. Files stay on disk.</string>
     <string name="game_env_title">Game environment</string>
@@ -892,6 +892,20 @@
     <string name="games_last_played">Last played %1$s</string>
     <string name="games_internal">Internal storage</string>
     <string name="games_added">Added game</string>
+    <string name="games_add">Add game</string>
+    <string name="games_choose_exe">Choose executable</string>
+    <string name="games_change_exe">Change executable</string>
+    <string name="games_import_folder">Import folder</string>
+    <string name="games_game_folder">Game folder</string>
+    <string name="games_scanning">Scanning folder…</string>
+    <string name="games_import_empty">No game executables found. Choose an executable instead.</string>
+    <string name="games_exe_outside_folder">Choose a game folder that contains the executable.</string>
+    <plurals name="games_import_count">
+        <item quantity="one">Import %1$d game</item>
+        <item quantity="other">Import %1$d games</item>
+    </plurals>
+    <string name="games_pending_steam">Available next Steam start</string>
+    <string name="games_import_failed">Couldn’t add the game. Check the selected files and folder.</string>
     <string name="gpu_auto_hint">The best pair for this GPU, kept up to date</string>
     <string name="gpu_manual_hint">Pick a pair yourself</string>
     <string name="gpu_checking">Checking for drivers…</string>

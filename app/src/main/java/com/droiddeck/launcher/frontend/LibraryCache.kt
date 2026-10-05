@@ -26,6 +26,7 @@ object LibraryCache {
                 library = o.getString("library"), gameId = o.getLong("gameId"), hero = o.file("hero"),
                 lastPlayed = o.optLong("lastPlayed"), gameFiles = o.file("gameFiles"), protonPrefix = o.file("protonPrefix"),
                 icon = o.file("icon"),
+                importPending = o.optBoolean("importPending"),
             )
         }
     }.getOrElse { e -> Log.w(TAG, "unreadable, ignored: ${e.message}"); emptyList() }
@@ -36,6 +37,7 @@ object LibraryCache {
             for (g in games) array.put(
                 JSONObject().put("appId", g.appId).put("name", g.name).put("library", g.library).put("gameId", g.gameId)
                     .put("lastPlayed", g.lastPlayed).putFile("art", g.art).putFile("hero", g.hero)
+                    .put("importPending", g.importPending)
                     .putFile("gameFiles", g.gameFiles).putFile("protonPrefix", g.protonPrefix).putFile("icon", g.icon),
             )
             val f = file(context)
