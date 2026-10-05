@@ -809,7 +809,7 @@
     <string name="ctrl_opacity">Opacidad</string>
     <string name="ctrl_percent">%1$d%%</string>
     <string name="ctrl_size">Tamaño de botones</string>
-    <string name="ctrl_size_hint">100% es el tamaño estándar</string>
+    <string name="ctrl_size_hint" formatted="false">100% es el tamaño estándar</string>
     <string name="ctrl_stick_click">Clic del stick</string>
     <string name="ctrl_stick_click_hint">Toca dos veces y mantén un stick para L3 o R3</string>
     <string name="ctrl_adaptive">Sticks adaptables</string>

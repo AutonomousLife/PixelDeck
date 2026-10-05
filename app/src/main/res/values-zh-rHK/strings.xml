@@ -801,7 +801,7 @@
     <string name="ctrl_opacity">不透明度</string>
     <string name="ctrl_percent">%1$d%%</string>
     <string name="ctrl_size">按鍵大小</string>
-    <string name="ctrl_size_hint">100% 為標準大小</string>
+    <string name="ctrl_size_hint" formatted="false">100% 為標準大小</string>
     <string name="ctrl_stick_click">按下搖桿</string>
     <string name="ctrl_stick_click_hint">在搖桿上輕按兩下並按住，即可觸發 L3 或 R3</string>
     <string name="ctrl_adaptive">自動調整搖桿</string>

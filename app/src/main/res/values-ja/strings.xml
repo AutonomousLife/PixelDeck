@@ -801,7 +801,7 @@
     <string name="ctrl_opacity">不透明度</string>
     <string name="ctrl_percent">%1$d%%</string>
     <string name="ctrl_size">ボタンのサイズ</string>
-    <string name="ctrl_size_hint">100% が標準サイズです</string>
+    <string name="ctrl_size_hint" formatted="false">100% が標準サイズです</string>
     <string name="ctrl_stick_click">スティッククリック</string>
     <string name="ctrl_stick_click_hint">スティックをダブルタップして長押しすると、L3またはR3がトリガーされます</string>
     <string name="ctrl_adaptive">アダプティブスティック</string>

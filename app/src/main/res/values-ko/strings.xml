@@ -801,7 +801,7 @@
     <string name="ctrl_opacity">불투명도</string>
     <string name="ctrl_percent">%1$d%%</string>
     <string name="ctrl_size">버튼 크기</string>
-    <string name="ctrl_size_hint">100%가 표준 크기입니다</string>
+    <string name="ctrl_size_hint" formatted="false">100%가 표준 크기입니다</string>
     <string name="ctrl_stick_click">스틱 클릭</string>
     <string name="ctrl_stick_click_hint">스틱을 두 번 탭한 후 길게 누르면 L3 또는 R3이 입력됩니다</string>
     <string name="ctrl_adaptive">적응형 스틱</string>

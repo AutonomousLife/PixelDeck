@@ -801,7 +801,7 @@
     <string name="ctrl_opacity">不透明度</string>
     <string name="ctrl_percent">%1$d%%</string>
     <string name="ctrl_size">按钮大小</string>
-    <string name="ctrl_size_hint">100% 为标准大小</string>
+    <string name="ctrl_size_hint" formatted="false">100% 为标准大小</string>
     <string name="ctrl_stick_click">摇杆按击</string>
     <string name="ctrl_stick_click_hint">双击并按住摇杆可触发 L3 或 R3</string>
     <string name="ctrl_adaptive">自适应摇杆</string>
