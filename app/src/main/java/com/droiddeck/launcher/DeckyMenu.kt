@@ -19,6 +19,8 @@ internal class DeckyMenu(private val activity: android.app.Activity, private val
     var deckyChecking by mutableStateOf(false)
     var deckyStage by mutableStateOf<String?>(null)
     var deckyPercent by mutableIntStateOf(-1)
+    /** True while the stage is the plugin's binary download (DeckyManager.downloadingBinary). */
+    var deckyDownloadingBinary by mutableStateOf(false)
     var deckySupervisor by mutableStateOf(false)
     var deckyReleaseRequest = 0
 
@@ -59,11 +61,12 @@ internal class DeckyMenu(private val activity: android.app.Activity, private val
         Thread({
             val problem = runCatching {
                 DeckyManager.installPluginZip(activity, archive) { label, value ->
-                    ui.post { deckyStage = label; deckyPercent = value }
+                    val binary = DeckyManager.downloadingBinary
+                    ui.post { deckyStage = label; deckyPercent = value; deckyDownloadingBinary = binary }
                 }
             }.getOrElse { error -> activity.getString(R.string.decky_plugin_failed, error.message ?: error.javaClass.simpleName) }
             ui.post {
-                deckyStage = null; deckyPercent = -1
+                deckyStage = null; deckyPercent = -1; deckyDownloadingBinary = false
                 val message = problem ?: activity.getString(R.string.decky_plugin_installed)
                 android.widget.Toast.makeText(activity, message, android.widget.Toast.LENGTH_LONG).show()
             }

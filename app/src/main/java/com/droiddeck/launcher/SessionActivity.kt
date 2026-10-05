@@ -436,6 +436,7 @@ class SessionActivity : ComponentActivity(), SurfaceHolder.Callback {
                 if (hud.text.isNotEmpty()) HudText(hud.text)
                 if (loading.visible) LoadingOverlay(
                     loading.step, loading.percent, loading.elapsed, loading.hint, loading.ended,
+                    topic = loading.topic, readable = loading.readable,
                     title = loadingTitle(), steam = loadingMode() == SessionService.MODE_STEAM,
                     // As the drawer's Stop does: the service stops, and a start still installing is cancelled.
                     onCancel = { SessionService.stop(this@SessionActivity); finish() },
@@ -796,7 +797,8 @@ class SessionActivity : ComponentActivity(), SurfaceHolder.Callback {
             "${SessionState.installing}.installing",
             mapOf("component" to SessionState.installing),
         )
-        loading.step = getString((if (runtime) RUNTIME_LINES else if (desktop) DESKTOP_LINES else PROTON_LINES).downloading)
+        val first = if (runtime) RUNTIME_LINES else if (desktop) DESKTOP_LINES else PROTON_LINES
+        loading.say(getString(first.downloading), first.topic, readable = true)
         loading.percent = -1
         Thread({
             var failedComponent: String? = null
@@ -837,7 +839,7 @@ class SessionActivity : ComponentActivity(), SurfaceHolder.Callback {
                     return@post
                 }
                 loading.percent = -1
-                loading.step = getString(R.string.session_starting_session)
+                loading.say(getString(R.string.session_starting_session), LoadingState.Topic.SESSION, readable = false)
                 // The surface may have come and gone while the download ran; start on the live one.
                 if (surfaceView.holder.surface?.isValid == true) surfaceCreated(surfaceView.holder)
             }
@@ -853,17 +855,32 @@ class SessionActivity : ComponentActivity(), SurfaceHolder.Callback {
         }, "session-failure-artifacts").start()
     }
 
-    /** The loading screen's lines for one package: downloading it (with and without its size), checking it, unpacking it. */
-    private class PackageLines(val downloading: Int, val downloadingMb: Int, val checking: Int, val unpacking: Int)
+    /**
+     * The loading screen's lines for one package: downloading it (with and without its size), checking it,
+     * unpacking it; the checklist [topic] they belong to, and whether the checking line is shown as it is.
+     */
+    private class PackageLines(
+        val downloading: Int, val downloadingMb: Int, val checking: Int, val unpacking: Int,
+        val topic: LoadingState.Topic, val checkingReadable: Boolean,
+    )
 
     /** Reports one package's download on the loading screen: "<what> · 332 of 791 MB", checking, unpacking. */
-    private fun progressFor(what: PackageLines, mb: Long) = com.droiddeck.launcher.runtime.LinuxRuntimeInstaller.ProgressListener { stage, p ->
-        uiHandler.post {
-            loading.percent = p
-            loading.step = when {
-                stage.startsWith("Downloading") -> if (p >= 0 && mb > 0) getString(what.downloadingMb, p * mb / 100, mb) else getString(what.downloading)
-                stage.startsWith("Verifying") -> getString(what.checking)
-                else -> getString(what.unpacking)
+    private fun progressFor(what: PackageLines, mb: Long) = object : com.droiddeck.launcher.runtime.LinuxRuntimeInstaller.ProgressListener {
+        override fun onProgress(stage: String, percent: Int) =
+            onProgress(com.droiddeck.launcher.runtime.LinuxRuntimeInstaller.Step.OTHER, stage, percent)
+
+        override fun onProgress(step: com.droiddeck.launcher.runtime.LinuxRuntimeInstaller.Step, stage: String, percent: Int) {
+            uiHandler.post {
+                loading.percent = percent
+                when (step) {
+                    com.droiddeck.launcher.runtime.LinuxRuntimeInstaller.Step.DOWNLOADING -> loading.say(
+                        if (percent >= 0 && mb > 0) getString(what.downloadingMb, percent * mb / 100, mb) else getString(what.downloading),
+                        what.topic, readable = true,
+                    )
+                    com.droiddeck.launcher.runtime.LinuxRuntimeInstaller.Step.VERIFYING ->
+                        loading.say(getString(what.checking), what.topic, what.checkingReadable)
+                    else -> loading.say(getString(what.unpacking), what.topic, readable = true)
+                }
             }
         }
     }
@@ -879,7 +896,7 @@ class SessionActivity : ComponentActivity(), SurfaceHolder.Callback {
 
     /** Null when the desktop package is in, else the loading screen's closing line. */
     private fun installDesktop(): String? {
-        uiHandler.post { loading.percent = -1; loading.step = getString(R.string.session_desktop_downloading) }
+        uiHandler.post { loading.percent = -1; loading.say(getString(DESKTOP_LINES.downloading), DESKTOP_LINES.topic, readable = true) }
         val entry = com.droiddeck.launcher.runtime.DesktopCatalog.fetch()?.firstOrNull { it.id == "desktop" }
             ?: return getString(R.string.session_desktop_catalog_unreachable)
         val problem = com.droiddeck.launcher.runtime.DesktopCatalog.install(this, entry,
@@ -889,7 +906,7 @@ class SessionActivity : ComponentActivity(), SurfaceHolder.Callback {
 
     /** Null when the ARM64 Proton is in, else why not; the session goes on either way. */
     private fun installProton(): String? {
-        uiHandler.post { loading.percent = -1; loading.step = getString(R.string.session_proton_downloading) }
+        uiHandler.post { loading.percent = -1; loading.say(getString(PROTON_LINES.downloading), PROTON_LINES.topic, readable = true) }
         val catalog = com.droiddeck.launcher.runtime.DesktopCatalog
         val entry = catalog.fetch(catalog.STEAM_SEED_URL)?.firstOrNull { it.id == catalog.PROTON_SEED_ID }
             ?: return "catalog unreachable"
@@ -2038,14 +2055,17 @@ class SessionActivity : ComponentActivity(), SurfaceHolder.Callback {
         private val RUNTIME_LINES = PackageLines(
             R.string.session_runtime_downloading, R.string.session_runtime_downloading_mb,
             R.string.session_runtime_checking, R.string.session_runtime_unpacking,
+            LoadingState.Topic.RUNTIME, checkingReadable = true,
         )
         private val DESKTOP_LINES = PackageLines(
             R.string.session_desktop_downloading, R.string.session_desktop_downloading_mb,
             R.string.session_desktop_checking, R.string.session_desktop_unpacking,
+            LoadingState.Topic.DESKTOP, checkingReadable = false,
         )
         private val PROTON_LINES = PackageLines(
             R.string.session_proton_downloading, R.string.session_proton_downloading_mb,
             R.string.session_proton_checking, R.string.session_proton_unpacking,
+            LoadingState.Topic.STEAM, checkingReadable = false,
         )
     }
 }

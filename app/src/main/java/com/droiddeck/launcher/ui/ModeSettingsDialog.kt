@@ -105,6 +105,8 @@ class ModeSettings(
     val deckyChecking: Boolean = false,
     val deckyStage: String? = null,
     val deckyPercent: Int = -1,
+    /** The stage is the Decky plugin's binary download. */
+    val deckyDownloadingBinary: Boolean = false,
     val deckyEnabled: Boolean = false,
     val deckySessionRunning: Boolean = false,
 )
@@ -339,7 +341,7 @@ fun ModeSettingsPage(s: ModeSettings, a: ModeSettingsActions) {
                 stringResource(R.string.mode_decky_plugins_hint),
             ) {
                 SecondaryButton(
-                    if (s.deckyStage?.startsWith("Downloading plugin binary") == true) stringResource(R.string.mode_decky_plugin_downloading) else stringResource(R.string.mode_decky_plugin_install_zip),
+                    if (s.deckyStage != null && s.deckyDownloadingBinary) stringResource(R.string.mode_decky_plugin_downloading) else stringResource(R.string.mode_decky_plugin_install_zip),
                     enabled = s.deckyInstalled != null && s.deckyStage == null && !s.deckySessionRunning,
                     onClick = a.onPickDeckyPluginZip,
                 )
