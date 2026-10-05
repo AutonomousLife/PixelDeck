@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import com.droiddeck.launcher.BuildConfig
+import com.droiddeck.launcher.R
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
@@ -244,7 +245,7 @@ object AppUpdates {
     fun refresh(context: Context): Catalog {
         val checkedAt = System.currentTimeMillis()
         val catalog = readPublishedCatalog(
-            JSONObject(get("$CATALOG_URL?checked=$checkedAt")),
+            JSONObject(get(context, "$CATALOG_URL?checked=$checkedAt")),
             context.packageName,
             checkedAt,
         )
@@ -358,7 +359,7 @@ object AppUpdates {
         return 0
     }
 
-    private fun get(url: String): String {
+    private fun get(context: Context, url: String): String {
         val c = URL(url).openConnection() as HttpURLConnection
         c.connectTimeout = 15_000
         c.readTimeout = 20_000
@@ -367,7 +368,7 @@ object AppUpdates {
         c.setRequestProperty("Cache-Control", "no-cache")
         try {
             val code = c.responseCode
-            if (code != 200) throw IOException("The update catalog answered HTTP $code")
+            if (code != 200) throw IOException(context.getString(R.string.appupd_http, code))
             return c.inputStream.bufferedReader().use { it.readText() }
         } finally {
             c.disconnect()
