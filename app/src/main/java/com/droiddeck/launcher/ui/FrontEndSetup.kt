@@ -71,6 +71,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.droiddeck.launcher.core.AppLanguage
 import com.droiddeck.launcher.core.DeviceSupport
 import com.droiddeck.launcher.core.PhantomProcessLimit
 import com.droiddeck.launcher.core.PhantomProcessStatus
@@ -314,6 +315,7 @@ internal fun SetupPanel(
                     }
                     3 -> {
                         SettingsGroup(stringResource(R.string.setup_launcher)) {
+                            LanguageRow(host, s.language, a.onLanguage)
                             SettingsRow(stringResource(R.string.setup_theme), stringResource(R.string.setup_theme_hint)) {
                                 Box {
                                     ValueChip(Themes.byId(s.theme).label, host.open == "theme") { host.open = if (host.open == "theme") null else "theme" }
@@ -462,5 +464,34 @@ private fun SettingCard(label: String, value: String, id: String, modifier: Modi
     ) {
         Text(label, fontSize = 13.sp, color = if (hot) pal.signal else colors.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Text(value, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = colors.onBackground, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+/**
+ * The app's language: "System default" (what Android uses, named in brackets) or one of the
+ * languages the app ships, each in its own script. Steam is set to the same language when it starts.
+ */
+@Composable
+private fun LanguageRow(host: MenuHost, chosen: String, onPick: (String) -> Unit) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val systemName = AppLanguage.system(context).let { it.getDisplayName(it) }
+    val systemLabel = stringResource(R.string.setup_language_system, systemName)
+    SettingsRow(stringResource(R.string.setup_language), stringResource(R.string.setup_language_hint)) {
+        Box {
+            ValueChip(if (chosen == AppLanguage.SYSTEM) stringResource(R.string.setup_language_system_short) else AppLanguage.nativeName(chosen),
+                host.open == "language") { host.open = if (host.open == "language") null else "language" }
+            AnchoredMenu(host.open == "language", onDismiss = { if (host.open == "language") host.open = null }, title = stringResource(R.string.setup_language)) { firstItemFocus ->
+                MenuItem(systemLabel, checked = chosen == AppLanguage.SYSTEM, focusRequester = firstItemFocus) {
+                    host.open = null
+                    onPick(AppLanguage.SYSTEM)
+                }
+                AppLanguage.supported.forEach { tag ->
+                    MenuItem(AppLanguage.nativeName(tag), checked = chosen == tag) {
+                        host.open = null
+                        onPick(tag)
+                    }
+                }
+            }
+        }
     }
 }

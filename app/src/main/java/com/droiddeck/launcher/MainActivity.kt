@@ -81,6 +81,11 @@ import com.droiddeck.launcher.input.SecondScreenDisplays
  * the store, downloads, settings - is the client's own job once [SessionActivity] has it on screen.
  */
 class MainActivity : ComponentActivity() {
+    override fun attachBaseContext(newBase: android.content.Context) {
+        super.attachBaseContext(newBase)
+        com.droiddeck.launcher.core.AppLanguage.applyTo(this, newBase)
+    }
+
     private val ui = Handler(Looper.getMainLooper())
     private val drivers = DriverMenus(this, ui)
     private val components = ComponentsMenu(this, ui)
@@ -518,6 +523,7 @@ class MainActivity : ComponentActivity() {
                         lossless = lossless,
                         pageKey = sm?.let { "settings:$it" } ?: if (showPerformance) "performance" else if (showProtons) "protons" else if (showComponents) "components" else if (showMapping) "controller-mapping" else null,
                         theme = theme,
+                        language = com.droiddeck.launcher.core.AppLanguage.chosen(this),
                         isHomeApp = homeAppSelected,
                         homeScreenEnabled = homeScreenEnabled,
                         defaultHomeLabel = defaultHomeLabel,
@@ -647,6 +653,13 @@ class MainActivity : ComponentActivity() {
                         },
                         onPageBack = { settingsMode = null; showPerformance = false; showProtons = false; showComponents = false; showMapping = false },
                         onTheme = { id -> SessionPrefs.setTheme(this, id); theme = id },
+                        onLanguage = { tag ->
+                            if (tag != com.droiddeck.launcher.core.AppLanguage.chosen(this)) {
+                                com.droiddeck.launcher.core.AppLanguage.setChosen(this, tag)
+                                // Redrawn in the new language; Setup's page and tab are saved state.
+                                recreate()
+                            }
+                        },
                         onLauncherFullscreen = { on ->
                             SessionPrefs.setLauncherFullscreen(this, on)
                             launcherFullscreen = on
