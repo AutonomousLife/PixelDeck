@@ -4,6 +4,7 @@ import android.content.ClipData
 import android.content.Context
 import android.content.Intent
 import androidx.core.content.FileProvider
+import com.droiddeck.launcher.R
 import com.droiddeck.launcher.core.LogRedactor
 import com.droiddeck.launcher.runtime.LinuxRuntime
 import java.io.File
@@ -75,6 +76,6 @@ object SessionLogShare {
             .putExtra(Intent.EXTRA_SUBJECT, zip.nameWithoutExtension)
             .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         send.clipData = ClipData.newRawUri(zip.name, uri)
-        return Intent.createChooser(send, "Share session logs").addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        return Intent.createChooser(send, context.getString(R.string.logshare_chooser)).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
 }
