@@ -558,7 +558,7 @@
     <string name="setup_gpu_unsupported_detail">Steam에는 Adreno 드라이버가 필요합니다. %1$s에서 화면이 검게 변할 수 있습니다.</string>
     <string name="setup_runtime">Linux 런타임</string>
     <string name="setup_runtime_progress">%1$s · %2$d%%</string>
-    <string name="setup_runtime_missing">설치되지 않음 · 약 3GB, 첫 게임 실행 시 설치</string>
+    <string name="setup_runtime_missing">설치되지 않음 · 약 3GB, 처음 \"Steam 실행\" 시 설치</string>
     <string name="setup_installed">설치됨</string>
     <string name="setup_runtime_update">%1$s · 업데이트 있음</string>
     <string name="setup_runtime_current">%1$s · 최신 버전</string>
@@ -575,7 +575,7 @@
     <string name="setup_account">Steam 계정</string>
     <string name="setup_signed_in_offline">%1$s(으)로 로그인됨 · 오프라인 모드</string>
     <string name="setup_signed_in">%1$s(으)로 로그인됨</string>
-    <string name="setup_sign_in">Play를 탭하여 Steam에 로그인</string>
+    <string name="setup_sign_in">\"Steam 실행\"을 눌러 Steam에 로그인</string>
     <string name="setup_tools">도구</string>
     <string name="setup_controller">컨트롤러</string>
     <string name="setup_controller_unavailable">컨트롤러 설정을 사용할 수 없습니다.</string>
@@ -881,7 +881,7 @@
     <string name="games_never_played">플레이한 적 없음</string>
     <string name="games_runtime_busy_percent">런타임 사용 중 · %1$d%%</string>
     <string name="games_runtime_busy">런타임 사용 중</string>
-    <string name="games_runtime_first_play">첫 게임 실행 시 런타임 설치</string>
+    <string name="games_runtime_first_play">처음 \"Steam 실행\" 시 런타임 설치</string>
     <string name="games_runtime_update">런타임 업데이트 있음</string>
     <string name="games_runtime_ready">● 런타임 준비됨</string>
     <string name="games_last_played">마지막 실행 %1$s</string>
@@ -1232,8 +1232,8 @@
     <string name="session_proton_downloading_mb">Proton Experimental(ARM64) 다운로드 중 · %1$d/%2$d MB</string>
     <string name="session_proton_checking">Proton Experimental(ARM64) 확인 중</string>
     <string name="session_proton_unpacking">Proton Experimental(ARM64) 압축 해제 중</string>
-    <string name="session_runtime_catalog_unreachable">런타임 카탈로그에 연결할 수 없습니다. 연결을 확인한 후 Play를 다시 누르세요.</string>
-    <string name="session_runtime_install_failed">Linux 런타임이 설치되지 않았습니다. \"설정\"에서 런타임을 확인한 후 Play를 다시 누르세요.</string>
+    <string name="session_runtime_catalog_unreachable">런타임 카탈로그에 연결할 수 없습니다. 연결을 확인한 후 \"Steam 실행\"을 다시 누르세요.</string>
+    <string name="session_runtime_install_failed">Linux 런타임이 설치되지 않았습니다. \"설정\"에서 런타임을 확인한 후 \"Steam 실행\"을 다시 누르세요.</string>
     <string name="session_desktop_catalog_unreachable">데스크톱 카탈로그에 연결할 수 없습니다. 연결을 확인한 후 \"데스크톱\"을 다시 누르세요.</string>
 
     <!-- %1$s says what went wrong -->
@@ -1257,7 +1257,7 @@
 
     <!-- Mode settings -->
     <string name="mode_upscaler_hint">화면에 맞게 이미지 크기를 조정하는 방식입니다. 샤프닝 모드는 확대되는 부분을 선명하게 만듭니다.</string>
-    <string name="mode_upscaler_note">샤프닝 모드는 세션이 화면보다 작을 때만 작동합니다. Linear, Nearest 및 Sharpen only는 크기와 관계없이 작동합니다. GPU 시간을 약간 사용합니다.</string>
+    <string name="mode_upscaler_note">샤프닝 모드는 세션이 화면보다 작을 때만 작동합니다. 선형, 최근접, 샤프닝 전용은 크기와 관계없이 작동합니다. GPU 시간을 약간 사용합니다.</string>
     <string name="mode_decky_plugins">플러그인</string>
     <string name="mode_decky_plugins_hint">다음 Steam 세션에 사용할 플러그인 ZIP을 설치합니다.</string>
     <string name="mode_decky_plugin_downloading">다운로드 중…</string>
@@ -1835,11 +1835,11 @@
     <string name="sprefs_shape_auto">자동(16:9 이상)</string>
     <string name="sprefs_shape_exact">화면에 맞춤</string>
     <string name="sprefs_shape_wide">항상 16:9</string>
-    <string name="sprefs_upscaler_linear">Linear</string>
-    <string name="sprefs_upscaler_nearest">Nearest</string>
+    <string name="sprefs_upscaler_linear">선형</string>
+    <string name="sprefs_upscaler_nearest">최근접</string>
     <string name="sprefs_upscaler_fsr_fit">AMD FSR 1(맞춤)</string>
     <string name="sprefs_upscaler_gsr_quality">Snapdragon GSR(품질)</string>
-    <string name="sprefs_upscaler_sharpen">Sharpen only</string>
+    <string name="sprefs_upscaler_sharpen">샤프닝 전용</string>
     <string name="sprefs_lod_bias_auto">자동(스케일링에 맞춤)</string>
 
     <!-- Screen effect Looks: preset names and the line under the row -->
@@ -1919,48 +1919,95 @@
     <!-- Follow-up -->
 
     <!-- Stands in for the GPU name when the device does not report one -->
+    <string name="gpu_this_gpu">이 GPU</string>
+    <string name="phantom_title_on">하위 프로세스 제한 켜짐</string>
+    <string name="phantom_title_unset">하위 프로세스 제한 설정되지 않음</string>
+    <string name="phantom_title_unreadable">하위 프로세스 제한을 확인할 수 없음</string>
+    <string name="phantom_title_off">하위 프로세스 제한 꺼짐</string>
+    <string name="phantom_title_not_required">하위 프로세스 제한 해당 없음</string>
 
     <!-- %1$s is the sentence saying how to turn the limit off on this device -->
+    <string name="phantom_instructions_fix">%1$s 이 방법을 사용할 수 없으면 이 기기를 ADB가 설치된 PC에 연결하고 아래 명령을 실행하세요. 그런 다음 여기로 돌아와 다시 확인하세요.</string>
+    <string name="phantom_instructions_off">Steam 세션을 시작할 수 있습니다.</string>
+    <string name="phantom_instructions_not_applicable">이 Android 버전에서는 이 제한을 사용하지 않습니다.</string>
+    <string name="phantom_fix_toggle">개발자 옵션에서 “하위 프로세스 제한 사용 중지”를 켜고, 이후에도 개발자 옵션을 켜 둔 상태로 유지하세요.</string>
+    <string name="phantom_fix_no_toggle">이 Android 버전에는 해당 스위치가 없습니다. 무선 디버깅을 사용하여 이 기기에서 변경하세요.</string>
+    <string name="upd_block_no_apk">이 빌드에는 이 DroidDeck 복사본용 다운로드가 없습니다.</string>
 
     <!-- %1$d is the offered build's versionCode, %2$d the installed one's -->
+    <string name="upd_block_version_code">versionCode %1$d이(가) 설치된 %2$d보다 낮아 Android에서 이 빌드 위에 설치하지 않습니다.</string>
+    <string name="upd_fail_downgrade">Android에서는 최신 버전 위에 이전 버전을 설치할 수 없습니다. 채널이 따라잡을 때까지 현재 빌드를 유지하세요.</string>
+    <string name="upd_fail_signature">이 DroidDeck 복사본은 다른 키로 서명되어 있어(로컬 빌드일 수 있음) Android에서 덮어쓰기 업데이트를 할 수 없습니다.</string>
+    <string name="upd_fail_storage">업데이트에 필요한 저장 공간이 부족합니다.</string>
+    <string name="upd_fail_aborted">업데이트가 취소되었습니다.</string>
 
     <!-- %1$s is Android's own (English) installer message -->
+    <string name="upd_fail_with_message">업데이트가 설치되지 않았습니다: %1$s</string>
+    <string name="upd_fail_generic">업데이트가 설치되지 않았습니다.</string>
 
     <!-- A save zip's layout; %1$s is the app it comes from (GameHub, Winlator) -->
+    <string name="saves_layout_zip">%1$s zip</string>
 
     <!-- A save zip whose layout is not known -->
+    <string name="saves_zip">zip</string>
 
     <!-- %1$s is the game's name -->
+    <string name="saves_not_launched">%1$s을(를) 아직 실행한 적이 없습니다</string>
+    <string name="saves_none_found">%1$s의 저장 파일을 찾을 수 없습니다</string>
 
     <!-- %1$s is the zip's file name -->
+    <string name="saves_not_save_zip">%1$s에 drive_c 폴더가 없으므로 GameHub 또는 Winlator 저장 데이터 zip이 아닙니다</string>
 
     <!-- %1$s is a folder path -->
+    <string name="gstore_cannot_create">%1$s에 폴더를 만들 수 없음</string>
+    <string name="gstore_cannot_write">%1$s에 쓸 수 없음</string>
 
     <!-- %1$s is a folder path, %2$s the system's error -->
+    <string name="gstore_cannot_write_detail">%1$s에 쓸 수 없음(%2$s)</string>
+    <string name="gfiles_folder_unavailable">폴더를 사용할 수 없습니다</string>
 
     <!-- %1$s is a file name -->
+    <string name="gfiles_name_taken">다른 파일이 이미 %1$s 이름을 사용하고 있습니다</string>
+    <string name="gfiles_art_unavailable">이미지 폴더를 사용할 수 없습니다</string>
+    <string name="gfiles_unrelated_inventory">폴더에 관련 없는 동기화 목록이 있습니다</string>
 
     <!-- %1$s is a file name -->
+    <string name="gfiles_remove_failed">%1$s을(를) 제거할 수 없습니다</string>
+    <string name="gfiles_outside_folder">파일이 내보내기 폴더 밖을 가리킵니다</string>
 
     <!-- A FEX build whose DLL carries no version name -->
+    <string name="cmgr_fex_unnamed">FEX(버전 이름 없는 빌드)</string>
 
     <!-- %1$s is a package file name -->
+    <string name="cmgr_no_profile">%1$s에 profile.json이 없음</string>
 
     <!-- %1$s is a package file name, %2$s the type its profile.json gives -->
+    <string name="cmgr_not_component_package">%1$s은(는) Linux 구성 요소 패키지가 아닙니다(유형 %2$s)</string>
 
     <!-- A storage volume in the second-library menu; %1$s is its name, %2$s its free space, like 12.3 GB -->
+    <string name="gstore_volume_free">%1$s · %2$s 사용 가능</string>
 
     <!-- The second-library setting's value when it is automatic (short form of mode_storage_auto) -->
+    <string name="mode_storage_auto_short">자동</string>
 
     <!-- %1$s is the technical reason, kept in English -->
+    <string name="appupd_catalog_rejected">업데이트 카탈로그가 검사를 통과하지 못했습니다(%1$s)</string>
 
     <!-- Label of the copied ADB command on the clipboard -->
+    <string name="main_adb_clip_label">DroidDeck 하위 프로세스 설정</string>
 
     <!-- Signed in, but the Steam client recorded no account name -->
+    <string name="setup_signed_in_offline_unnamed">로그인됨 · 오프라인 모드</string>
+    <string name="setup_signed_in_unnamed">로그인됨</string>
 
     <!-- Small uppercase tags beside a driver's name: where it came from -->
+    <string name="driver_tag_bundled">내장</string>
+    <string name="driver_tag_downloaded">다운로드됨</string>
+    <string name="driver_tag_imported">가져옴</string>
 
     <!-- The driver is one half of a bundle that sets both drivers -->
+    <string name="driver_tag_bundle">ANDROID + LINUX</string>
 
     <!-- %1$s is the limit's state (e.g. Child-process limit is on), %2$s what to do, %3$s the ADB command -->
+    <string name="phantom_warning">%1$s. %2$s\n\n%3$s</string>
 </resources>

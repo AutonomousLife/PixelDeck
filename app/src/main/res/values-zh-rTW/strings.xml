@@ -497,7 +497,7 @@
     <string name="drawer_deband_strength">去色帶強度</string>
     <string name="drawer_brightness">亮度</string>
     <string name="drawer_contrast">對比</string>
-    <string name="drawer_gamma">Gamma</string>
+    <string name="drawer_gamma">伽瑪值</string>
     <string name="drawer_saturation">飽和度</string>
     <string name="drawer_fxaa">FXAA（邊緣平滑）</string>
     <string name="drawer_toon">卡通描邊</string>
@@ -558,7 +558,7 @@
     <string name="setup_gpu_unsupported_detail">Steam 需要 Adreno 驅動程式；%1$s 可能出現黑畫面。</string>
     <string name="setup_runtime">Linux 執行環境</string>
     <string name="setup_runtime_progress">%1$s · %2$d%%</string>
-    <string name="setup_runtime_missing">未安裝 · 約 3 GB，首次執行遊戲時安裝</string>
+    <string name="setup_runtime_missing">未安裝 · 約 3 GB，首次點擊「執行」時安裝</string>
     <string name="setup_installed">已安裝</string>
     <string name="setup_runtime_update">%1$s · 有可用更新</string>
     <string name="setup_runtime_current">%1$s · 已是最新</string>
@@ -881,7 +881,7 @@
     <string name="games_never_played">從未執行</string>
     <string name="games_runtime_busy_percent">執行環境繁忙 · %1$d%%</string>
     <string name="games_runtime_busy">執行環境繁忙</string>
-    <string name="games_runtime_first_play">首次執行遊戲時安裝執行環境</string>
+    <string name="games_runtime_first_play">首次點擊「執行」時安裝執行環境</string>
     <string name="games_runtime_update">執行環境有可用更新</string>
     <string name="games_runtime_ready">● 執行環境已就緒</string>
     <string name="games_last_played">上次執行 %1$s</string>
@@ -1919,48 +1919,95 @@
     <!-- Follow-up -->
 
     <!-- Stands in for the GPU name when the device does not report one -->
+    <string name="gpu_this_gpu">此 GPU</string>
+    <string name="phantom_title_on">子處理程序限制已開啟</string>
+    <string name="phantom_title_unset">子處理程序限制未設定</string>
+    <string name="phantom_title_unreadable">無法檢查子處理程序限制</string>
+    <string name="phantom_title_off">子處理程序限制已關閉</string>
+    <string name="phantom_title_not_required">不需要變更子處理程序限制</string>
 
     <!-- %1$s is the sentence saying how to turn the limit off on this device -->
+    <string name="phantom_instructions_fix">%1$s 如果無法這麼做，請將此裝置連接到裝有 ADB 的電腦並執行下方指令，然後返回這裡重新檢查。</string>
+    <string name="phantom_instructions_off">可以啟動 Steam 工作階段。</string>
+    <string name="phantom_instructions_not_applicable">此 Android 版本不使用這項限制。</string>
+    <string name="phantom_fix_toggle">在開發人員選項中開啟「停用子處理程序限制」，之後請保持開發人員選項開啟。</string>
+    <string name="phantom_fix_no_toggle">此 Android 版本沒有這個開關。請使用無線偵錯，直接在此裝置上變更。</string>
+    <string name="upd_block_no_apk">此組建版本沒有適用於此 DroidDeck 複本的下載檔案。</string>
 
     <!-- %1$d is the offered build's versionCode, %2$d the installed one's -->
+    <string name="upd_block_version_code">Android 不會以此版本覆蓋目前的組建，因為它的 versionCode %1$d 低於已安裝的 %2$d。</string>
+    <string name="upd_fail_downgrade">Android 不會以舊版本覆蓋新版本。請先留在此組建版本，等更新頻道趕上。</string>
+    <string name="upd_fail_signature">此 DroidDeck 複本的簽章不同（是本機組建的嗎？），因此 Android 無法直接覆寫更新。</string>
+    <string name="upd_fail_storage">可用空間不足，無法更新。</string>
+    <string name="upd_fail_aborted">已取消更新。</string>
 
     <!-- %1$s is Android's own (English) installer message -->
+    <string name="upd_fail_with_message">未能安裝更新：%1$s</string>
+    <string name="upd_fail_generic">未能安裝更新。</string>
 
     <!-- A save zip's layout; %1$s is the app it comes from (GameHub, Winlator) -->
+    <string name="saves_layout_zip">%1$s 壓縮檔</string>
 
     <!-- A save zip whose layout is not known -->
+    <string name="saves_zip">壓縮檔</string>
 
     <!-- %1$s is the game's name -->
+    <string name="saves_not_launched">%1$s 尚未啟動過</string>
+    <string name="saves_none_found">找不到 %1$s 的存檔</string>
 
     <!-- %1$s is the zip's file name -->
+    <string name="saves_not_save_zip">%1$s 中沒有 drive_c 資料夾，因此不是 GameHub 或 Winlator 存檔壓縮檔</string>
 
     <!-- %1$s is a folder path -->
+    <string name="gstore_cannot_create">無法在 %1$s 中建立資料夾</string>
+    <string name="gstore_cannot_write">無法寫入 %1$s</string>
 
     <!-- %1$s is a folder path, %2$s the system's error -->
+    <string name="gstore_cannot_write_detail">無法寫入 %1$s（%2$s）</string>
+    <string name="gfiles_folder_unavailable">無法使用資料夾</string>
 
     <!-- %1$s is a file name -->
+    <string name="gfiles_name_taken">已有其他檔案使用 %1$s</string>
+    <string name="gfiles_art_unavailable">無法使用圖片資料夾</string>
+    <string name="gfiles_unrelated_inventory">資料夾中有不相關的同步清單</string>
 
     <!-- %1$s is a file name -->
+    <string name="gfiles_remove_failed">無法移除 %1$s</string>
+    <string name="gfiles_outside_folder">檔案位於匯出資料夾之外</string>
 
     <!-- A FEX build whose DLL carries no version name -->
+    <string name="cmgr_fex_unnamed">FEX（未標示版本名稱的組建）</string>
 
     <!-- %1$s is a package file name -->
+    <string name="cmgr_no_profile">%1$s 中沒有 profile.json</string>
 
     <!-- %1$s is a package file name, %2$s the type its profile.json gives -->
+    <string name="cmgr_not_component_package">%1$s 不是 Linux 元件套件（類型 %2$s）</string>
 
     <!-- A storage volume in the second-library menu; %1$s is its name, %2$s its free space, like 12.3 GB -->
+    <string name="gstore_volume_free">%1$s · 可用 %2$s</string>
 
     <!-- The second-library setting's value when it is automatic (short form of mode_storage_auto) -->
+    <string name="mode_storage_auto_short">自動</string>
 
     <!-- %1$s is the technical reason, kept in English -->
+    <string name="appupd_catalog_rejected">更新目錄未通過檢查（%1$s）</string>
 
     <!-- Label of the copied ADB command on the clipboard -->
+    <string name="main_adb_clip_label">DroidDeck 子處理程序設定</string>
 
     <!-- Signed in, but the Steam client recorded no account name -->
+    <string name="setup_signed_in_offline_unnamed">已登入 · 離線模式</string>
+    <string name="setup_signed_in_unnamed">已登入</string>
 
     <!-- Small uppercase tags beside a driver's name: where it came from -->
+    <string name="driver_tag_bundled">內建</string>
+    <string name="driver_tag_downloaded">已下載</string>
+    <string name="driver_tag_imported">已匯入</string>
 
     <!-- The driver is one half of a bundle that sets both drivers -->
+    <string name="driver_tag_bundle">ANDROID + LINUX</string>
 
     <!-- %1$s is the limit's state (e.g. Child-process limit is on), %2$s what to do, %3$s the ADB command -->
+    <string name="phantom_warning">%1$s。%2$s\n\n%3$s</string>
 </resources>

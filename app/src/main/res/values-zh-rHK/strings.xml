@@ -558,7 +558,7 @@
     <string name="setup_gpu_unsupported_detail">Steam 需要 Adreno 驅動程式；%1$s 可能會出現黑畫面</string>
     <string name="setup_runtime">Linux 運行環境</string>
     <string name="setup_runtime_progress">%1$s · %2$d%%</string>
-    <string name="setup_runtime_missing">未安裝 · 約 3 GB，首次按 Play 時安裝</string>
+    <string name="setup_runtime_missing">未安裝 · 約 3 GB，首次開啟 Steam 時安裝</string>
     <string name="setup_installed">已安裝</string>
     <string name="setup_runtime_update">%1$s · 有可用更新</string>
     <string name="setup_runtime_current">%1$s · 已是最新</string>
@@ -575,7 +575,7 @@
     <string name="setup_account">Steam 帳戶</string>
     <string name="setup_signed_in_offline">已登入為 %1$s · 離線模式</string>
     <string name="setup_signed_in">已登入為 %1$s</string>
-    <string name="setup_sign_in">按 Play 並登入 Steam</string>
+    <string name="setup_sign_in">按「開啟 Steam」並登入 Steam</string>
     <string name="setup_tools">工具</string>
     <string name="setup_controller">控制器</string>
     <string name="setup_controller_unavailable">控制器設定不可用。</string>
@@ -688,12 +688,12 @@
     <string name="upd_available">有可用更新</string>
     <string name="upd_blocked_status">無法安裝</string>
     <string name="upd_switch">可以切換</string>
-    <string name="upd_ahead_status">比 Stable 更新</string>
-    <string name="upd_ahead_headline">你的版本比 Stable 更新</string>
-    <string name="upd_ahead_detail">此版本比最新的 Stable 更新。下一個 Stable 版本發佈後，你會轉到 Stable。</string>
+    <string name="upd_ahead_status">比穩定版更新</string>
+    <string name="upd_ahead_headline">你的版本比穩定版更新</string>
+    <string name="upd_ahead_detail">此版本比最新的穩定版更新。下一個穩定版發佈後，你會轉到穩定版。</string>
     <string name="upd_gone_status">測試已結束</string>
     <string name="upd_gone_headline">此測試已結束</string>
-    <string name="upd_gone_detail">其修正已合併或放棄。請改用 Preview 以取得最新修正。</string>
+    <string name="upd_gone_detail">其修正已合併或放棄。請改用預覽版以取得最新修正。</string>
     <string name="upd_current_status">已是最新</string>
     <string name="upd_current_headline">你已安裝最新的 %1$s</string>
     <string name="upd_dot_ago">· %1$s</string>
@@ -701,21 +701,21 @@
     <string name="upd_stage">%1$s…</string>
     <string name="upd_update_button">更新 %1$s</string>
     <string name="upd_install_button">安裝 %1$s</string>
-    <string name="upd_install_anyway">仍要安裝 Stable %1$s</string>
-    <string name="upd_follow_preview">改用 Preview</string>
+    <string name="upd_install_anyway">仍要安裝穩定版 %1$s</string>
+    <string name="upd_follow_preview">改用預覽版</string>
     <string name="upd_stop_session">請先停止正在執行的會話再更新。</string>
     <string name="upd_less">收起</string>
     <string name="upd_more">更多</string>
     <string name="upd_new_stable">DroidDeck %1$s</string>
-    <string name="upd_new_preview">新的 Preview 版本</string>
+    <string name="upd_new_preview">新的預覽版</string>
     <string name="upd_new_test">PR #%1$d 測試版本</string>
     <string name="upd_mb">%1$d MB</string>
     <string name="upd_channel">更新頻道</string>
-    <string name="upd_stable">Stable</string>
+    <string name="upd_stable">穩定版</string>
     <string name="upd_stable_hint">經過測試的版本，適合大多數人</string>
     <string name="upd_version_ago">%1$s · %2$s</string>
-    <string name="upd_preview">Preview</string>
-    <string name="upd_preview_hint">最新修正，比 Stable 更早推出</string>
+    <string name="upd_preview">預覽版</string>
+    <string name="upd_preview_hint">最新修正，比穩定版更早推出</string>
     <string name="upd_preview_current">已是最新</string>
     <string name="upd_tests">測試版本</string>
     <string name="upd_tests_hint">在正式發佈前試用修正</string>
@@ -881,7 +881,7 @@
     <string name="games_never_played">從未玩過</string>
     <string name="games_runtime_busy_percent">運行環境繁忙 · %1$d%%</string>
     <string name="games_runtime_busy">運行環境繁忙</string>
-    <string name="games_runtime_first_play">首次按 Play 時安裝運行環境</string>
+    <string name="games_runtime_first_play">首次開啟 Steam 時安裝運行環境</string>
     <string name="games_runtime_update">運行環境有可用更新</string>
     <string name="games_runtime_ready">● 運行環境已就緒</string>
     <string name="games_last_played">上次遊玩：%1$s</string>
@@ -1232,8 +1232,8 @@
     <string name="session_proton_downloading_mb">正在下載 Proton Experimental (ARM64) · %1$d/%2$d MB</string>
     <string name="session_proton_checking">正在檢查 Proton Experimental (ARM64)</string>
     <string name="session_proton_unpacking">正在解壓 Proton Experimental (ARM64)</string>
-    <string name="session_runtime_catalog_unreachable">無法連接運行環境目錄。請檢查網絡連線，然後再按 Play。</string>
-    <string name="session_runtime_install_failed">Linux 運行環境未能安裝。請在「設定」中檢查運行環境，然後再按 Play。</string>
+    <string name="session_runtime_catalog_unreachable">無法連接運行環境目錄。請檢查網絡連線，然後再按「開啟 Steam」。</string>
+    <string name="session_runtime_install_failed">Linux 運行環境未能安裝。請在「設定」中檢查運行環境，然後再按「開啟 Steam」。</string>
     <string name="session_desktop_catalog_unreachable">無法連接桌面目錄。請檢查網絡連線，然後再按「桌面」。</string>
 
     <!-- %1$s says what went wrong -->
@@ -1919,48 +1919,95 @@
     <!-- Follow-up -->
 
     <!-- Stands in for the GPU name when the device does not report one -->
+    <string name="gpu_this_gpu">此 GPU</string>
+    <string name="phantom_title_on">子進程限制已開啟</string>
+    <string name="phantom_title_unset">子進程限制未設定</string>
+    <string name="phantom_title_unreadable">無法檢查子進程限制</string>
+    <string name="phantom_title_off">子進程限制已關閉</string>
+    <string name="phantom_title_not_required">無需理會子進程限制</string>
 
     <!-- %1$s is the sentence saying how to turn the limit off on this device -->
+    <string name="phantom_instructions_fix">%1$s 如無法這樣做，請將此裝置連接到已安裝 ADB 的電腦，並執行以下指令，然後返回這裡再檢查一次。</string>
+    <string name="phantom_instructions_off">可以啟動 Steam 會話。</string>
+    <string name="phantom_instructions_not_applicable">此 Android 版本不使用此限制。</string>
+    <string name="phantom_fix_toggle">在開發人員選項中開啟「停用子進程限制」，之後請保持開發人員選項開啟。</string>
+    <string name="phantom_fix_no_toggle">此 Android 版本沒有此開關。請使用無線偵錯，直接在此裝置上更改。</string>
+    <string name="upd_block_no_apk">此版本沒有適用於此 DroidDeck 版本的下載。</string>
 
     <!-- %1$d is the offered build's versionCode, %2$d the installed one's -->
+    <string name="upd_block_version_code">Android 不會以此版本覆蓋安裝，因為其 versionCode %1$d 低於已安裝的 %2$d。</string>
+    <string name="upd_fail_downgrade">Android 不會以舊版本覆蓋較新的版本。請繼續使用此版本，直至該頻道追上為止。</string>
+    <string name="upd_fail_signature">此 DroidDeck 的簽署方式不同（可能是本機自行建置的版本？），因此 Android 無法直接更新。</string>
+    <string name="upd_fail_storage">可用空間不足，無法更新。</string>
+    <string name="upd_fail_aborted">已取消更新。</string>
 
     <!-- %1$s is Android's own (English) installer message -->
+    <string name="upd_fail_with_message">更新未能安裝：%1$s</string>
+    <string name="upd_fail_generic">更新未能安裝。</string>
 
     <!-- A save zip's layout; %1$s is the app it comes from (GameHub, Winlator) -->
+    <string name="saves_layout_zip">%1$s zip</string>
 
     <!-- A save zip whose layout is not known -->
+    <string name="saves_zip">zip</string>
 
     <!-- %1$s is the game's name -->
+    <string name="saves_not_launched">%1$s 尚未啟動過</string>
+    <string name="saves_none_found">找不到 %1$s 的存檔</string>
 
     <!-- %1$s is the zip's file name -->
+    <string name="saves_not_save_zip">%1$s 沒有 drive_c 資料夾，因此不是 GameHub 或 Winlator 存檔 zip</string>
 
     <!-- %1$s is a folder path -->
+    <string name="gstore_cannot_create">無法在 %1$s 中建立資料夾</string>
+    <string name="gstore_cannot_write">無法寫入 %1$s</string>
 
     <!-- %1$s is a folder path, %2$s the system's error -->
+    <string name="gstore_cannot_write_detail">無法寫入 %1$s（%2$s）</string>
+    <string name="gfiles_folder_unavailable">無法使用資料夾</string>
 
     <!-- %1$s is a file name -->
+    <string name="gfiles_name_taken">另一個檔案已使用 %1$s</string>
+    <string name="gfiles_art_unavailable">無法使用圖片資料夾</string>
+    <string name="gfiles_unrelated_inventory">資料夾中有不相關的同步清單</string>
 
     <!-- %1$s is a file name -->
+    <string name="gfiles_remove_failed">無法移除 %1$s</string>
+    <string name="gfiles_outside_folder">檔案超出匯出資料夾範圍</string>
 
     <!-- A FEX build whose DLL carries no version name -->
+    <string name="cmgr_fex_unnamed">FEX（沒有版本名稱的版本）</string>
 
     <!-- %1$s is a package file name -->
+    <string name="cmgr_no_profile">%1$s 中沒有 profile.json</string>
 
     <!-- %1$s is a package file name, %2$s the type its profile.json gives -->
+    <string name="cmgr_not_component_package">%1$s 不是 Linux 元件套件（類型為 %2$s）</string>
 
     <!-- A storage volume in the second-library menu; %1$s is its name, %2$s its free space, like 12.3 GB -->
+    <string name="gstore_volume_free">%1$s · 可用 %2$s</string>
 
     <!-- The second-library setting's value when it is automatic (short form of mode_storage_auto) -->
+    <string name="mode_storage_auto_short">自動</string>
 
     <!-- %1$s is the technical reason, kept in English -->
+    <string name="appupd_catalog_rejected">更新目錄未通過檢查（%1$s）</string>
 
     <!-- Label of the copied ADB command on the clipboard -->
+    <string name="main_adb_clip_label">DroidDeck 子進程設定</string>
 
     <!-- Signed in, but the Steam client recorded no account name -->
+    <string name="setup_signed_in_offline_unnamed">已登入 · 離線模式</string>
+    <string name="setup_signed_in_unnamed">已登入</string>
 
     <!-- Small uppercase tags beside a driver's name: where it came from -->
+    <string name="driver_tag_bundled">內置</string>
+    <string name="driver_tag_downloaded">已下載</string>
+    <string name="driver_tag_imported">已匯入</string>
 
     <!-- The driver is one half of a bundle that sets both drivers -->
+    <string name="driver_tag_bundle">ANDROID + LINUX</string>
 
     <!-- %1$s is the limit's state (e.g. Child-process limit is on), %2$s what to do, %3$s the ADB command -->
+    <string name="phantom_warning">%1$s。%2$s\n\n%3$s</string>
 </resources>

@@ -1919,48 +1919,95 @@
     <!-- Follow-up -->
 
     <!-- Stands in for the GPU name when the device does not report one -->
+    <string name="gpu_this_gpu">此 GPU</string>
+    <string name="phantom_title_on">子进程限制已开启</string>
+    <string name="phantom_title_unset">子进程限制未设置</string>
+    <string name="phantom_title_unreadable">无法检查子进程限制</string>
+    <string name="phantom_title_off">子进程限制已关闭</string>
+    <string name="phantom_title_not_required">无需更改子进程限制</string>
 
     <!-- %1$s is the sentence saying how to turn the limit off on this device -->
+    <string name="phantom_instructions_fix">%1$s 如果无法做到，请将此设备连接到装有 ADB 的电脑并运行下方命令，然后返回此处重新检查。</string>
+    <string name="phantom_instructions_off">可以启动 Steam 会话了。</string>
+    <string name="phantom_instructions_not_applicable">此 Android 版本不使用该限制。</string>
+    <string name="phantom_fix_toggle">在开发者选项中打开“禁用子进程限制”，之后请保持开发者选项开启。</string>
+    <string name="phantom_fix_no_toggle">此 Android 版本没有该开关。请使用无线调试在此设备上更改。</string>
+    <string name="upd_block_no_apk">此构建没有适用于此 DroidDeck 副本的下载。</string>
 
     <!-- %1$d is the offered build's versionCode, %2$d the installed one's -->
+    <string name="upd_block_version_code">Android 不会用它覆盖此构建，因为它的 versionCode %1$d 低于已安装的 %2$d。</string>
+    <string name="upd_fail_downgrade">Android 不会用旧版本覆盖新版本。请继续使用此构建，直到该通道的版本跟上。</string>
+    <string name="upd_fail_signature">此 DroidDeck 副本的签名不同（可能是本地构建？），因此 Android 无法就地更新。</string>
+    <string name="upd_fail_storage">可用空间不足，无法更新。</string>
+    <string name="upd_fail_aborted">更新已取消。</string>
 
     <!-- %1$s is Android's own (English) installer message -->
+    <string name="upd_fail_with_message">更新未能安装：%1$s</string>
+    <string name="upd_fail_generic">更新未能安装。</string>
 
     <!-- A save zip's layout; %1$s is the app it comes from (GameHub, Winlator) -->
+    <string name="saves_layout_zip">%1$s zip 包</string>
 
     <!-- A save zip whose layout is not known -->
+    <string name="saves_zip">zip 包</string>
 
     <!-- %1$s is the game's name -->
+    <string name="saves_not_launched">%1$s 尚未启动过</string>
+    <string name="saves_none_found">未找到 %1$s 的存档文件</string>
 
     <!-- %1$s is the zip's file name -->
+    <string name="saves_not_save_zip">%1$s 中没有 drive_c 文件夹，因此不是 GameHub 或 Winlator 存档 zip 包</string>
 
     <!-- %1$s is a folder path -->
+    <string name="gstore_cannot_create">无法在 %1$s 中创建文件夹</string>
+    <string name="gstore_cannot_write">无法写入 %1$s</string>
 
     <!-- %1$s is a folder path, %2$s the system's error -->
+    <string name="gstore_cannot_write_detail">无法写入 %1$s（%2$s）</string>
+    <string name="gfiles_folder_unavailable">文件夹不可用</string>
 
     <!-- %1$s is a file name -->
+    <string name="gfiles_name_taken">已有另一个文件使用 %1$s</string>
+    <string name="gfiles_art_unavailable">美术图文件夹不可用</string>
+    <string name="gfiles_unrelated_inventory">文件夹中有无关的同步清单</string>
 
     <!-- %1$s is a file name -->
+    <string name="gfiles_remove_failed">无法移除 %1$s</string>
+    <string name="gfiles_outside_folder">文件超出了导出文件夹</string>
 
     <!-- A FEX build whose DLL carries no version name -->
+    <string name="cmgr_fex_unnamed">FEX（无版本名称的构建）</string>
 
     <!-- %1$s is a package file name -->
+    <string name="cmgr_no_profile">%1$s 中没有 profile.json</string>
 
     <!-- %1$s is a package file name, %2$s the type its profile.json gives -->
+    <string name="cmgr_not_component_package">%1$s 不是 Linux 组件包（类型为 %2$s）</string>
 
     <!-- A storage volume in the second-library menu; %1$s is its name, %2$s its free space, like 12.3 GB -->
+    <string name="gstore_volume_free">%1$s · 可用 %2$s</string>
 
     <!-- The second-library setting's value when it is automatic (short form of mode_storage_auto) -->
+    <string name="mode_storage_auto_short">自动</string>
 
     <!-- %1$s is the technical reason, kept in English -->
+    <string name="appupd_catalog_rejected">更新目录未通过校验（%1$s）</string>
 
     <!-- Label of the copied ADB command on the clipboard -->
+    <string name="main_adb_clip_label">DroidDeck 子进程设置</string>
 
     <!-- Signed in, but the Steam client recorded no account name -->
+    <string name="setup_signed_in_offline_unnamed">已登录 · 离线模式</string>
+    <string name="setup_signed_in_unnamed">已登录</string>
 
     <!-- Small uppercase tags beside a driver's name: where it came from -->
+    <string name="driver_tag_bundled">内置</string>
+    <string name="driver_tag_downloaded">已下载</string>
+    <string name="driver_tag_imported">已导入</string>
 
     <!-- The driver is one half of a bundle that sets both drivers -->
+    <string name="driver_tag_bundle">Android + Linux</string>
 
     <!-- %1$s is the limit's state (e.g. Child-process limit is on), %2$s what to do, %3$s the ADB command -->
+    <string name="phantom_warning">%1$s。%2$s\n\n%3$s</string>
 </resources>

@@ -688,12 +688,12 @@
     <string name="upd_available">アップデートあり</string>
     <string name="upd_blocked_status">インストールできません</string>
     <string name="upd_switch">切り替え可能</string>
-    <string name="upd_ahead_status">Stableより先行</string>
-    <string name="upd_ahead_headline">Stableより先行しています</string>
-    <string name="upd_ahead_detail">このビルドは最新のStableより新しいバージョンです。次のStableリリースでStableに移行します。</string>
+    <string name="upd_ahead_status">安定版より先行</string>
+    <string name="upd_ahead_headline">安定版より先行しています</string>
+    <string name="upd_ahead_detail">このビルドは最新の安定版より新しいバージョンです。次の安定版リリースで安定版に移行します。</string>
     <string name="upd_gone_status">テスト終了</string>
     <string name="upd_gone_headline">このテストは終了しました</string>
-    <string name="upd_gone_detail">この修正はマージされたか、破棄されました。最新の修正についてはPreviewをフォローしてください。</string>
+    <string name="upd_gone_detail">この修正はマージされたか、破棄されました。最新の修正はプレビュー版で入手できます。</string>
     <string name="upd_current_status">最新です</string>
     <string name="upd_current_headline">最新の%1$sを使用しています</string>
     <string name="upd_dot_ago">· %1$s</string>
@@ -701,21 +701,21 @@
     <string name="upd_stage">%1$s…</string>
     <string name="upd_update_button">更新%1$s</string>
     <string name="upd_install_button">インストール%1$s</string>
-    <string name="upd_install_anyway">それでもStable %1$sをインストール</string>
-    <string name="upd_follow_preview">Previewをフォロー</string>
+    <string name="upd_install_anyway">それでも安定版 %1$sをインストール</string>
+    <string name="upd_follow_preview">プレビュー版に切り替え</string>
     <string name="upd_stop_session">実行中のセッションを停止してから更新してください。</string>
     <string name="upd_less">折りたたむ</string>
     <string name="upd_more">もっと見る</string>
     <string name="upd_new_stable">DroidDeck %1$s</string>
-    <string name="upd_new_preview">新しいPreviewビルド</string>
+    <string name="upd_new_preview">新しいプレビュー版ビルド</string>
     <string name="upd_new_test">PR #%1$d テストビルド</string>
     <string name="upd_mb">%1$d MB</string>
     <string name="upd_channel">アップデートチャンネル</string>
-    <string name="upd_stable">Stable</string>
+    <string name="upd_stable">安定版</string>
     <string name="upd_stable_hint">テスト済みのバージョン、ほとんどの人に推奨</string>
     <string name="upd_version_ago">%1$s · %2$s</string>
-    <string name="upd_preview">Preview</string>
-    <string name="upd_preview_hint">Stable前の最新の修正</string>
+    <string name="upd_preview">プレビュー版</string>
+    <string name="upd_preview_hint">安定版より先に最新の修正</string>
     <string name="upd_preview_current">最新です</string>
     <string name="upd_tests">テストビルド</string>
     <string name="upd_tests_hint">正式リリース前に特定の修正を試す</string>
@@ -1323,7 +1323,7 @@
     <string name="pckb_key_ctrl">Ctrl</string>
     <string name="pckb_key_super">Super</string>
     <string name="pckb_key_alt">Alt</string>
-    <string name="pckb_key_space">Space</string>
+    <string name="pckb_key_space">スペース</string>
     <string name="pckb_key_altgr">AltGr</string>
 
     <!-- Terminal key strip on the second screen -->
@@ -1919,48 +1919,95 @@
     <!-- Follow-up -->
 
     <!-- Stands in for the GPU name when the device does not report one -->
+    <string name="gpu_this_gpu">このGPU</string>
+    <string name="phantom_title_on">子プロセス制限がオンです</string>
+    <string name="phantom_title_unset">子プロセス制限が未設定です</string>
+    <string name="phantom_title_unreadable">子プロセス制限を確認できませんでした</string>
+    <string name="phantom_title_off">子プロセス制限はオフです</string>
+    <string name="phantom_title_not_required">子プロセス制限の変更は不要です</string>
 
     <!-- %1$s is the sentence saying how to turn the limit off on this device -->
+    <string name="phantom_instructions_fix">%1$s それができない場合は、このデバイスをADBが使えるPCに接続し、以下のコマンドを実行してください。その後ここに戻って再確認してください。</string>
+    <string name="phantom_instructions_off">Steamセッションを開始できます。</string>
+    <string name="phantom_instructions_not_applicable">このAndroidバージョンではこの制限は使用されません。</string>
+    <string name="phantom_fix_toggle">開発者向けオプションで「子プロセス制限を無効にする」をオンにし、その後も開発者向けオプションをオンのままにしてください。</string>
+    <string name="phantom_fix_no_toggle">このAndroidバージョンにはこのスイッチがありません。ワイヤレスデバッグを使って、このデバイスから変更してください。</string>
+    <string name="upd_block_no_apk">このビルドには、このDroidDeckコピー用のダウンロードがありません。</string>
 
     <!-- %1$d is the offered build's versionCode, %2$d the installed one's -->
+    <string name="upd_block_version_code">このビルドのversionCode %1$dはインストール済みの%2$dより小さいため、Androidは上書きインストールしません。</string>
+    <string name="upd_fail_downgrade">Androidは新しいバージョンの上に古いバージョンをインストールしません。チャンネルが追いつくまで、このビルドを使い続けてください。</string>
+    <string name="upd_fail_signature">このDroidDeckコピーは署名が異なる（ローカルビルド？）ため、Androidは上書き更新しません。</string>
+    <string name="upd_fail_storage">アップデートに必要な空き容量が不足しています。</string>
+    <string name="upd_fail_aborted">アップデートはキャンセルされました。</string>
 
     <!-- %1$s is Android's own (English) installer message -->
+    <string name="upd_fail_with_message">アップデートをインストールできませんでした：%1$s</string>
+    <string name="upd_fail_generic">アップデートをインストールできませんでした。</string>
 
     <!-- A save zip's layout; %1$s is the app it comes from (GameHub, Winlator) -->
+    <string name="saves_layout_zip">%1$s zip</string>
 
     <!-- A save zip whose layout is not known -->
+    <string name="saves_zip">zip</string>
 
     <!-- %1$s is the game's name -->
+    <string name="saves_not_launched">%1$sはまだ起動されていません</string>
+    <string name="saves_none_found">%1$sのセーブファイルが見つかりません</string>
 
     <!-- %1$s is the zip's file name -->
+    <string name="saves_not_save_zip">%1$sにはdrive_cフォルダがないため、GameHubまたはWinlatorのセーブデータzipではありません</string>
 
     <!-- %1$s is a folder path -->
+    <string name="gstore_cannot_create">%1$sにフォルダを作成できません</string>
+    <string name="gstore_cannot_write">%1$sに書き込めません</string>
 
     <!-- %1$s is a folder path, %2$s the system's error -->
+    <string name="gstore_cannot_write_detail">%1$sに書き込めません（%2$s）</string>
+    <string name="gfiles_folder_unavailable">フォルダを利用できません</string>
 
     <!-- %1$s is a file name -->
+    <string name="gfiles_name_taken">%1$sは別のファイルがすでに使用しています</string>
+    <string name="gfiles_art_unavailable">画像フォルダを利用できません</string>
+    <string name="gfiles_unrelated_inventory">フォルダに無関係な同期情報があります</string>
 
     <!-- %1$s is a file name -->
+    <string name="gfiles_remove_failed">%1$sを削除できませんでした</string>
+    <string name="gfiles_outside_folder">ファイルがエクスポートフォルダの外を指しています</string>
 
     <!-- A FEX build whose DLL carries no version name -->
+    <string name="cmgr_fex_unnamed">FEX（バージョン名のないビルド）</string>
 
     <!-- %1$s is a package file name -->
+    <string name="cmgr_no_profile">%1$sにprofile.jsonがありません</string>
 
     <!-- %1$s is a package file name, %2$s the type its profile.json gives -->
+    <string name="cmgr_not_component_package">%1$sはLinuxコンポーネントパッケージではありません（タイプ %2$s）</string>
 
     <!-- A storage volume in the second-library menu; %1$s is its name, %2$s its free space, like 12.3 GB -->
+    <string name="gstore_volume_free">%1$s · 空き %2$s</string>
 
     <!-- The second-library setting's value when it is automatic (short form of mode_storage_auto) -->
+    <string name="mode_storage_auto_short">自動</string>
 
     <!-- %1$s is the technical reason, kept in English -->
+    <string name="appupd_catalog_rejected">アップデートカタログの検証に失敗しました（%1$s）</string>
 
     <!-- Label of the copied ADB command on the clipboard -->
+    <string name="main_adb_clip_label">DroidDeckの子プロセス設定</string>
 
     <!-- Signed in, but the Steam client recorded no account name -->
+    <string name="setup_signed_in_offline_unnamed">ログイン中 · オフラインモード</string>
+    <string name="setup_signed_in_unnamed">ログイン中</string>
 
     <!-- Small uppercase tags beside a driver's name: where it came from -->
+    <string name="driver_tag_bundled">同梱</string>
+    <string name="driver_tag_downloaded">ダウンロード</string>
+    <string name="driver_tag_imported">インポート</string>
 
     <!-- The driver is one half of a bundle that sets both drivers -->
+    <string name="driver_tag_bundle">ANDROID + LINUX</string>
 
     <!-- %1$s is the limit's state (e.g. Child-process limit is on), %2$s what to do, %3$s the ADB command -->
+    <string name="phantom_warning">%1$s。%2$s\n\n%3$s</string>
 </resources>

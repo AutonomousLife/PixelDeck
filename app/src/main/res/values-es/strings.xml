@@ -23,7 +23,7 @@
     <string name="frame_gen_off">Desactivada</string>
     <string name="frame_gen_winfg">Win-FG %1$d×</string>
     <string name="frame_gen_lsfg">LSFG %1$d×</string>
-    <string name="frame_gen_lsfg_adaptive">LSFG Adaptive %1$d</string>
+    <string name="frame_gen_lsfg_adaptive">LSFG adaptativo %1$d</string>
     <string name="lsfg_needs_steam">Requiere Lossless Scaling en Steam</string>
     <string name="lsfg_needs_install">Instala Lossless Scaling en Steam o importa Lossless.dll</string>
     <string name="lsfg_import">Importar Lossless.dll…</string>
@@ -1957,48 +1957,95 @@
     <!-- Follow-up -->
 
     <!-- Stands in for the GPU name when the device does not report one -->
+    <string name="gpu_this_gpu">esta GPU</string>
+    <string name="phantom_title_on">El límite de procesos secundarios está activado</string>
+    <string name="phantom_title_unset">El límite de procesos secundarios no está definido</string>
+    <string name="phantom_title_unreadable">No se pudo comprobar el límite de procesos secundarios</string>
+    <string name="phantom_title_off">El límite de procesos secundarios está desactivado</string>
+    <string name="phantom_title_not_required">El límite de procesos secundarios no es necesario</string>
 
     <!-- %1$s is the sentence saying how to turn the limit off on this device -->
+    <string name="phantom_instructions_fix">%1$s Si no es posible, conecta este dispositivo a un ordenador con ADB y ejecuta el comando de abajo. Después vuelve aquí y comprueba de nuevo.</string>
+    <string name="phantom_instructions_off">Ya se pueden iniciar sesiones de Steam.</string>
+    <string name="phantom_instructions_not_applicable">Esta versión de Android no usa este límite.</string>
+    <string name="phantom_fix_toggle">Activa “Desactivar restricciones de procesos secundarios” en Opciones de desarrollador y deja activadas las Opciones de desarrollador después.</string>
+    <string name="phantom_fix_no_toggle">Esta versión de Android no tiene un interruptor para ello. Usa la Depuración inalámbrica para cambiarlo desde este dispositivo.</string>
+    <string name="upd_block_no_apk">Esta versión no tiene descarga para esta copia de DroidDeck.</string>
 
     <!-- %1$d is the offered build's versionCode, %2$d the installed one's -->
+    <string name="upd_block_version_code">Android no la instalará sobre esta versión porque su versionCode %1$d es inferior al %2$d instalado.</string>
+    <string name="upd_fail_downgrade">Android no instala una versión anterior sobre una más reciente. Quédate en esta versión hasta que el canal la alcance.</string>
+    <string name="upd_fail_signature">Esta copia de DroidDeck está firmada de otro modo (¿una compilación local?), así que Android no la actualizará sobre la instalada.</string>
+    <string name="upd_fail_storage">No hay espacio libre suficiente para la actualización.</string>
+    <string name="upd_fail_aborted">Se canceló la actualización.</string>
 
     <!-- %1$s is Android's own (English) installer message -->
+    <string name="upd_fail_with_message">La actualización no se instaló: %1$s</string>
+    <string name="upd_fail_generic">La actualización no se instaló.</string>
 
     <!-- A save zip's layout; %1$s is the app it comes from (GameHub, Winlator) -->
+    <string name="saves_layout_zip">zip de %1$s</string>
 
     <!-- A save zip whose layout is not known -->
+    <string name="saves_zip">zip</string>
 
     <!-- %1$s is the game's name -->
+    <string name="saves_not_launched">%1$s aún no se ha iniciado</string>
+    <string name="saves_none_found">No se encontraron partidas guardadas de %1$s</string>
 
     <!-- %1$s is the zip's file name -->
+    <string name="saves_not_save_zip">%1$s no tiene carpeta drive_c, así que no es un zip de partidas de GameHub ni de Winlator</string>
 
     <!-- %1$s is a folder path -->
+    <string name="gstore_cannot_create">no se pueden crear carpetas en %1$s</string>
+    <string name="gstore_cannot_write">no se puede escribir en %1$s</string>
 
     <!-- %1$s is a folder path, %2$s the system's error -->
+    <string name="gstore_cannot_write_detail">no se puede escribir en %1$s (%2$s)</string>
+    <string name="gfiles_folder_unavailable">La carpeta no está disponible</string>
 
     <!-- %1$s is a file name -->
+    <string name="gfiles_name_taken">Otro archivo ya usa %1$s</string>
+    <string name="gfiles_art_unavailable">La carpeta de imágenes no está disponible</string>
+    <string name="gfiles_unrelated_inventory">La carpeta tiene un inventario de sincronización ajeno</string>
 
     <!-- %1$s is a file name -->
+    <string name="gfiles_remove_failed">No se pudo quitar %1$s</string>
+    <string name="gfiles_outside_folder">El archivo sale de la carpeta de exportación</string>
 
     <!-- A FEX build whose DLL carries no version name -->
+    <string name="cmgr_fex_unnamed">FEX (compilación sin nombre de versión)</string>
 
     <!-- %1$s is a package file name -->
+    <string name="cmgr_no_profile">no hay profile.json en %1$s</string>
 
     <!-- %1$s is a package file name, %2$s the type its profile.json gives -->
+    <string name="cmgr_not_component_package">%1$s no es un paquete de componentes de Linux (tipo %2$s)</string>
 
     <!-- A storage volume in the second-library menu; %1$s is its name, %2$s its free space, like 12.3 GB -->
+    <string name="gstore_volume_free">%1$s · %2$s libres</string>
 
     <!-- The second-library setting's value when it is automatic (short form of mode_storage_auto) -->
+    <string name="mode_storage_auto_short">Automático</string>
 
     <!-- %1$s is the technical reason, kept in English -->
+    <string name="appupd_catalog_rejected">El catálogo de actualizaciones no superó las comprobaciones (%1$s)</string>
 
     <!-- Label of the copied ADB command on the clipboard -->
+    <string name="main_adb_clip_label">Ajuste de procesos secundarios de DroidDeck</string>
 
     <!-- Signed in, but the Steam client recorded no account name -->
+    <string name="setup_signed_in_offline_unnamed">Sesión iniciada · modo sin conexión</string>
+    <string name="setup_signed_in_unnamed">Sesión iniciada</string>
 
     <!-- Small uppercase tags beside a driver's name: where it came from -->
+    <string name="driver_tag_bundled">INCLUIDO</string>
+    <string name="driver_tag_downloaded">DESCARGADO</string>
+    <string name="driver_tag_imported">IMPORTADO</string>
 
     <!-- The driver is one half of a bundle that sets both drivers -->
+    <string name="driver_tag_bundle">ANDROID + LINUX</string>
 
     <!-- %1$s is the limit's state (e.g. Child-process limit is on), %2$s what to do, %3$s the ADB command -->
+    <string name="phantom_warning">%1$s. %2$s\n\n%3$s</string>
 </resources>
