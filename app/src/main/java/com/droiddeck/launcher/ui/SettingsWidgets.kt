@@ -151,6 +151,7 @@ internal fun Modifier.bumpers(onPrevious: () -> Unit, onNext: () -> Unit): Modif
  * [bumpers]); the keycaps are for touch and stay out of the d-pad's path. The row scrolls sideways
  * when a narrow page cannot fit every tab.
  */
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 internal fun TabStrip(
     tabs: List<String>, selected: Int, onSelect: (Int) -> Unit,
@@ -177,10 +178,14 @@ internal fun TabStrip(
                 val hot = src.collectIsFocusedAsState().value || src.collectIsHoveredAsState().value
                 val pick = { onSelect(i) }
                 val tabShape = RoundedCornerShape(9.dp)
+                // The chosen tab scrolls fully into view, so one at the end is not left cut off.
+                val reveal = remember { androidx.compose.foundation.relocation.BringIntoViewRequester() }
+                if (on) LaunchedEffect(Unit) { reveal.bringIntoView() }
                 Text(
                     label, fontSize = 14.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.SemiBold, maxLines = 1,
                     color = if (on) pal.onSignal else if (hot) colors.onBackground else colors.onSurfaceVariant,
                     modifier = Modifier
+                        .bringIntoViewRequester(reveal)
                         .then(focusRequesters?.getOrNull(i)?.let { Modifier.focusRequester(it) } ?: Modifier)
                         .clip(tabShape)
                         .background(if (on) pal.signal else if (hot) pal.signal.copy(alpha = 0.16f) else Color.Transparent)
