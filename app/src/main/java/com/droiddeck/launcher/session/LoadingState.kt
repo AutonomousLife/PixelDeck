@@ -19,7 +19,7 @@ import java.nio.charset.StandardCharsets
  */
 class LoadingState(context: Context, steam: Boolean = true) {
     var visible by mutableStateOf(true)
-    var step by mutableStateOf("Starting the session…")
+    var step by mutableStateOf(context.getString(com.droiddeck.launcher.R.string.loadstate_starting))
     var percent by mutableIntStateOf(-1)
     var elapsed by mutableStateOf("")
     var hint by mutableStateOf("")
@@ -31,12 +31,13 @@ class LoadingState(context: Context, steam: Boolean = true) {
     private val hints = context.resources.getStringArray(
         if (steam) com.droiddeck.launcher.R.array.loading_hints else com.droiddeck.launcher.R.array.loading_hints_desktop,
     )
+    private val res = context.resources
     private val startedAt = SystemClock.elapsedRealtime()
 
     /** Once a second: the clock and the hint. */
     fun tick() {
         val seconds = (SystemClock.elapsedRealtime() - startedAt) / 1000
-        elapsed = String.format(java.util.Locale.US, "%d:%02d elapsed · still working", seconds / 60, seconds % 60)
+        elapsed = res.getString(com.droiddeck.launcher.R.string.loadstate_elapsed, seconds / 60, seconds % 60)
         hint = hints[((seconds / 8) % hints.size).toInt()]
     }
 
@@ -101,9 +102,9 @@ class LoadingState(context: Context, steam: Boolean = true) {
         }
         return when {
             downloadAt > stepAt && downloadPercent >= 0 ->
-                Pair("Downloading the Steam client update · $downloadPercent%", downloadPercent)
+                Pair(context.getString(com.droiddeck.launcher.R.string.loadstate_steam_update, downloadPercent), downloadPercent)
             clientDownloadAt == stepAt && clientDownload != null ->
-                Pair("Downloading the Steam client · $clientDownload", clientPercent)
+                Pair(context.getString(com.droiddeck.launcher.R.string.loadstate_steam_client, clientDownload), clientPercent)
             stepText != null -> Pair(stepText, -1)
             else -> null
         }

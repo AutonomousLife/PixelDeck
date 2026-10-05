@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Session loading screen -->
+    <string name="loadstate_starting">Starting the session…</string>
+    <!-- %1$d minutes, %2$02d seconds since the session started -->
+    <string name="loadstate_elapsed">%1$d:%2$02d elapsed · still working</string>
+    <string name="loadstate_steam_update">Downloading the Steam client update · %1$d%%</string>
+    <!-- %1$s is the client's own download progress, as it prints it -->
+    <string name="loadstate_steam_client">Downloading the Steam client · %1$s</string>
+
+    <!-- Installing GE-Proton / proton-cachyos (%1$s is the tool's name, %2$s its release tag) -->
+    <string name="pextra_busy">A compatibility tool install is already running</string>
+    <string name="pextra_stop_session">Stop the active session before installing compatibility tools</string>
+    <string name="pextra_no_release">Could not find an ARM64 release for %1$s</string>
+    <string name="pextra_no_space">At least 4 GB free plus the download size is required to install %1$s</string>
+    <string name="pextra_downloading">Downloading %1$s %2$s</string>
+    <string name="pextra_retrying">Retrying download · attempt %1$d of %2$d</string>
+    <string name="pextra_interrupted">Download interrupted</string>
+    <string name="pextra_download_failed">Download failed; the partial file is kept so a retry can resume</string>
+    <string name="pextra_too_big">Download exceeded the release size and was deleted</string>
+    <string name="pextra_incomplete">Download was incomplete; the partial file is kept for a resumable retry</string>
+    <string name="pextra_verifying">Verifying download</string>
+    <string name="pextra_checksum_unreadable">Could not read the release checksum; try again</string>
+    <string name="pextra_no_checksum">%1$s %2$s publishes no checksum; nothing was installed</string>
+    <string name="pextra_checksum_mismatch">Checksum mismatch; the download was deleted</string>
+    <string name="pextra_session_started">A session started during the download; stop it before installing compatibility tools</string>
+    <string name="pextra_installing">Installing %1$s</string>
+    <!-- %2$d is the installer's exit status -->
+    <string name="pextra_install_failed">%1$s installation failed (exit %2$d)</string>
+    <string name="pextra_could_not_install">Could not install %1$s</string>
+    <string name="esync_fetching">Fetching droiddeck-esync pack</string>
+
+    <!-- Components (FEX / DXVK / VKD3D-Proton swapped into a Proton). %1$s component, %2$s version, %3$s Proton -->
+    <string name="cmgr_fex_linux_helpers">with Linux helpers</string>
+    <string name="cmgr_fex_dlls_only">DLLs only</string>
+    <string name="cmgr_original_proton_updated">Original (Proton updated since the last swap)</string>
+    <string name="cmgr_changed_outside">Changed outside Components</string>
+    <!-- A component version that could not be found in a Proton -->
+    <string name="cmgr_not_present">not present</string>
+    <!-- %1$s is the Proton build the original files were saved from -->
+    <string name="cmgr_original_version">Original %1$s</string>
+    <string name="cmgr_original_from">Original from %1$s</string>
+    <string name="cmgr_swap_queued">%1$s %2$s goes into %3$s when the game running on it closes.</string>
+    <string name="cmgr_swap_done">%1$s %2$s is now in %3$s. It applies the next time a game starts.</string>
+    <string name="cmgr_original_missing">That original bundle is not stored</string>
+    <!-- %1$s component, %2$s Proton -->
+    <string name="cmgr_restore_queued">%1$s of %2$s goes back to its original when the game running on it closes.</string>
+    <!-- %1$s component, %2$s Proton, %3$s the Proton build the original came from -->
+    <string name="cmgr_restore_done">%1$s of %2$s restored from its %3$s original.</string>
+    <!-- %1$s package file, %2$s Proton id -->
+    <string name="cmgr_package_in_use">%1$s is in use in %2$s. Swap that Proton to something else first.</string>
+    <string name="cmgr_package_not_stored">%1$s is not stored</string>
+    <string name="cmgr_deleted">Deleted %1$s.</string>
+    <string name="cmgr_original_kept">The installed build\'s original is kept: it is the way back.</string>
+    <string name="cmgr_not_stored">Not stored</string>
+    <!-- %1$s Proton build, %2$s component -->
+    <string name="cmgr_deleted_original">Deleted the %1$s original of %2$s.</string>
+    <string name="cmgr_nightlies_only">Downloads come only from the Nightlies releases</string>
+    <string name="cmgr_list_predates_checksums">This package list predates checksums - refresh it and try again</string>
+    <string name="cmgr_checksum_mismatch">Checksum mismatch</string>
+
+    <!-- Display choices -->
+    <string name="sprefs_shape_auto">Auto (16:9+)</string>
+    <string name="sprefs_shape_exact">Match screen</string>
+    <string name="sprefs_shape_wide">Always 16:9</string>
+    <string name="sprefs_upscaler_linear">Linear</string>
+    <string name="sprefs_upscaler_nearest">Nearest</string>
+    <string name="sprefs_upscaler_fsr_fit">AMD FSR 1 (fit)</string>
+    <string name="sprefs_upscaler_gsr_quality">Snapdragon GSR (quality)</string>
+    <string name="sprefs_upscaler_sharpen">Sharpen only</string>
+    <string name="sprefs_lod_bias_auto">Auto (match scaling)</string>
+
+    <!-- Screen effect Looks: preset names and the line under the row -->
+    <string name="look_off_desc">Nothing applied.</string>
+    <string name="look_game_clarity">Game Clarity</string>
+    <string name="look_game_clarity_desc">Sharpening with a touch of contrast - the everyday one.</string>
+    <string name="look_vivid">Vivid</string>
+    <string name="look_vivid_desc">Colour pushed hard. Deband on so skies don\'t stripe.</string>
+    <string name="look_cinematic">Cinematic</string>
+    <string name="look_cinematic_desc">Deeper contrast, cooler colour, edges smoothed.</string>
+    <string name="look_competitive">Competitive</string>
+    <string name="look_competitive_desc">Shadows lifted and heavy sharpening - spot people first.</string>
+    <string name="look_adaptive_sharpen">Adaptive Sharpen</string>
+    <string name="look_adaptive_sharpen_desc">Sharpening only, colour untouched.</string>
+    <string name="look_filmic">Filmic</string>
+    <string name="look_filmic_desc">Film-like curve, slightly muted.</string>
+    <string name="look_arcade">Arcade</string>
+    <string name="look_arcade_desc">Loud and punchy.</string>
+    <string name="look_retro_crt">Retro CRT</string>
+    <string name="look_retro_crt_desc">The CRT tube and analogue signal passes together.</string>
+    <string name="look_upscale_sharp">Upscale Sharp</string>
+    <string name="look_upscale_sharp_desc">For running below panel resolution.</string>
+    <string name="look_pixel_clean">Pixel Clean</string>
+    <string name="look_pixel_clean_desc">Crisp pixels for 2D and old titles.</string>
+    <string name="look_anime_edge">Anime Edge</string>
+    <string name="look_anime_edge_desc">Toon outlines plus sharpening.</string>
+
+    <!-- GPU support line -->
+    <string name="gpuinfo_not_adreno">Not an Adreno GPU</string>
+    <string name="gpuinfo_supported">Supported</string>
+    <string name="gpuinfo_experimental">Experimental: its drivers are test builds</string>
+    <string name="gpuinfo_below_tested">Below tested hardware (Adreno 725 and newer): it may not run</string>
+    <string name="gpuinfo_unsupported">Not supported: DroidDeck needs an Adreno (Snapdragon) GPU</string>
+
+    <!-- Driver downloads and imports -->
+    <string name="turnip_rate_limited">GitHub\'s rate limit was hit - try again later</string>
+    <string name="turnip_github_http">GitHub answered HTTP %1$d</string>
+    <string name="turnip_download_http">download answered HTTP %1$d</string>
+    <string name="turnip_list_predates_checksums">This driver list predates checksums - refresh it and try again</string>
+    <string name="turnip_checksum_mismatch">Checksum mismatch - the download was discarded</string>
+    <!-- %1$s is one of the turnip_reject_* reasons -->
+    <string name="turnip_not_adrenotools">Not an AdrenoTools driver: %1$s</string>
+    <string name="turnip_reject_no_meta">no meta.json</string>
+    <string name="turnip_reject_meta_unreadable">meta.json is unreadable (%1$s)</string>
+    <string name="turnip_reject_linux_driver">this is a Linux runtime driver (import it under \"Linux runtime driver\")</string>
+    <string name="turnip_reject_wayland">this is a Wayland game driver, which this app has no use for</string>
+    <string name="turnip_reject_no_library_name">meta.json names no libraryName, so nothing could be handed to AdrenoTools</string>
+    <!-- %1$s is a library file name -->
+    <string name="turnip_reject_library_missing">meta.json names %1$s, which is not in the zip</string>
+    <string name="turnip_reject_not_aarch64">%1$s is not a 64-bit AArch64 ELF shared library</string>
+    <string name="turnip_reject_glibc">%1$s links glibc - a \"-Linux\" Turnip, which belongs under \"Linux runtime driver\"</string>
+    <string name="lvd_no_library">No libvulkan_freedreno*.so in this zip. An Android (AdrenoTools) or -Wayland Turnip zip is not a Linux runtime driver.</string>
+    <string name="lvd_not_aarch64">%1$s is not a 64-bit AArch64 ELF shared library.</string>
+    <string name="lvd_not_glibc">%1$s is not a glibc driver - it links Android\'s libc. The Linux runtime needs a \"-Linux\" zip; a plain or \"-Wayland\" Turnip cannot be loaded by the Steam client at all.</string>
+    <string name="bundle_no_manifest">Not a driver bundle: no manifest.json naming an android and a linux driver</string>
+    <string name="bundle_entry_outside">Not a driver bundle: %1$s points outside it</string>
+    <string name="bundle_too_large">Not a driver bundle: it unpacks to more than %1$d MB</string>
+
+    <!-- Game storage -->
+    <string name="gstore_sd_card">SD card</string>
+    <!-- %1$s is a size, like 12.3 GB -->
+    <string name="gstore_free">%1$s free</string>
+    <string name="gstore_folder">Folder</string>
+
+    <string name="logshare_chooser">Share session logs</string>
+    <!-- Stands in for the Steam account name when the client did not record one -->
+    <string name="offline_signed_in">signed in</string>
+
+    <!-- Why the HDR switch is greyed out -->
+    <string name="hdr_needs_android_10">needs Android 10 or newer (display layers with a color space)</string>
+    <string name="hdr_none">this display reports no HDR support</string>
+    <!-- %1$s lists HDR formats, like Dolby Vision, HDR10+ -->
+    <string name="hdr_not_hdr10">this display supports %1$s, not HDR10</string>
+</resources>
