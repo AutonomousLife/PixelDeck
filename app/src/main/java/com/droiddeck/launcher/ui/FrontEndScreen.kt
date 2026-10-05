@@ -103,6 +103,7 @@ class FrontEndState(
     val theme: String = Themes.GRAPHITE,
     /** The language picked in Setup, or AppLanguage.SYSTEM to follow the system. */
     val language: String = "",
+    val appScale: Int = com.droiddeck.launcher.core.AppUiPrefs.DEFAULT_SCALE,
     val isHomeApp: Boolean = false,
     val homeScreenEnabled: Boolean = false,
     val defaultHomeLabel: String? = null,
@@ -171,6 +172,7 @@ class FrontEndActions(
     val onPageBack: () -> Unit = {},
     val onTheme: (String) -> Unit = {},
     val onLanguage: (String) -> Unit = {},
+    val onAppScale: (Int) -> Unit = {},
     val onLauncherFullscreen: (Boolean) -> Unit = {},
     val onAnimationsEnabled: (Boolean) -> Unit = {},
     val onStoreEnabled: (Boolean) -> Unit = {},

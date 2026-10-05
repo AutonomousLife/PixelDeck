@@ -600,6 +600,9 @@
     <string name="setup_language_hint">次回の起動からSteamにも適用されます。</string>
     <string name="setup_language_system">システムのデフォルト（%1$s）</string>
     <string name="setup_language_system_short">システムのデフォルト</string>
+    <string name="setup_app_scale">アプリの表示サイズ</string>
+    <string name="setup_app_scale_hint">DroidDeckの文字とボタン</string>
+    <string name="setup_app_scale_default">%1$d%%（デフォルト）</string>
     <string name="setup_theme">テーマ</string>
     <string name="setup_theme_hint">ランチャーの外観</string>
     <string name="setup_home">ホーム画面として使用</string>

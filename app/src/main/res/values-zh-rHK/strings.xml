@@ -600,6 +600,9 @@
     <string name="setup_language_hint">Steam 下次啟動時亦會使用此語言。</string>
     <string name="setup_language_system">系統預設（%1$s）</string>
     <string name="setup_language_system_short">系統預設</string>
+    <string name="setup_app_scale">應用程式縮放</string>
+    <string name="setup_app_scale_hint">DroidDeck 的文字和控制項</string>
+    <string name="setup_app_scale_default">%1$d%%（預設）</string>
     <string name="setup_theme">主題</string>
     <string name="setup_theme_hint">啟動器外觀</string>
     <string name="setup_home">用作主畫面</string>

@@ -600,6 +600,9 @@
     <string name="setup_language_hint">다음에 Steam을 시작할 때부터 Steam에도 적용됩니다.</string>
     <string name="setup_language_system">시스템 기본값(%1$s)</string>
     <string name="setup_language_system_short">시스템 기본값</string>
+    <string name="setup_app_scale">앱 크기</string>
+    <string name="setup_app_scale_hint">DroidDeck 텍스트 및 컨트롤</string>
+    <string name="setup_app_scale_default">%1$d%%(기본값)</string>
     <string name="setup_theme">테마</string>
     <string name="setup_theme_hint">런처 외관</string>
     <string name="setup_home">홈 화면으로 사용</string>
