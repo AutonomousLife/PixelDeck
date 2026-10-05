@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.Environment
 import android.os.StatFs
 import android.os.storage.StorageManager
+import com.droiddeck.launcher.R
 import com.droiddeck.launcher.core.FileUtils
 import java.io.File
 
@@ -26,8 +27,8 @@ object GameStorage {
             val removable = try { Environment.isExternalStorageRemovable(dir) } catch (e: Exception) { false }
             if (!removable) return@mapNotNull null
             val volume = try { sm?.getStorageVolume(dir) } catch (e: Exception) { null }
-            val name = volume?.getDescription(context)?.takeIf { it.isNotBlank() && !it.equals("android", true) } ?: "SD card"
-            Option("$name · ${free(dir)} free", File(dir, "steam").absolutePath)
+            val name = volume?.getDescription(context)?.takeIf { it.isNotBlank() && !it.equals("android", true) } ?: context.getString(R.string.gstore_sd_card)
+            Option("$name · " + context.getString(R.string.gstore_free, free(dir)), File(dir, "steam").absolutePath)
         }
     }
 
@@ -66,5 +67,5 @@ object GameStorage {
     /** The label the client shows for a chosen folder: its last name, or the volume's. */
     fun labelFor(context: Context, path: String): String =
         options(context).firstOrNull { it.path == path }?.label?.substringBefore(" ·")
-            ?: File(path).name.ifEmpty { "Folder" }
+            ?: File(path).name.ifEmpty { context.getString(R.string.gstore_folder) }
 }

@@ -1,6 +1,8 @@
 package com.droiddeck.launcher.gpu
 
+import android.content.Context
 import android.os.Build
+import com.droiddeck.launcher.R
 import com.droiddeck.launcher.core.FileUtils
 import java.io.File
 
@@ -29,7 +31,10 @@ data class GpuInfo(
         A6XX("Adreno 6xx"),
         /** An Adreno whose model KGSL does not give: treated as the newest family it could be. */
         ADRENO_UNKNOWN("Adreno"),
-        NOT_ADRENO("Not an Adreno GPU"),
+        NOT_ADRENO("Not an Adreno GPU");
+
+        /** [label] in the app's language: the Adreno families are names, the rest is words. */
+        fun label(context: Context): String = if (this == NOT_ADRENO) context.getString(R.string.gpuinfo_not_adreno) else label
     }
 
     enum class Support { TESTED, UNTESTED, UNSUPPORTED }
@@ -42,7 +47,7 @@ data class GpuInfo(
             else -> Support.UNTESTED
         }
 
-    /** One line for the device card and the system check. */
+    /** One line for the device card and the system check, in English for the device report. */
     val supportText: String
         get() = when (support) {
             Support.TESTED -> "Supported"
@@ -50,6 +55,13 @@ data class GpuInfo(
                 else "Below tested hardware (Adreno 725 and newer): it may not run"
             Support.UNSUPPORTED -> "Not supported: DroidDeck needs an Adreno (Snapdragon) GPU"
         }
+
+    /** [supportText] in the app's language. */
+    fun supportText(context: Context): String = context.getString(when (support) {
+        Support.TESTED -> R.string.gpuinfo_supported
+        Support.UNTESTED -> if (family == Family.A7XX_LOW) R.string.gpuinfo_experimental else R.string.gpuinfo_below_tested
+        Support.UNSUPPORTED -> R.string.gpuinfo_unsupported
+    })
 
     companion object {
         fun detect(): GpuInfo {

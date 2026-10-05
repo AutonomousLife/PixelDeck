@@ -2,6 +2,7 @@ package com.droiddeck.launcher.session
 
 import android.content.Context
 import android.util.Log
+import com.droiddeck.launcher.R
 import com.droiddeck.launcher.runtime.LinuxRuntime
 import java.io.File
 
@@ -39,7 +40,7 @@ object OfflineMode {
             Log.w(TAG, "could not read loginusers.vdf", e); return null
         }
         if (!REMEMBER.containsMatchIn(text)) return null
-        return PERSONA.find(text)?.groupValues?.get(1)?.takeIf { it.isNotBlank() } ?: "signed in"
+        return PERSONA.find(text)?.groupValues?.get(1)?.takeIf { it.isNotBlank() } ?: context.getString(R.string.offline_signed_in)
     }
 
     fun enabled(context: Context): Boolean = prefs(context).getBoolean(KEY, false)

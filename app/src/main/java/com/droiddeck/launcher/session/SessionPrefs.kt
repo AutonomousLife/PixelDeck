@@ -1,6 +1,7 @@
 package com.droiddeck.launcher.session
 
 import android.content.Context
+import com.droiddeck.launcher.R
 import com.droiddeck.launcher.core.TextureFiltering
 import com.droiddeck.launcher.gpu.ScreenEffects
 import org.json.JSONObject
@@ -94,6 +95,16 @@ object SessionPrefs {
         SHAPE_EXACT to "Match screen",
         SHAPE_WIDE to "Always 16:9",
     )
+
+    /** [shapeChoices] labelled in the app's language. */
+    fun shapeChoices(context: Context): List<Pair<String, String>> = shapeChoices.map { (mode, label) ->
+        mode to when (mode) {
+            SHAPE_AUTO -> context.getString(R.string.sprefs_shape_auto)
+            SHAPE_EXACT -> context.getString(R.string.sprefs_shape_exact)
+            SHAPE_WIDE -> context.getString(R.string.sprefs_shape_wide)
+            else -> label
+        }
+    }
 
     /**
      * The shape of the display the session presents: the panel's own (never narrower than 16:9),
@@ -667,6 +678,10 @@ object SessionPrefs {
 
     val fpsLimitChoices = listOf(0 to "Off", 30 to "30", 40 to "40", 45 to "45", 60 to "60", 90 to "90", 120 to "120")
 
+    /** [fpsLimitChoices] labelled in the app's language. */
+    fun fpsLimitChoices(context: Context): List<Pair<Int, String>> =
+        fpsLimitChoices.map { (fps, label) -> fps to if (fps == 0) context.getString(R.string.frame_gen_off) else label }
+
     /**
      * How the compositor resizes the session onto the panel (WaylandCompositor.nativeSetUpscaler's
      * modes): Off and Linear both filter bilinearly, Nearest keeps pixels square for 2D and old
@@ -677,6 +692,16 @@ object SessionPrefs {
         0 to "Off", 1 to "Linear", 2 to "Nearest", 4 to "AMD FSR 1", 5 to "AMD FSR 1 (fit)", 3 to "Snapdragon GSR",
         8 to "Snapdragon GSR (quality)", 7 to "NVIDIA NIS", 6 to "Sharpen only",
     )
+
+    /** The [upscalerChoices] labels that are words rather than product names. */
+    private val upscalerLabels = mapOf(
+        0 to R.string.frame_gen_off, 1 to R.string.sprefs_upscaler_linear, 2 to R.string.sprefs_upscaler_nearest,
+        5 to R.string.sprefs_upscaler_fsr_fit, 8 to R.string.sprefs_upscaler_gsr_quality, 6 to R.string.sprefs_upscaler_sharpen,
+    )
+
+    /** [upscalerChoices] labelled in the app's language; the English list stays for the device report. */
+    fun upscalerChoices(context: Context): List<Pair<Int, String>> =
+        upscalerChoices.map { (mode, label) -> mode to (upscalerLabels[mode]?.let(context::getString) ?: label) }
 
     fun upscaler(context: Context): Int =
         prefs(context).getInt("upscaler", 0).takeIf { m -> upscalerChoices.any { it.first == m } } ?: 0
@@ -705,11 +730,24 @@ object SessionPrefs {
 
     val textureAnisotropyChoices = TextureFiltering.ANISOTROPY.map { it to if (it == 0) "Off" else "${it}x" }
 
+    /** [textureAnisotropyChoices] labelled in the app's language. */
+    fun textureAnisotropyChoices(context: Context): List<Pair<Int, String>> =
+        textureAnisotropyChoices.map { (value, label) -> value to if (value == 0) context.getString(R.string.frame_gen_off) else label }
+
     val textureLodBiasChoices = TextureFiltering.LOD_BIAS.map {
         it to when (it) {
             TextureFiltering.LOD_BIAS_OFF -> "Off"
             TextureFiltering.LOD_BIAS_AUTO -> "Auto (match scaling)"
             else -> it
+        }
+    }
+
+    /** [textureLodBiasChoices] labelled in the app's language. */
+    fun textureLodBiasChoices(context: Context): List<Pair<String, String>> = textureLodBiasChoices.map { (value, label) ->
+        value to when (value) {
+            TextureFiltering.LOD_BIAS_OFF -> context.getString(R.string.frame_gen_off)
+            TextureFiltering.LOD_BIAS_AUTO -> context.getString(R.string.sprefs_lod_bias_auto)
+            else -> label
         }
     }
 

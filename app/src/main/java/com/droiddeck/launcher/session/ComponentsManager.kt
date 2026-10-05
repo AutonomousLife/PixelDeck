@@ -1,6 +1,7 @@
 package com.droiddeck.launcher.session
 
 import com.droiddeck.launcher.core.Hashes
+import com.droiddeck.launcher.R
 import android.content.Context
 import android.util.Log
 import com.droiddeck.launcher.core.Downloader
@@ -415,28 +416,38 @@ object ComponentsManager {
         val views = protons(context).map { p ->
             val comps = COMPONENTS.associateWith { comp ->
                 val detected = if (comp == "fex") fexVersion(p.dir) else readVersionFile(File(p.dir, "${COMP_DIR.getValue(comp)}/version"))
-                val detail = if (comp == "fex") (if (File(p.dir, FEX_FILES[2]).isFile) "with Linux helpers" else "DLLs only") else ""
+                val detail = if (comp == "fex") context.getString(if (File(p.dir, FEX_FILES[2]).isFile) R.string.cmgr_fex_linux_helpers else R.string.cmgr_fex_dlls_only) else ""
                 val active = state.sub("active").optJSONObject(p.id)?.optJSONObject(comp)
                 val inUseLabel = when {
-                    active == null -> "Original"
-                    active.optString("protonVersion") != p.version -> "Original (Proton updated since the last swap)"
+                    active == null -> context.getString(R.string.comp_tag_original)
+                    active.optString("protonVersion") != p.version -> context.getString(R.string.cmgr_original_proton_updated)
                     else -> {
                         val want = active.optJSONObject("files") ?: JSONObject()
                         val fp = fingerprint(p.dir, comp)
-                        if (want.keys().asSequence().all { fp[it] == want.optString(it) }) active.optString("label", active.optString("file"))
-                        else "Changed outside Components"
+                        if (want.keys().asSequence().all { fp[it] == want.optString(it) }) originalLabel(context, active) ?: active.optString("label", active.optString("file"))
+                        else context.getString(R.string.cmgr_changed_outside)
                     }
                 }
                 val q = state.sub("queued").optJSONObject(p.id)?.optJSONObject(comp)
                 Component(
-                    detected.ifEmpty { "not present" }, detail, inUseLabel,
+                    detected.ifEmpty { context.getString(R.string.cmgr_not_present) }, detail, inUseLabel,
                     active?.optString("file")?.takeIf { active.optString("protonVersion") == p.version },
-                    q?.optString("label"),
+                    q?.let { originalLabel(context, it) ?: it.optString("label") },
                 )
             }
             ProtonView(p, comps, originals(context, p.id), gameRunning(context, p), reapplied[p.dir.name] ?: 0, syncPacks.tool(p.guestPath))
         }
         Snapshot(views, packages(context))
+    }
+
+    /**
+     * The label of a chosen or queued original, in the app's language: the stored "label" was written
+     * in English when it was chosen. Null for a package, whose label is its version.
+     */
+    private fun originalLabel(context: Context, entry: JSONObject): String? = when {
+        entry.optString("kind") == "original" -> context.getString(R.string.cmgr_original_version, entry.optString("protonVersion"))
+        entry.optString("file").startsWith("original ") -> context.getString(R.string.cmgr_original_from, entry.optString("file").removePrefix("original "))
+        else -> null
     }
 
     // ------------------------------------------------------------------ launch-time enforcement
@@ -512,12 +523,12 @@ object ComponentsManager {
         if (inUse(context, p)) {
             state.sub("queued").sub(p.id).put(info.comp, JSONObject().put("kind", "package").put("file", wcp.name).put("label", info.version))
             saveState(context, state)
-            return "${LABEL[info.comp]} ${info.version} goes into ${p.name} when the game running on it closes."
+            return context.getString(R.string.cmgr_swap_queued, LABEL[info.comp], info.version, p.name)
         }
         applyPackage(context, p, info, wcp, state)
         state.sub("queued").optJSONObject(p.id)?.remove(info.comp)
         saveState(context, state)
-        "${LABEL[info.comp]} ${info.version} is now in ${p.name}. It applies the next time a game starts."
+        context.getString(R.string.cmgr_swap_done, LABEL[info.comp], info.version, p.name)
     }
 
     private fun applyPackage(context: Context, p: Proton, info: Package, wcp: File, state: JSONObject) {
@@ -533,17 +544,17 @@ object ComponentsManager {
     fun restore(context: Context, protonId: String, comp: String, protonVersion: String): String = synchronized(lock) {
         val p = proton(context, protonId)
         val wcp = File(originalsDir(context), "$protonId/${safeName(protonVersion)}/$comp.wcp")
-        check(wcp.isFile) { "That original bundle is not stored" }
+        check(wcp.isFile) { context.getString(R.string.cmgr_original_missing) }
         val state = loadState(context)
         if (inUse(context, p)) {
             state.sub("queued").sub(p.id).put(comp, JSONObject().put("kind", "original").put("protonVersion", protonVersion).put("label", "Original $protonVersion"))
             saveState(context, state)
-            return "${LABEL[comp]} of ${p.name} goes back to its original when the game running on it closes."
+            return context.getString(R.string.cmgr_restore_queued, LABEL[comp], p.name)
         }
         applyOriginal(context, p, comp, protonVersion, wcp, state)
         state.sub("queued").optJSONObject(p.id)?.remove(comp)
         saveState(context, state)
-        "${LABEL[comp]} of ${p.name} restored from its $protonVersion original."
+        context.getString(R.string.cmgr_restore_done, LABEL[comp], p.name, protonVersion)
     }
 
     private fun applyOriginal(context: Context, p: Proton, comp: String, protonVersion: String, wcp: File, state: JSONObject) {
@@ -599,22 +610,22 @@ object ComponentsManager {
         val active = state.sub("active")
         for (pid in active.keys()) {
             val comps = active.optJSONObject(pid) ?: continue
-            for (comp in comps.keys()) check(comps.optJSONObject(comp)?.optString("file") != name) { "$name is in use in $pid. Swap that Proton to something else first." }
+            for (comp in comps.keys()) check(comps.optJSONObject(comp)?.optString("file") != name) { context.getString(R.string.cmgr_package_in_use, name, pid) }
         }
         val f = File(packagesDir(context), name)
-        check(f.isFile) { "$name is not stored" }
+        check(f.isFile) { context.getString(R.string.cmgr_package_not_stored, name) }
         f.delete()
-        "Deleted $name."
+        context.getString(R.string.cmgr_deleted, name)
     }
 
     fun deleteOriginal(context: Context, protonId: String, comp: String, protonVersion: String): String = synchronized(lock) {
         val p = proton(context, protonId)
-        check(safeName(p.version) != protonVersion) { "The installed build's original is kept: it is the way back." }
+        check(safeName(p.version) != protonVersion) { context.getString(R.string.cmgr_original_kept) }
         val f = File(originalsDir(context), "$protonId/${safeName(protonVersion)}/$comp.wcp")
-        check(f.isFile) { "Not stored" }
+        check(f.isFile) { context.getString(R.string.cmgr_not_stored) }
         f.delete()
         f.parentFile?.takeIf { it.listFiles().isNullOrEmpty() }?.delete()
-        "Deleted the $protonVersion original of ${LABEL[comp]}."
+        context.getString(R.string.cmgr_deleted_original, protonVersion, LABEL[comp])
     }
 
     /** Imports a -linux .wcp from anywhere the app can read (the file picker hands over a copy). */
@@ -662,13 +673,13 @@ object ComponentsManager {
 
     /** Downloads a catalog item into storage, verifying the release's sha256 and the package type. */
     fun download(context: Context, item: CatalogItem, progress: (Int) -> Unit): Package {
-        require(item.url.startsWith("https://github.com/$NIGHTLIES/releases/download/")) { "Downloads come only from the Nightlies releases" }
-        require(Hashes.isGithubSha256(item.digest)) { "This package list predates checksums - refresh it and try again" }
+        require(item.url.startsWith("https://github.com/$NIGHTLIES/releases/download/")) { context.getString(R.string.cmgr_nightlies_only) }
+        require(Hashes.isGithubSha256(item.digest)) { context.getString(R.string.cmgr_list_predates_checksums) }
         val dest = File(packagesDir(context), safeName(item.file))
         val part = File(dest.parentFile, dest.name + ".part")
         part.delete()
-        check(Downloader.downloadFile(item.url, part, false) { f -> progress(if (f < 0) -1 else (f * 100).toInt().coerceIn(0, 100)) }) { "Download failed" }
-        if (!Hashes.sha256(part).equals(item.digest.substringAfter(':'), true)) { part.delete(); error("Checksum mismatch") }
+        check(Downloader.downloadFile(item.url, part, false) { f -> progress(if (f < 0) -1 else (f * 100).toInt().coerceIn(0, 100)) }) { context.getString(R.string.user_apps_download_failed) }
+        if (!Hashes.sha256(part).equals(item.digest.substringAfter(':'), true)) { part.delete(); error(context.getString(R.string.cmgr_checksum_mismatch)) }
         val info = runCatching { packageInfo(part) }.getOrElse { part.delete(); throw it }
         synchronized(lock) { part.renameTo(dest) }
         return info.copy(file = dest.name)
