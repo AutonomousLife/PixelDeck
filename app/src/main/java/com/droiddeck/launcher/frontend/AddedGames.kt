@@ -152,7 +152,9 @@ object AddedGames {
 
     fun scan(context: Context): List<Game> {
         val out = ArrayList<Game>()
-        for (entry in entries(context)) {
+        val explicit = entries(context)
+        val explicitFolders = explicit.map { it.selection.folder.canonicalPath }.toSet()
+        for (entry in explicit) {
             val selection = entry.selection
             scanGame(context, selection.folder, out, selection, entry.id)
         }
@@ -166,7 +168,7 @@ object AddedGames {
             val selectedFolders = if (dir in SessionPrefs.addedGamesDirs(context).map(::File)) preview(dir).map { it.folder }
                 else dir.listFiles { f -> f.isDirectory }?.sortedBy { it.name.lowercase() } ?: emptyList()
             for (folder in selectedFolders) {
-                if (folder.name.lowercase() in steamInstalls) continue
+                if (folder.name.lowercase() in steamInstalls || folder.canonicalPath in explicitFolders) continue
                 scanGame(context, folder, out)
             }
         }

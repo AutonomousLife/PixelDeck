@@ -116,6 +116,7 @@ class AddedGameImportTest {
         val folder = tmp.newFolder("Example")
         val file = exe(folder, "Mod.exe")
         exe(folder, "Example.exe")
+        SessionPrefs.setAddedGamesDirs(context, listOf(folder.parentFile!!.path))
         AddedGames.add(context, AddedGames.Selection(folder, file))
         file.delete()
         assertTrue(AddedGames.scan(context).isEmpty())
