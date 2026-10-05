@@ -560,7 +560,7 @@
     <string name="setup_gpu_unsupported_detail">Steam necesita un controlador Adreno; %1$s puede mostrar una pantalla negra</string>
     <string name="setup_runtime">Runtime de Linux</string>
     <string name="setup_runtime_progress">%1$s · %2$d%%</string>
-    <string name="setup_runtime_missing">No instalado · unos 3 GB, se instala en el primer Play</string>
+    <string name="setup_runtime_missing">No instalado · unos 3 GB, se instala al jugar por primera vez</string>
     <string name="setup_installed">Instalado</string>
     <string name="setup_runtime_update">%1$s · actualización disponible</string>
     <string name="setup_runtime_current">%1$s · al día</string>
@@ -577,7 +577,7 @@
     <string name="setup_account">Cuenta de Steam</string>
     <string name="setup_signed_in_offline">Sesión iniciada como %1$s · modo sin conexión</string>
     <string name="setup_signed_in">Sesión iniciada como %1$s</string>
-    <string name="setup_sign_in">Pulsa Play e inicia sesión en Steam</string>
+    <string name="setup_sign_in">Pulsa Jugar en Steam e inicia sesión</string>
     <string name="setup_tools">Herramientas</string>
     <string name="setup_controller">Mando</string>
     <string name="setup_controller_unavailable">Los ajustes del mando no están disponibles.</string>
@@ -889,7 +889,7 @@
     <string name="games_never_played">Nunca jugado</string>
     <string name="games_runtime_busy_percent">Runtime ocupado · %1$d%%</string>
     <string name="games_runtime_busy">Runtime ocupado</string>
-    <string name="games_runtime_first_play">El runtime se instala en el primer Play</string>
+    <string name="games_runtime_first_play">El runtime se instala al jugar por primera vez</string>
     <string name="games_runtime_update">Actualización del runtime disponible</string>
     <string name="games_runtime_ready">● Runtime listo</string>
     <string name="games_last_played">Última partida %1$s</string>
@@ -1254,8 +1254,8 @@
     <string name="session_proton_downloading_mb">descargando Proton Experimental (ARM64) · %1$d de %2$d MB</string>
     <string name="session_proton_checking">comprobando Proton Experimental (ARM64)</string>
     <string name="session_proton_unpacking">descomprimiendo Proton Experimental (ARM64)</string>
-    <string name="session_runtime_catalog_unreachable">No se pudo acceder al catálogo del runtime. Revisa la conexión y pulsa Play de nuevo.</string>
-    <string name="session_runtime_install_failed">El runtime de Linux no se instaló. Revisa el runtime en Configuración y pulsa Play de nuevo.</string>
+    <string name="session_runtime_catalog_unreachable">No se pudo acceder al catálogo del runtime. Revisa la conexión y vuelve a pulsar Jugar.</string>
+    <string name="session_runtime_install_failed">El runtime de Linux no se instaló. Revisa el runtime en Configuración y vuelve a pulsar Jugar.</string>
     <string name="session_desktop_catalog_unreachable">No se pudo acceder al catálogo del escritorio. Revisa la conexión y pulsa Escritorio de nuevo.</string>
 
     <!-- %1$s says what went wrong -->

@@ -575,7 +575,7 @@
     <string name="setup_account">Steamアカウント</string>
     <string name="setup_signed_in_offline">%1$sとしてログイン中 · オフラインモード</string>
     <string name="setup_signed_in">%1$sとしてログイン中</string>
-    <string name="setup_sign_in">Playをタップして、Steamにログインしてください</string>
+    <string name="setup_sign_in">「Steamを実行」をタップして、Steamにログインしてください</string>
     <string name="setup_tools">ツール</string>
     <string name="setup_controller">コントローラー</string>
     <string name="setup_controller_unavailable">コントローラー設定は利用できません。</string>
