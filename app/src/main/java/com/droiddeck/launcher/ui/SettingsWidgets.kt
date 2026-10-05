@@ -50,6 +50,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -311,6 +312,7 @@ fun AnchoredMenu(open: Boolean, onDismiss: () -> Unit, title: String? = null, no
     }
 }
 
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun MenuItem(
     label: String, checked: Boolean, enabled: Boolean = true, detail: String? = null,
@@ -322,9 +324,13 @@ fun MenuItem(
     val src = remember { MutableInteractionSource() }
     val hot = src.collectIsFocusedAsState().value || src.collectIsHoveredAsState().value
     val shift by animateFloatAsState(if (hot) 2f else 0f, Motion.sp(0.5f), label = "miShift")
+    // A menu taller than the screen opens scrolled to the current choice, not past it.
+    val reveal = remember { androidx.compose.foundation.relocation.BringIntoViewRequester() }
+    if (checked) LaunchedEffect(Unit) { reveal.bringIntoView() }
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier.fillMaxWidth()
+            .bringIntoViewRequester(reveal)
             .graphicsLayer { translationX = shift.dp.toPx() }
             .then(focusRequester?.let { Modifier.focusRequester(it) } ?: Modifier)
             .clip(RoundedCornerShape(8.dp))
