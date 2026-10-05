@@ -287,8 +287,7 @@ class SessionActivity : ComponentActivity(), SurfaceHolder.Callback {
         super.onCreate(savedInstanceState)
         if (com.droiddeck.launcher.runtime.LinuxRuntimeInstaller.isRemoving()) {
             runtimeRemovalBlocked = true
-            // Best effort: the activity finishes either way, even where its resources cannot be read.
-            runCatching { android.widget.Toast.makeText(this, R.string.session_wait_removal, android.widget.Toast.LENGTH_SHORT).show() }
+            android.widget.Toast.makeText(this, R.string.session_wait_removal, android.widget.Toast.LENGTH_SHORT).show()
             finish()
             return
         }
