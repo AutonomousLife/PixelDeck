@@ -57,6 +57,18 @@ class AddedGameImportTest {
         assertFalse(AddedGames.pending(context, game))
     }
 
+    @Test fun steamLibraryContainerIsNotImportedAsAGame() {
+        val library = tmp.newFolder("Library")
+        exe(library, "steamapps/common/Owned/Owned.exe")
+        val unowned = exe(library, "steamapps/common/Other/Binaries/Win64/Other.exe")
+        File(library, "steamapps/appmanifest_123.acf").writeText("\"installdir\" \"Owned\"")
+        SessionPrefs.setGameStorage(context, library.path, "Library")
+        assertTrue(AddedGames.candidates(File(library, "steamapps")).isEmpty())
+        assertTrue(AddedGames.preview(library).isEmpty())
+        assertEquals(unowned, AddedGames.scan(context).single().exe)
+        assertEquals("Other", AddedGames.scan(context).single().name)
+    }
+
     @Test fun editingTargetAndNameKeepsShortcutIdentityAndMarksItPending() {
         val folder = tmp.newFolder("Example")
         val first = exe(folder, "Example.exe")

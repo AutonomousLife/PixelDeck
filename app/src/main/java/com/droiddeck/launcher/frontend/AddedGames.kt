@@ -141,7 +141,9 @@ object AddedGames {
     /** The .exe files a game folder offers, best first. */
     fun candidates(folder: File): List<File> {
         val exes = ArrayList<File>()
-        folder.walkTopDown().maxDepth(4).filter { it.isFile && it.extension.equals("exe", true) && !SKIP.matches(it.name) }.forEach(exes::add)
+        // Steam's library container is scanned separately through common/, never as a game.
+        folder.walkTopDown().maxDepth(4).onEnter { !it.name.equals("steamapps", true) }
+            .filter { it.isFile && it.extension.equals("exe", true) && !SKIP.matches(it.name) }.forEach(exes::add)
         val key = folder.name.lowercase().replace(Regex("[^a-z0-9]"), "")
         return exes.sortedWith(
             compareByDescending<File> { it.parentFile == folder }
