@@ -152,11 +152,17 @@ internal fun TabStrip(
     val colors = MaterialTheme.colorScheme
     val pal = LocalPalette.current
     val shape = RoundedCornerShape(12.dp)
+    // Tabs that overflow (long labels on a small phone) first close up; only what still does not
+    // fit scrolls. Once tight the row stays tight, so it cannot flip back and forth.
+    val scroll = rememberScrollState()
+    var tight by remember(tabs) { mutableStateOf(false) }
+    LaunchedEffect(scroll.maxValue) { if (scroll.maxValue in 1 until Int.MAX_VALUE) tight = true }
+    val tabPadding = if (tight) 10.dp else 16.dp
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = modifier) {
         BumperKey("LB", stringResource(R.string.widgets_prev_tab)) { onSelect((selected + tabs.size - 1) % tabs.size) }
         Row(
             modifier = Modifier.weight(1f, fill = false).clip(shape).background(colors.surfaceVariant).border(1.dp, pal.line2, shape)
-                .horizontalScroll(rememberScrollState()).padding(3.dp),
+                .horizontalScroll(scroll).padding(3.dp),
         ) {
             tabs.forEachIndexed { i, label ->
                 val on = i == selected
@@ -174,7 +180,7 @@ internal fun TabStrip(
                         .glideBorder(hot, tabShape, if (on) colors.onBackground else pal.signal)
                         .hoverable(src).clickable(interactionSource = src, indication = null, role = Role.Tab, onClick = pick)
                         .controllerConfirm(onClick = pick)
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                        .padding(horizontal = tabPadding, vertical = 12.dp),
                 )
             }
         }
