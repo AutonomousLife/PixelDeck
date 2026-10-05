@@ -14,7 +14,7 @@ object SteamLanguage {
         "arabic", "bulgarian", "schinese", "tchinese", "czech", "danish", "dutch", "english",
         "finnish", "french", "german", "greek", "hungarian", "indonesian", "italian", "japanese",
         "koreana", "norwegian", "polish", "portuguese", "brazilian", "romanian", "russian",
-        "spanish", "latam", "swedish", "thai", "turkish", "ukrainian", "vietnamese",
+        "spanish", "latam", "swedish", "thai", "turkish", "ukrainian", "vietnamese", "malay",
     )
 
     /** Spanish-speaking regions Steam serves with Latin American Spanish rather than Spain's. */
@@ -43,6 +43,7 @@ object SteamLanguage {
             "hu" -> "hungarian"
             "id", "in" -> "indonesian"
             "it" -> "italian"
+            "ms" -> "malay"
             "ja" -> "japanese"
             "ko" -> "koreana"
             "nb", "no", "nn" -> "norwegian"
