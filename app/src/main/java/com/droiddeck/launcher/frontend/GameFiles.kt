@@ -6,6 +6,7 @@ import android.util.AtomicFile
 import androidx.core.util.readText
 import androidx.core.util.writeBytes
 import androidx.core.util.writeText
+import com.droiddeck.launcher.R
 import org.json.JSONObject
 import java.io.File
 import java.io.InputStream
@@ -59,18 +60,18 @@ object GameFiles {
 
     private fun contents(id: String) = GameLaunchLink.uri(id) + "\n"
 
-    @Synchronized fun export(folder: File, game: Library.SteamGame): File {
-        require(folder.isDirectory) { "Folder is unavailable" }
-        val target = child(folder, filename(game))
+    @Synchronized fun export(context: Context, folder: File, game: Library.SteamGame): File {
+        require(folder.isDirectory) { context.getString(R.string.gfiles_folder_unavailable) }
+        val target = child(context, folder, filename(game))
         val text = contents(game.gameIdString)
-        require(!target.exists() || matches(target, text)) { "A different file already uses ${target.name}" }
+        require(!target.exists() || matches(target, text)) { context.getString(R.string.gfiles_name_taken, target.name) }
         if (!target.exists()) write(target, text)
-        exportArt(folder, game)
+        exportArt(context, folder, game)
         return target
     }
 
     /** Cocoon matches icons in its data folder's images directory. Never replace custom art. */
-    private fun exportArt(folder: File, game: Library.SteamGame) {
+    private fun exportArt(context: Context, folder: File, game: Library.SteamGame) {
         val art = listOfNotNull(game.icon, game.art).firstOrNull {
             it.isFile && it.extension.lowercase() in listOf("jpg", "jpeg", "png", "webp")
         } ?: return
@@ -79,27 +80,27 @@ object GameFiles {
             .replace(Regex("[^a-zA-Z0-9\\s]"), "").trim()
             .replace(Regex("\\s+"), "-").lowercase(java.util.Locale.ROOT).take(50).trimEnd('-')
         if (title.isEmpty()) return
-        val images = child(folder, "images")
-        check(images.isDirectory || images.mkdir()) { "Artwork folder is unavailable" }
-        val target = child(images, "$title-icon.${art.extension.lowercase()}")
+        val images = child(context, folder, "images")
+        check(images.isDirectory || images.mkdir()) { context.getString(R.string.gfiles_art_unavailable) }
+        val target = child(context, images, "$title-icon.${art.extension.lowercase()}")
         if (!target.exists()) AtomicFile(target).writeBytes(art.readBytes())
     }
 
     /** Only remove files in our inventory whose content is still exactly what we wrote. */
-    @Synchronized fun sync(folder: File, games: List<Library.SteamGame>) {
-        require(folder.isDirectory) { "Folder is unavailable" }
-        val inventory = child(folder, INVENTORY)
+    @Synchronized fun sync(context: Context, folder: File, games: List<Library.SteamGame>) {
+        require(folder.isDirectory) { context.getString(R.string.gfiles_folder_unavailable) }
+        val inventory = child(context, folder, INVENTORY)
         val previous = if (inventory.exists()) {
             val record = JSONObject(AtomicFile(inventory).readText())
-            require(record.optString("format") == FORMAT) { "Folder has an unrelated sync inventory" }
+            require(record.optString("format") == FORMAT) { context.getString(R.string.gfiles_unrelated_inventory) }
             record.getJSONObject("games")
         } else JSONObject()
         val next = JSONObject()
         val exports = games.distinctBy { it.gameId }.map { game ->
-            val target = child(folder, filename(game))
+            val target = child(context, folder, filename(game))
             // Keep an edited export without letting it block the rest of the library sync.
             val file = if (previous.optString(target.name) == game.gameIdString && target.exists() &&
-                !matches(target, contents(game.gameIdString))) target else export(folder, game)
+                !matches(target, contents(game.gameIdString))) target else export(context, folder, game)
             next.put(file.name, game.gameIdString)
             file
         }
@@ -107,22 +108,22 @@ object GameFiles {
         for (name in previous.keys()) {
             val id = previous.getString(name)
             if (!next.has(name) && name.endsWith(".$EXTENSION") && GameLaunchLink.validId(id)) {
-                val file = child(folder, name)
+                val file = child(context, folder, name)
                 if (matches(file, contents(id))) {
                     // Android shared storage is often case insensitive. A case-only rename may
                     // still resolve to the live export, which must not be pruned as an old file.
                     val retained = exports.any { java.nio.file.Files.isSameFile(it.toPath(), file.toPath()) }
-                    if (!retained) check(file.delete()) { "Could not remove $name" }
+                    if (!retained) check(file.delete()) { context.getString(R.string.gfiles_remove_failed, name) }
                 }
             }
         }
         if (previous.toString() != next.toString()) write(inventory, JSONObject().put("format", FORMAT).put("games", next).toString())
     }
 
-    private fun child(folder: File, name: String): File {
+    private fun child(context: Context, folder: File, name: String): File {
         require(name.isNotEmpty() && '/' !in name && '\\' !in name && name != "." && name != "..")
         val file = File(folder, name)
-        require(file.canonicalFile.parentFile == folder.canonicalFile) { "File leaves the export folder" }
+        require(file.canonicalFile.parentFile == folder.canonicalFile) { context.getString(R.string.gfiles_outside_folder) }
         return file
     }
 

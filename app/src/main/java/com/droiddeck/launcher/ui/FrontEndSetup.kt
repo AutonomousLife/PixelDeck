@@ -159,7 +159,7 @@ internal fun SetupPanel(
     // Tested hardware passes; an Adreno below it (a 610, say) warns rather than claiming support.
     val gpu = remember { com.droiddeck.launcher.gpu.GpuInfo.detect() }
     val gpuOk = gpu.support == com.droiddeck.launcher.gpu.GpuInfo.Support.TESTED
-    val gpuName = remember { DeviceSupport.gpuName() }
+    val gpuName = remember { DeviceSupport.gpuName(ctx) }
     val limitBlocks = PhantomProcessLimit.blocksSteam(s.phantomProcessStatus)
     val signedIn = s.offlineAccount != null
     var showLimitDetails by rememberSaveable { mutableStateOf(false) }
@@ -206,8 +206,8 @@ internal fun SetupPanel(
                                     else -> stringResource(R.string.setup_gpu_unsupported)
                                 },
                                 when (gpu.support) {
-                                    com.droiddeck.launcher.gpu.GpuInfo.Support.TESTED -> stringResource(R.string.setup_gpu_detail, gpu.name, gpuName)
-                                    com.droiddeck.launcher.gpu.GpuInfo.Support.UNTESTED -> stringResource(R.string.setup_gpu_untested_detail, gpu.name, gpu.supportText.replaceFirstChar { it.lowercase() })
+                                    com.droiddeck.launcher.gpu.GpuInfo.Support.TESTED -> stringResource(R.string.setup_gpu_detail, gpu.displayName(ctx), gpuName)
+                                    com.droiddeck.launcher.gpu.GpuInfo.Support.UNTESTED -> stringResource(R.string.setup_gpu_untested_detail, gpu.displayName(ctx), gpu.supportText(ctx).replaceFirstChar { it.lowercase() })
                                     else -> stringResource(R.string.setup_gpu_unsupported_detail, gpuName)
                                 },
                             )
@@ -241,7 +241,7 @@ internal fun SetupPanel(
                                     PhantomProcessStatus.ENABLED -> stringResource(R.string.setup_limit_on)
                                     PhantomProcessStatus.UNSET -> stringResource(R.string.setup_limit_unset)
                                     PhantomProcessStatus.UNREADABLE -> stringResource(R.string.setup_limit_unknown)
-                                    else -> PhantomProcessLimit.title(s.phantomProcessStatus)
+                                    else -> PhantomProcessLimit.title(ctx, s.phantomProcessStatus)
                                 },
                             ) {
                                 if (limitBlocks) PrimaryButton(if (showLimitDetails) stringResource(R.string.common_hide) else stringResource(R.string.setup_fix_it), compact = true) { showLimitDetails = !showLimitDetails }
@@ -254,8 +254,8 @@ internal fun SetupPanel(
                                 // raw command live on the full page Wireless debugging opens.
                                 Column(modifier = Modifier.fillMaxWidth().padding(start = 56.dp, end = 14.dp, top = 4.dp, bottom = 10.dp)) {
                                     Text(
-                                        if (limitBlocks) PhantomProcessLimit.gateInstructions(s.phantomProcessStatus)
-                                        else PhantomProcessLimit.instructions(s.phantomProcessStatus),
+                                        if (limitBlocks) PhantomProcessLimit.gateInstructions(ctx, s.phantomProcessStatus)
+                                        else PhantomProcessLimit.instructions(ctx, s.phantomProcessStatus),
                                         fontSize = 14.sp, color = colors.onSurfaceVariant, modifier = Modifier.padding(vertical = 4.dp),
                                     )
                                     Actions {
@@ -274,7 +274,13 @@ internal fun SetupPanel(
                             CheckRow(
                                 if (signedIn) CheckState.OK else CheckState.WARN,
                                 stringResource(R.string.setup_account),
-                                s.offlineAccount?.let { if (s.offline) stringResource(R.string.setup_signed_in_offline, it) else stringResource(R.string.setup_signed_in, it) } ?: stringResource(R.string.setup_sign_in),
+                                s.offlineAccount?.let {
+                                    when {
+                                        it.isEmpty() -> stringResource(if (s.offline) R.string.setup_signed_in_offline_unnamed else R.string.setup_signed_in_unnamed)
+                                        s.offline -> stringResource(R.string.setup_signed_in_offline, it)
+                                        else -> stringResource(R.string.setup_signed_in, it)
+                                    }
+                                } ?: stringResource(R.string.setup_sign_in),
                                 divider = false,
                             )
                         }
@@ -308,7 +314,7 @@ internal fun SetupPanel(
                             ActionRow(stringResource(R.string.setup_saved_logs), stringResource(R.string.setup_saved_logs_hint, com.droiddeck.launcher.session.SessionPaths.KEEP_SESSIONS), stringResource(R.string.setup_clear_logs), a.onClearLogs)
                             ToggleRow(
                                 host, "offline", stringResource(R.string.setup_offline),
-                                s.offlineAccount?.let { stringResource(R.string.setup_signed_in, it) } ?: stringResource(R.string.setup_sign_in_first),
+                                s.offlineAccount?.let { if (it.isEmpty()) stringResource(R.string.setup_signed_in_unnamed) else stringResource(R.string.setup_signed_in, it) } ?: stringResource(R.string.setup_sign_in_first),
                                 s.offline, enabled = s.offlineAccount != null,
                             ) { a.onOffline() }
                         }

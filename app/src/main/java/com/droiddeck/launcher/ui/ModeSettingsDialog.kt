@@ -1,5 +1,6 @@
 package com.droiddeck.launcher.ui
 
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -38,6 +39,16 @@ class DriverRow(val id: String, val name: String, val detail: String, val remova
     }
 }
 
+/** A [DriverRow.tag] as shown, in the app's language. */
+@Composable
+internal fun driverTagLabel(tag: String): String = when (tag) {
+    DriverRow.BUNDLED -> stringResource(R.string.driver_tag_bundled)
+    DriverRow.DOWNLOADED -> stringResource(R.string.driver_tag_downloaded)
+    DriverRow.IMPORTED -> stringResource(R.string.driver_tag_imported)
+    DriverRow.BUNDLE -> stringResource(R.string.driver_tag_bundle)
+    else -> tag
+}
+
 /** A release driver (Banners-Turnip, WinNative) that is not installed yet; [key] is its asset name. */
 class DownloadRow(val key: String, val label: String, val detail: String, val progress: Int? = null)
 
@@ -50,7 +61,8 @@ class ModeSettings(
     val hdr: Boolean,
     val hdrReason: String?,
     /** The GPU drivers in use, as the row that opens them on the Components page says it. */
-    val gpuDrivers: String = "Auto",
+    /** The drivers line; null shows Auto. */
+    val gpuDrivers: String? = null,
     /** Frames per second the session is capped at; 0 = none. */
     val fpsLimit: Int = 0,
     val upscaler: Int = 0,
@@ -68,7 +80,7 @@ class ModeSettings(
     val mic: Boolean?,
     val renderer: String?,
     val gameStorage: String? = null,
-    val storageOptions: List<Pair<String, String>> = emptyList(),
+    val storageOptions: List<com.droiddeck.launcher.session.GameStorage.Option> = emptyList(),
     /** Steam only: record allocation and sampled storage timings in the next session's Share logs. */
     val storageDiagnostics: Boolean = false,
     val fexPreset: String? = null,
@@ -198,17 +210,17 @@ fun ModeSettingsPage(s: ModeSettings, a: ModeSettingsActions) {
             ChoiceRow(
                 host, "shape", stringResource(R.string.mode_ratio),
                 if (custom != null) stringResource(R.string.mode_ratio_custom) else stringResource(R.string.mode_ratio_auto),
-                com.droiddeck.launcher.session.SessionPrefs.shapeChoices, s.shapeMode, enabled = custom == null, onPick = a.onShape,
+                com.droiddeck.launcher.session.SessionPrefs.shapeChoices(LocalContext.current), s.shapeMode, enabled = custom == null, onPick = a.onShape,
             )
             ChoiceRow(
                 host, "fps", stringResource(R.string.mode_fps), stringResource(R.string.common_applies_next_session),
-                com.droiddeck.launcher.session.SessionPrefs.fpsLimitChoices, s.fpsLimit,
+                com.droiddeck.launcher.session.SessionPrefs.fpsLimitChoices(LocalContext.current), s.fpsLimit,
                 note = stringResource(R.string.mode_fps_note),
                 onPick = a.onFpsLimit,
             )
             ChoiceRow(
                 host, "upscaler", stringResource(R.string.drawer_scaling), stringResource(R.string.mode_upscaler_hint),
-                com.droiddeck.launcher.session.SessionPrefs.upscalerChoices, s.upscaler,
+                com.droiddeck.launcher.session.SessionPrefs.upscalerChoices(LocalContext.current), s.upscaler,
                 note = stringResource(R.string.mode_upscaler_note),
                 onPick = a.onUpscaler,
             )
@@ -232,7 +244,7 @@ fun ModeSettingsPage(s: ModeSettings, a: ModeSettingsActions) {
         }
         SettingsGroup(stringResource(R.string.mode_drivers)) {
             SettingsRow(stringResource(R.string.mode_gpu_drivers), stringResource(R.string.mode_gpu_drivers_hint)) {
-                ValueChip(s.gpuDrivers, open = false) { a.onGpuDrivers() }
+                ValueChip(s.gpuDrivers ?: stringResource(R.string.common_auto), open = false) { a.onGpuDrivers() }
             }
         }
         SettingsGroup(if (steam) stringResource(R.string.mode_touch_controls) else stringResource(R.string.mode_touch)) {
@@ -465,12 +477,18 @@ fun ModeSettingsPage(s: ModeSettings, a: ModeSettingsActions) {
             ToggleRow(host, "mic", stringResource(R.string.mode_mic), stringResource(R.string.mode_mic_hint), s.mic, onChange = a.onMic)
         }
         if (steam && s.gameStorage != null) SettingsGroup(stringResource(R.string.mode_storage)) {
-            val custom = s.gameStorage.isNotEmpty() && s.gameStorage != "off" && s.storageOptions.none { it.second == s.gameStorage }
+            val custom = s.gameStorage.isNotEmpty() && s.gameStorage != "off" && s.storageOptions.none { it.path == s.gameStorage }
+            // Each choice: its path, its menu line, the chip's shorter line, and the label it is saved with.
+            class StorageChoice(val path: String, val label: String, val chip: String, val saved: String)
+            val internal = stringResource(R.string.mode_storage_internal)
             val options = buildList {
-                add("" to (if (s.storageOptions.isEmpty()) stringResource(R.string.mode_storage_auto_none) else stringResource(R.string.mode_storage_auto)))
-                add("off" to stringResource(R.string.mode_storage_internal))
-                for ((label, path) in s.storageOptions) add(path to label)
-                if (custom) add(s.gameStorage to stringResource(R.string.mode_storage_folder, s.gameStorage))
+                add(StorageChoice(
+                    "", if (s.storageOptions.isEmpty()) stringResource(R.string.mode_storage_auto_none) else stringResource(R.string.mode_storage_auto),
+                    stringResource(R.string.mode_storage_auto_short), "",
+                ))
+                add(StorageChoice("off", internal, internal, ""))
+                for (o in s.storageOptions) add(StorageChoice(o.path, o.label, o.label, o.name))
+                if (custom) stringResource(R.string.mode_storage_folder, s.gameStorage).let { add(StorageChoice(s.gameStorage, it, it, it)) }
             }
             val open = host.open == "storage"
             SettingsRow(
@@ -479,14 +497,14 @@ fun ModeSettingsPage(s: ModeSettings, a: ModeSettingsActions) {
                 highlighted = open,
             ) {
                 androidx.compose.foundation.layout.Box {
-                    ValueChip(options.firstOrNull { it.first == s.gameStorage }?.second?.substringBefore(" -") ?: "-", open) { host.open = if (open) null else "storage" }
+                    ValueChip(options.firstOrNull { it.path == s.gameStorage }?.chip ?: "-", open) { host.open = if (open) null else "storage" }
                     AnchoredMenu(
                         open, onDismiss = { if (host.open == "storage") host.open = null }, title = stringResource(R.string.mode_second_library),
                         note = stringResource(R.string.mode_storage_note),
                     ) { firstItemFocus ->
-                        options.forEachIndexed { index, (path, label) ->
-                            MenuItem(label, checked = path == s.gameStorage, focusRequester = if (index == 0) firstItemFocus else null) {
-                                a.onGameStorage(path, if (path.isEmpty() || path == "off") "" else label.substringBefore(" ·"))
+                        options.forEachIndexed { index, choice ->
+                            MenuItem(choice.label, checked = choice.path == s.gameStorage, focusRequester = if (index == 0) firstItemFocus else null) {
+                                a.onGameStorage(choice.path, choice.saved)
                                 host.open = null
                             }
                         }

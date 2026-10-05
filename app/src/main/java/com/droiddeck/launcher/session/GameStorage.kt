@@ -18,7 +18,8 @@ import java.io.File
  * slowly (intro movies, big asset loads); internal stays the default and the dialog says so.
  */
 object GameStorage {
-    class Option(val label: String, val path: String)
+    /** A library root: [label] as the menu lists it (a volume with its free space), [name] alone. */
+    class Option(val label: String, val path: String, val name: String = label)
 
     /** Every removable volume, as its app folder, with the free space it has. */
     fun options(context: Context): List<Option> {
@@ -28,7 +29,7 @@ object GameStorage {
             if (!removable) return@mapNotNull null
             val volume = try { sm?.getStorageVolume(dir) } catch (e: Exception) { null }
             val name = volume?.getDescription(context)?.takeIf { it.isNotBlank() && !it.equals("android", true) } ?: context.getString(R.string.gstore_sd_card)
-            Option("$name · " + context.getString(R.string.gstore_free, free(dir)), File(dir, "steam").absolutePath)
+            Option(context.getString(R.string.gstore_volume_free, name, free(dir)), File(dir, "steam").absolutePath, name)
         }
     }
 
@@ -42,15 +43,15 @@ object GameStorage {
      * Makes [path] a library root the session can bind - the folder and its steamapps/ - and proves
      * it writable. Returns why it cannot be used, or null when it can.
      */
-    fun prepare(path: String): String? {
+    fun prepare(context: Context, path: String): String? {
         val root = File(path)
         val steamapps = File(root, "steamapps")
-        if (!steamapps.isDirectory && !steamapps.mkdirs()) return "cannot create folders in $path"
+        if (!steamapps.isDirectory && !steamapps.mkdirs()) return context.getString(R.string.gstore_cannot_create, path)
         val probe = File(steamapps, ".writable")
         return try {
-            if (!probe.createNewFile() && !probe.isFile) "cannot write in $path" else { probe.delete(); null }
+            if (!probe.createNewFile() && !probe.isFile) context.getString(R.string.gstore_cannot_write, path) else { probe.delete(); null }
         } catch (e: Exception) {
-            "cannot write in $path (${e.message})"
+            context.getString(R.string.gstore_cannot_write_detail, path, e.message)
         }
     }
 
@@ -59,13 +60,13 @@ object GameStorage {
         val pref = SessionPrefs.gameStorage(context)
         return when {
             pref == SessionPrefs.GAME_STORAGE_OFF -> null
-            pref.isEmpty() -> options(context).firstOrNull()?.let { Option(it.label.substringBefore(" ·"), it.path) }
+            pref.isEmpty() -> options(context).firstOrNull()?.let { Option(it.name, it.path) }
             else -> Option(SessionPrefs.gameStorageLabel(context), pref)
         }
     }
 
     /** The label the client shows for a chosen folder: its last name, or the volume's. */
     fun labelFor(context: Context, path: String): String =
-        options(context).firstOrNull { it.path == path }?.label?.substringBefore(" ·")
+        options(context).firstOrNull { it.path == path }?.name
             ?: File(path).name.ifEmpty { context.getString(R.string.gstore_folder) }
 }

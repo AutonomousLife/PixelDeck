@@ -91,7 +91,7 @@ internal class UpdatesMenu(private val activity: Activity, private val ui: Handl
     private fun install(r: AppUpdates.Release) {
         if (stage != null) return
         val apk = r.apk ?: run { error = activity.getString(R.string.upd_no_download); return }
-        AppUpdates.installBlock(r)?.let { error = it; return }
+        AppUpdates.installBlock(r)?.let { error = it.message(activity); return }
         if (SessionState.running) { error = activity.getString(R.string.upd_stop_first); return }
         if (!SelfInstaller.canInstall(activity)) { pending = r; askPermission = true; return }
         error = null
@@ -121,7 +121,7 @@ internal class UpdatesMenu(private val activity: Activity, private val ui: Handl
                 PackageInstaller.STATUS_SUCCESS -> stage = null
                 else -> {
                     stage = null
-                    error = SelfInstaller.describeFailure(status, intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE))
+                    error = SelfInstaller.describeFailure(activity, status, intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE))
                 }
             }
         }

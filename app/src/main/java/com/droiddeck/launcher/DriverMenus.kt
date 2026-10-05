@@ -58,7 +58,7 @@ internal class DriverMenus(private val activity: Activity, private val ui: Handl
     private var autoCheckedThisProcess = false
 
     fun state() = GpuDriversState(
-        gpuName = gpu.name, gpuFamily = gpu.family.label, soc = gpu.soc, supportText = gpu.supportText,
+        gpuName = gpu.displayName(activity), gpuFamily = gpu.family.label(activity), soc = gpu.soc, supportText = gpu.supportText(activity),
         supported = gpu.support == GpuInfo.Support.TESTED, unsupported = gpu.support == GpuInfo.Support.UNSUPPORTED,
         auto = mode == SessionPrefs.GPU_DRIVERS_AUTO, pairs = pairRows, busy = pairBusy, percent = pairPercent,
         autoStatus = autoStatus, releaseStatus = releaseStatus.ifEmpty { activity.getString(R.string.drivers_not_checked) }, checking = releaseChecking,
@@ -155,7 +155,7 @@ internal class DriverMenus(private val activity: Activity, private val ui: Handl
         if (!force && autoCheckedThisProcess) return
         autoCheckedThisProcess = true
         if (DriverPairs.recommendedKey(gpu, emptyList()) == null) {
-            autoStatus = activity.getString(R.string.drivers_none_to_set, gpu.supportText.lowercase())
+            autoStatus = activity.getString(R.string.drivers_none_to_set, gpu.supportText(activity).lowercase())
             return
         }
         releaseChecking = true

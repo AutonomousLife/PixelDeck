@@ -1830,4 +1830,76 @@
     <string name="hdr_none">this display reports no HDR support</string>
     <!-- %1$s lists HDR formats, like Dolby Vision, HDR10+ -->
     <string name="hdr_not_hdr10">this display supports %1$s, not HDR10</string>
+
+    <!-- Follow-up -->
+    <!-- Stands in for the GPU name when the device does not report one -->
+    <string name="gpu_this_gpu">this GPU</string>
+    <string name="phantom_title_on">Child-process limit is on</string>
+    <string name="phantom_title_unset">Child-process limit is unset</string>
+    <string name="phantom_title_unreadable">Child-process limit could not be checked</string>
+    <string name="phantom_title_off">Child-process limit is off</string>
+    <string name="phantom_title_not_required">Child-process limit not required</string>
+    <!-- %1$s is the sentence saying how to turn the limit off on this device -->
+    <string name="phantom_instructions_fix">%1$s If that is not possible, connect this device to a computer with ADB and run the command below. Return here and check again.</string>
+    <string name="phantom_instructions_off">Steam sessions can start.</string>
+    <string name="phantom_instructions_not_applicable">This Android version does not use this limit.</string>
+    <string name="phantom_fix_toggle">Turn on “Disable child process restrictions” in Developer options, and keep Developer options on afterwards.</string>
+    <string name="phantom_fix_no_toggle">This Android version has no switch for it. Use Wireless debugging to change it from this device.</string>
+    <string name="upd_block_no_apk">This build has no download for this copy of DroidDeck.</string>
+    <!-- %1$d is the offered build's versionCode, %2$d the installed one's -->
+    <string name="upd_block_version_code">Android won\'t install it over this build because its versionCode %1$d is below the installed %2$d.</string>
+    <string name="upd_fail_downgrade">Android won\'t install an older version over a newer one. Stay on this build until the channel catches up.</string>
+    <string name="upd_fail_signature">This copy of DroidDeck is signed differently (a local build?), so Android won\'t update it in place.</string>
+    <string name="upd_fail_storage">There isn\'t enough free space for the update.</string>
+    <string name="upd_fail_aborted">The update was cancelled.</string>
+    <!-- %1$s is Android's own (English) installer message -->
+    <string name="upd_fail_with_message">The update didn\'t install: %1$s</string>
+    <string name="upd_fail_generic">The update didn\'t install.</string>
+    <!-- A save zip's layout; %1$s is the app it comes from (GameHub, Winlator) -->
+    <string name="saves_layout_zip">%1$s zip</string>
+    <!-- A save zip whose layout is not known -->
+    <string name="saves_zip">zip</string>
+    <!-- %1$s is the game's name -->
+    <string name="saves_not_launched">%1$s has not been launched yet</string>
+    <string name="saves_none_found">No save files found for %1$s</string>
+    <!-- %1$s is the zip's file name -->
+    <string name="saves_not_save_zip">%1$s has no drive_c folder, so it isn\'t a GameHub or Winlator save zip</string>
+    <!-- %1$s is a folder path -->
+    <string name="gstore_cannot_create">cannot create folders in %1$s</string>
+    <string name="gstore_cannot_write">cannot write in %1$s</string>
+    <!-- %1$s is a folder path, %2$s the system's error -->
+    <string name="gstore_cannot_write_detail">cannot write in %1$s (%2$s)</string>
+    <string name="gfiles_folder_unavailable">Folder is unavailable</string>
+    <!-- %1$s is a file name -->
+    <string name="gfiles_name_taken">A different file already uses %1$s</string>
+    <string name="gfiles_art_unavailable">Artwork folder is unavailable</string>
+    <string name="gfiles_unrelated_inventory">Folder has an unrelated sync inventory</string>
+    <!-- %1$s is a file name -->
+    <string name="gfiles_remove_failed">Could not remove %1$s</string>
+    <string name="gfiles_outside_folder">File leaves the export folder</string>
+    <!-- A FEX build whose DLL carries no version name -->
+    <string name="cmgr_fex_unnamed">FEX (build without a version name)</string>
+    <!-- %1$s is a package file name -->
+    <string name="cmgr_no_profile">no profile.json in %1$s</string>
+    <!-- %1$s is a package file name, %2$s the type its profile.json gives -->
+    <string name="cmgr_not_component_package">%1$s is not a Linux component package (type %2$s)</string>
+    <!-- A storage volume in the second-library menu; %1$s is its name, %2$s its free space, like 12.3 GB -->
+    <string name="gstore_volume_free">%1$s · %2$s free</string>
+    <!-- The second-library setting's value when it is automatic (short form of mode_storage_auto) -->
+    <string name="mode_storage_auto_short">Automatic</string>
+    <!-- %1$s is the technical reason, kept in English -->
+    <string name="appupd_catalog_rejected">The update catalog failed its checks (%1$s)</string>
+    <!-- Label of the copied ADB command on the clipboard -->
+    <string name="main_adb_clip_label">DroidDeck child-process setting</string>
+    <!-- Signed in, but the Steam client recorded no account name -->
+    <string name="setup_signed_in_offline_unnamed">Signed in · offline mode</string>
+    <string name="setup_signed_in_unnamed">Signed in</string>
+    <!-- Small uppercase tags beside a driver's name: where it came from -->
+    <string name="driver_tag_bundled">BUNDLED</string>
+    <string name="driver_tag_downloaded">DOWNLOADED</string>
+    <string name="driver_tag_imported">IMPORTED</string>
+    <!-- The driver is one half of a bundle that sets both drivers -->
+    <string name="driver_tag_bundle">ANDROID + LINUX</string>
+    <!-- %1$s is the limit's state (e.g. Child-process limit is on), %2$s what to do, %3$s the ADB command -->
+    <string name="phantom_warning">%1$s. %2$s\n\n%3$s</string>
 </resources>

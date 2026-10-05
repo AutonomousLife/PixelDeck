@@ -22,12 +22,13 @@ import java.io.File
 @Config(sdk = [33])
 class GameFilesTest {
     @get:Rule val tmp = TemporaryFolder()
+    private val app get() = RuntimeEnvironment.getApplication()
     private fun game(id: String = "8400", name: String = "Geometry Wars") =
         Library.SteamGame(8400, name, null, "internal", id.toULong().toLong())
 
     @Test fun exportsPortableFilesAndAcceptsFileUriRawPathAndContentUri() {
         val folder = tmp.newFolder()
-        val file = GameFiles.export(folder, game("18446744073709551615", "A/B: C"))
+        val file = GameFiles.export(app, folder, game("18446744073709551615", "A/B: C"))
         assertEquals("A_B_ C (18446744073709551615).droiddeck", file.name)
         assertEquals("droiddeck://game/18446744073709551615\n", file.readText())
         val context = RuntimeEnvironment.getApplication()
@@ -61,20 +62,20 @@ class GameFilesTest {
         val art = tmp.newFile("cover.jpg").apply { writeBytes(byteArrayOf(1, 2, 3)) }
         val icon = tmp.newFile("icon.jpg").apply { writeBytes(byteArrayOf(4, 5, 6)) }
         val game = Library.SteamGame(8400, "Geometry Wars: Retro Evolved", art, "internal", icon = icon)
-        GameFiles.export(folder, game)
+        GameFiles.export(app, folder, game)
         val image = File(folder, "images/geometry-wars-retro-evolved-icon.jpg")
         assertArrayEquals(icon.readBytes(), image.readBytes())
         LibraryCache.save(RuntimeEnvironment.getApplication(), listOf(game))
         assertEquals(icon, LibraryCache.load(RuntimeEnvironment.getApplication()).single().icon)
         image.writeText("custom artwork")
-        GameFiles.sync(folder, listOf(game))
+        GameFiles.sync(app, folder, listOf(game))
         assertEquals("custom artwork", image.readText())
-        GameFiles.sync(folder, emptyList())
+        GameFiles.sync(app, folder, emptyList())
         assertEquals("custom artwork", image.readText())
         assertEquals(0, folder.listFiles { f -> f.extension == GameFiles.EXTENSION }!!.size)
         icon.delete()
         val fallback = tmp.newFolder()
-        GameFiles.export(fallback, game)
+        GameFiles.export(app, fallback, game)
         assertArrayEquals(art.readBytes(), File(fallback, "images/${image.name}").readBytes())
     }
 
@@ -84,20 +85,20 @@ class GameFilesTest {
         val note = File(folder, "notes.txt").apply { writeText("Keep me") }
         val first = game()
         val second = game("620", "Portal 2")
-        GameFiles.sync(folder, listOf(first, second))
+        GameFiles.sync(app, folder, listOf(first, second))
         val firstFile = File(folder, GameFiles.filename(first))
         val secondFile = File(folder, GameFiles.filename(second))
         val modified = secondFile.apply { writeText("user edit") }
         val third = game("1", "New install")
-        GameFiles.sync(folder, listOf(first, second, third))
+        GameFiles.sync(app, folder, listOf(first, second, third))
         assertTrue(File(folder, GameFiles.filename(third)).isFile)
         assertEquals("user edit", modified.readText())
         val renamed = game(name = "Geometry Wars: Retro Evolved")
-        GameFiles.sync(folder, listOf(renamed))
+        GameFiles.sync(app, folder, listOf(renamed))
         assertFalse(firstFile.exists())
         assertTrue(File(folder, GameFiles.filename(renamed)).isFile)
         assertEquals("user edit", modified.readText())
-        GameFiles.sync(folder, emptyList())
+        GameFiles.sync(app, folder, emptyList())
         assertFalse(File(folder, GameFiles.filename(renamed)).exists())
         assertTrue(unrelated.isFile)
         assertEquals("Keep me", note.readText())
@@ -107,14 +108,14 @@ class GameFilesTest {
     @Test fun failedExportDoesNotPruneOldInventoryAndNeverOverwritesCollisions() {
         val folder = tmp.newFolder()
         val first = game()
-        GameFiles.sync(folder, listOf(first))
+        GameFiles.sync(app, folder, listOf(first))
         val second = game("620", "Portal 2")
         val collision = File(folder, GameFiles.filename(second)).apply { writeText("personal file") }
-        assertThrows(IllegalArgumentException::class.java) { GameFiles.sync(folder, listOf(second)) }
+        assertThrows(IllegalArgumentException::class.java) { GameFiles.sync(app, folder, listOf(second)) }
         assertEquals("personal file", collision.readText())
         assertTrue(File(folder, GameFiles.filename(first)).isFile)
         collision.delete()
-        GameFiles.sync(folder, listOf(second))
+        GameFiles.sync(app, folder, listOf(second))
         assertFalse(File(folder, GameFiles.filename(first)).exists())
         assertTrue(collision.isFile)
     }
@@ -123,7 +124,7 @@ class GameFilesTest {
         val folder = tmp.newFolder()
         val games = listOf(game(name = "../.."), game(name = "🎮".repeat(200)), game(name = "\u0000\n"))
         games.forEach { game ->
-            val file = GameFiles.export(folder, game)
+            val file = GameFiles.export(app, folder, game)
             assertEquals(folder.canonicalFile, file.canonicalFile.parentFile)
             assertTrue(file.name.toByteArray().size < 255)
         }
@@ -134,7 +135,7 @@ class GameFilesTest {
         val outside = tmp.newFile()
         outside.writeText("droiddeck://game/8400\n")
         java.nio.file.Files.createSymbolicLink(File(folder, GameFiles.filename(game())).toPath(), outside.toPath())
-        assertThrows(IllegalArgumentException::class.java) { GameFiles.export(folder, game()) }
+        assertThrows(IllegalArgumentException::class.java) { GameFiles.export(app, folder, game()) }
         assertEquals("droiddeck://game/8400\n", outside.readText())
     }
 
@@ -142,8 +143,8 @@ class GameFilesTest {
         val folder = tmp.newFolder()
         val first = game(name = "Game")
         val renamed = game(name = "GAME")
-        GameFiles.sync(folder, listOf(first))
-        GameFiles.sync(folder, listOf(renamed))
+        GameFiles.sync(app, folder, listOf(first))
+        GameFiles.sync(app, folder, listOf(renamed))
         val file = File(folder, GameFiles.filename(renamed))
         assertTrue(file.isFile)
         assertEquals("8400", file.inputStream().use(GameFiles::read))
@@ -153,7 +154,7 @@ class GameFilesTest {
     @Test fun unrelatedInventoryIsPreserved() {
         val folder = tmp.newFolder()
         val inventory = File(folder, ".droiddeck-sync.json").apply { writeText("{}") }
-        assertThrows(IllegalArgumentException::class.java) { GameFiles.sync(folder, listOf(game())) }
+        assertThrows(IllegalArgumentException::class.java) { GameFiles.sync(app, folder, listOf(game())) }
         assertEquals("{}", inventory.readText())
         assertEquals(0, folder.listFiles()!!.count { it.extension == GameFiles.EXTENSION })
     }

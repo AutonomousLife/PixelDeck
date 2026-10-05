@@ -49,7 +49,7 @@ object GameFileSync {
         }
         storage?.let { check(File(it.path).listFiles() != null) { context.getString(R.string.game_sync_err_game_storage) } }
         SessionPrefs.addedGamesDirs(context).forEach { check(File(it).listFiles() != null) { context.getString(R.string.game_sync_err_added_games) } }
-        GameFiles.sync(folder, Library.launchableGames(context, strictRead = true))
+        GameFiles.sync(context, folder, Library.launchableGames(context, strictRead = true))
         prefs(context).edit().putString("storageSetting", storageSetting).putString("storagePath", storage?.path).apply()
     }
 }

@@ -261,8 +261,8 @@ class MainActivity : ComponentActivity() {
         }
         onSavePicked = { zip ->
             saveAction(getString(R.string.main_saves_importing, name)) {
-                val (written, backup) = GameSaves.import(game(), zip)
-                val kind = GameSaves.layoutOf(zip)?.label ?: "zip"
+                val (written, backup) = GameSaves.import(this, game(), zip)
+                val kind = GameSaves.layoutOf(zip)?.label(this) ?: getString(R.string.saves_zip)
                 resources.getQuantityString(
                     if (backup != null) R.plurals.main_saves_imported_backup else R.plurals.main_saves_imported,
                     written, written, kind, name,
@@ -276,12 +276,12 @@ class MainActivity : ComponentActivity() {
     private fun exportSaves(name: String, layout: GameSaves.Layout, game: () -> GameSaves.Game) {
         onSavePicked = { dir ->
             saveAction(getString(R.string.main_saves_exporting, name)) {
-                val (zip, count) = GameSaves.export(game(), layout, dir)
-                resources.getQuantityString(R.plurals.main_saves_exported, count, count, layout.label, zip.path.removePrefix("/storage/emulated/0/"))
+                val (zip, count) = GameSaves.export(this, game(), layout, dir)
+                resources.getQuantityString(R.plurals.main_saves_exported, count, count, layout.label(this), zip.path.removePrefix("/storage/emulated/0/"))
             }
         }
         GameSaves.savesDir().mkdirs()
-        pickSaveDir.launch(InAppFilePicker.buildDirIntent(this, getString(R.string.main_saves_pick_folder, name, layout.label), GameSaves.savesDir().path))
+        pickSaveDir.launch(InAppFilePicker.buildDirIntent(this, getString(R.string.main_saves_pick_folder, name, layout.label(this)), GameSaves.savesDir().path))
     }
     private val pickAddedGamesDir = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { r ->
         if (r.resultCode == RESULT_OK) InAppFilePicker.pickedPath(r.data)?.let { path ->
@@ -333,7 +333,7 @@ class MainActivity : ComponentActivity() {
     private var renderer by mutableStateOf("vulkan")
     private var gameStorage by mutableStateOf("")
     private var storageDiagnostics by mutableStateOf(false)
-    private var storageOptions by mutableStateOf<List<Pair<String, String>>>(emptyList())
+    private var storageOptions by mutableStateOf<List<GameStorage.Option>>(emptyList())
     private val pickGameStorage = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { r ->
         if (r.resultCode == RESULT_OK) InAppFilePicker.pickedPath(r.data)?.let { path -> setGameStorage(path, GameStorage.labelFor(this, path)) }
     }
@@ -408,7 +408,7 @@ class MainActivity : ComponentActivity() {
     private fun pickGameExport(game: Library.SteamGame?) {
         onSavePicked = { folder ->
             saveAction(getString(R.string.game_frontend_files)) {
-                if (game != null) com.droiddeck.launcher.frontend.GameFiles.export(folder, game)
+                if (game != null) com.droiddeck.launcher.frontend.GameFiles.export(this, folder, game)
                 else com.droiddeck.launcher.frontend.GameFileSync.enable(this, folder)
                 ui.post { gameSyncFolder = com.droiddeck.launcher.frontend.GameFileSync.folder(this) }
                 getString(R.string.game_file_exported, folder.path)
@@ -724,7 +724,7 @@ class MainActivity : ComponentActivity() {
                         },
                         onCopyPhantomCommand = { enabled ->
                             (getSystemService(CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(
-                                ClipData.newPlainText("DroidDeck child-process setting", PhantomProcessLimit.adbCommand(enabled)),
+                                ClipData.newPlainText(getString(R.string.main_adb_clip_label), PhantomProcessLimit.adbCommand(enabled)),
                             )
                             android.widget.Toast.makeText(this, R.string.main_adb_copied, android.widget.Toast.LENGTH_SHORT).show()
                         },
@@ -768,7 +768,7 @@ class MainActivity : ComponentActivity() {
                 showNonAdreno?.let { release ->
                     ConfirmDialog(
                         title = androidx.compose.ui.res.stringResource(R.string.main_non_adreno_title),
-                        text = androidx.compose.ui.res.stringResource(R.string.main_non_adreno_text, com.droiddeck.launcher.core.DeviceSupport.gpuName(), release.size / 1e6),
+                        text = androidx.compose.ui.res.stringResource(R.string.main_non_adreno_text, com.droiddeck.launcher.core.DeviceSupport.gpuName(this@MainActivity), release.size / 1e6),
                         confirm = androidx.compose.ui.res.stringResource(R.string.main_install_anyway),
                         onConfirm = { showNonAdreno = null; install(release) },
                         onDismiss = { showNonAdreno = null },
@@ -1393,7 +1393,7 @@ class MainActivity : ComponentActivity() {
         Thread({
             drivers.refreshDrivers()
             val games = scanAddedGames()
-            val storage = GameStorage.options(this).map { it.label to it.path }
+            val storage = GameStorage.options(this)
             val deckyInstalled = if (mode == SessionService.MODE_STEAM) DeckyManager.installed(this) else null
             val deckySupervisor = mode == SessionService.MODE_STEAM && DeckyManager.supervisorEnabled(this)
             ui.post {
@@ -1412,7 +1412,7 @@ class MainActivity : ComponentActivity() {
     /** A second Steam library, proven writable first; "" = internal only. */
     private fun setGameStorage(path: String, label: String) {
         if (path.isNotEmpty() && path != SessionPrefs.GAME_STORAGE_OFF) {
-            val problem = GameStorage.prepare(path)
+            val problem = GameStorage.prepare(this, path)
             if (problem != null) {
                 android.widget.Toast.makeText(this, getString(R.string.main_storage_not_usable, problem), android.widget.Toast.LENGTH_LONG).show()
                 return
@@ -1525,7 +1525,10 @@ class MainActivity : ComponentActivity() {
     private fun refreshPhantomStatus() {
         phantomProcessStatus = PhantomProcessLimit.read(this)
         phantomWarning = if (PhantomProcessLimit.blocksSteam(phantomProcessStatus)) {
-            "${PhantomProcessLimit.title(phantomProcessStatus)}. ${PhantomProcessLimit.instructions(phantomProcessStatus)}\n\n${PhantomProcessLimit.adbCommand()}"
+            getString(
+                R.string.phantom_warning, PhantomProcessLimit.title(this, phantomProcessStatus),
+                PhantomProcessLimit.instructions(this, phantomProcessStatus), PhantomProcessLimit.adbCommand(),
+            )
         } else null
     }
 

@@ -370,7 +370,7 @@ fun SessionDrawer(open: Boolean, page: Int, controllerActive: Boolean, onPageCha
                                     chipModifier = focus.track(page, "fill"), onChange = a.onFillScreen,
                                 )
                                 ChoiceRow(host, "upscaler", stringResource(R.string.drawer_scaling), null,
-                                    SessionPrefs.upscalerChoices, a.upscaler,
+                                    SessionPrefs.upscalerChoices(LocalContext.current), a.upscaler,
                                     chipModifier = focus.track(page, "upscaler"), onPick = a.onUpscaler)
                                 SliderRow(stringResource(R.string.drawer_scaling_sharpness), null, a.upscaleSharpness, 0..100, step = 5,
                                     enabled = a.upscaler != 0, format = { "$it%" }, modifier = focus.track(page, "upscale-sharpness"),
@@ -480,7 +480,7 @@ fun SessionDrawer(open: Boolean, page: Int, controllerActive: Boolean, onPageCha
                             }
                             SettingsGroup(stringResource(R.string.drawer_next_session)) {
                                 ChoiceRow(host, "shape", stringResource(R.string.mode_ratio), null,
-                                    SessionPrefs.shapeChoices, a.shapeMode,
+                                    SessionPrefs.shapeChoices(LocalContext.current), a.shapeMode,
                                     chipModifier = focus.track(page, "shape"), onPick = a.onShape)
                             }
                             if (a.steam) SettingsGroup(stringResource(R.string.game_settings_title)) {
@@ -705,9 +705,9 @@ private fun ScreenEffectsGroup(host: MenuHost, a: DrawerActions, track: (String)
     val e = a.effects
     val look = ScreenEffectLooks.match(e, a.upscaler)
     SettingsGroup(stringResource(R.string.drawer_effects)) {
-        val looks = ScreenEffectLooks.LOOKS.map { it.name to it.name }
+        val looks = ScreenEffectLooks.LOOKS.map { it.name to stringResource(it.label) }
         ChoiceRow(host, "look", stringResource(R.string.drawer_look),
-            look?.desc ?: stringResource(R.string.drawer_effects_hint),
+            look?.let { stringResource(it.descRes) } ?: stringResource(R.string.drawer_effects_hint),
             if (look == null) listOf(LOOK_CUSTOM to stringResource(R.string.drawer_look_custom)) + looks else looks,
             look?.name ?: LOOK_CUSTOM, chipModifier = track("look"), hintLines = 2) { name ->
             ScreenEffectLooks.LOOKS.firstOrNull { it.name == name }?.let { picked ->
@@ -742,9 +742,9 @@ private fun ScreenEffectsGroup(host: MenuHost, a: DrawerActions, track: (String)
 private fun TextureFilteringGroup(host: MenuHost, a: DrawerActions, track: (String) -> Modifier) {
     SettingsGroup(stringResource(R.string.drawer_texture)) {
         ChoiceRow(host, "anisotropy", stringResource(R.string.drawer_anisotropy), stringResource(R.string.drawer_texture_hint),
-            SessionPrefs.textureAnisotropyChoices, a.textureAnisotropy, chipModifier = track("anisotropy"), onPick = a.onTextureAnisotropy)
+            SessionPrefs.textureAnisotropyChoices(LocalContext.current), a.textureAnisotropy, chipModifier = track("anisotropy"), onPick = a.onTextureAnisotropy)
         ChoiceRow(host, "texture-sharpness", stringResource(R.string.drawer_texture_sharpness), stringResource(R.string.drawer_texture_hint),
-            SessionPrefs.textureLodBiasChoices, a.textureLodBias, note = stringResource(R.string.drawer_texture_sharpness_note),
+            SessionPrefs.textureLodBiasChoices(LocalContext.current), a.textureLodBias, note = stringResource(R.string.drawer_texture_sharpness_note),
             chipModifier = track("texture-sharpness"), onPick = a.onTextureLodBias)
     }
 }

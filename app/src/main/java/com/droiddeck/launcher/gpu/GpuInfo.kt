@@ -63,7 +63,13 @@ data class GpuInfo(
         Support.UNSUPPORTED -> R.string.gpuinfo_unsupported
     })
 
+    /** [name] for the screen: the stand-in for a GPU the device does not name is in the app's language. */
+    fun displayName(context: Context): String = if (name == UNNAMED) context.getString(R.string.gpu_this_gpu) else name
+
     companion object {
+        /** [name] when the device names no GPU; English, as the device report shows it. */
+        private const val UNNAMED = "this GPU"
+
         fun detect(): GpuInfo {
             val adreno = File("/sys/class/kgsl/kgsl-3d0").exists() || File("/vendor/lib64/hw/vulkan.adreno.so").exists()
             val raw = listOf("/sys/class/kgsl/kgsl-3d0/gpu_model", "/sys/class/kgsl/kgsl-3d0/gpu_chipid")
@@ -73,7 +79,7 @@ data class GpuInfo(
             val family = familyOf(adreno, model)
             val samsung = Build.MANUFACTURER.equals("samsung", ignoreCase = true)
             return GpuInfo(
-                name = if (!adreno) Build.HARDWARE.ifBlank { "this GPU" } else if (model > 0) "Adreno $model" else "Adreno",
+                name = if (!adreno) Build.HARDWARE.ifBlank { UNNAMED } else if (model > 0) "Adreno $model" else "Adreno",
                 model = model, family = family, soc = soc,
                 oneUi8Gen2 = samsung && model == 740,
             )

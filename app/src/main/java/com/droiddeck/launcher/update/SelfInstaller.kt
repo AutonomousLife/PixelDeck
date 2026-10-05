@@ -146,13 +146,12 @@ object SelfInstaller {
     }
 
     /** What went wrong, in words for the user, from PackageInstaller's status and message. */
-    fun describeFailure(status: Int, message: String?): String = when {
-        message?.contains("VERSION_DOWNGRADE") == true ->
-            "Android won't install an older version over a newer one. Stay on this build until the channel catches up."
+    fun describeFailure(context: Context, status: Int, message: String?): String = when {
+        message?.contains("VERSION_DOWNGRADE") == true -> context.getString(R.string.upd_fail_downgrade)
         status == PackageInstaller.STATUS_FAILURE_CONFLICT || message?.contains("UPDATE_INCOMPATIBLE") == true ->
-            "This copy of DroidDeck is signed differently (a local build?), so Android won't update it in place."
-        status == PackageInstaller.STATUS_FAILURE_STORAGE -> "There isn't enough free space for the update."
-        status == PackageInstaller.STATUS_FAILURE_ABORTED -> "The update was cancelled."
-        else -> "The update didn't install" + (message?.let { ": $it" } ?: ".")
+            context.getString(R.string.upd_fail_signature)
+        status == PackageInstaller.STATUS_FAILURE_STORAGE -> context.getString(R.string.upd_fail_storage)
+        status == PackageInstaller.STATUS_FAILURE_ABORTED -> context.getString(R.string.upd_fail_aborted)
+        else -> message?.let { context.getString(R.string.upd_fail_with_message, it) } ?: context.getString(R.string.upd_fail_generic)
     }
 }

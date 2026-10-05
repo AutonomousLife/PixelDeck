@@ -248,12 +248,13 @@ object ComponentsManager {
         Regex("\\(([^)]+)\\)").find(text)?.groupValues?.get(1) ?: text.split(Regex("\\s+")).last()
     }.getOrDefault("")
 
-    private fun fexVersion(dir: File): String {
+    /** The FEX build's version name; [unnamed] when its DLL carries none, "" when there is no FEX. */
+    private fun fexVersion(dir: File, unnamed: String = "FEX (build without a version name)"): String {
         val dll = File(dir, FEX_FILES[0])
         if (!dll.isFile) return ""
         val text = runCatching { String(dll.readBytes(), Charsets.ISO_8859_1) }.getOrDefault("")
         return Regex("FEX-\\d{4}(?:\\.\\d+)?(?:-\\d+-g[0-9a-f]{6,})?").findAll(text).map { it.value }.maxByOrNull { it.length }
-            ?: "FEX (build without a version name)"
+            ?: unnamed
     }
 
     private fun compFiles(dir: File, comp: String): List<String> {
@@ -274,23 +275,24 @@ object ComponentsManager {
     private inline fun <T> readWcp(f: File, block: (TarArchiveInputStream) -> T): T =
         TarArchiveInputStream(ZstdInputStream(BufferedInputStream(FileInputStream(f), 1 shl 16))).use(block)
 
-    private fun readProfile(f: File): JSONObject = readWcp(f) { tar ->
+    private fun readProfile(context: Context, f: File): JSONObject = readWcp(f) { tar ->
         while (true) {
             val e = tar.nextTarEntry ?: break
             if (!e.isDirectory && normalize(e.name) == "profile.json") return@readWcp JSONObject(tar.readBytes().decodeToString())
         }
-        throw IllegalArgumentException("no profile.json in ${f.name}")
+        throw IllegalArgumentException(context.getString(R.string.cmgr_no_profile, f.name))
     }
 
-    private fun packageInfo(f: File): Package {
-        val prof = readProfile(f)
-        val comp = TYPES[prof.optString("type")] ?: throw IllegalArgumentException("${f.name} is not a Linux component package (type ${prof.optString("type")})")
+    private fun packageInfo(context: Context, f: File): Package {
+        val prof = readProfile(context, f)
+        val comp = TYPES[prof.optString("type")]
+            ?: throw IllegalArgumentException(context.getString(R.string.cmgr_not_component_package, f.name, prof.optString("type")))
         return Package(f.name, comp, prof.optString("versionName", f.nameWithoutExtension), prof.optString("description"), f.length())
     }
 
     fun packages(context: Context): List<Package> = packagesDir(context).listFiles()
         ?.filter { it.isFile && it.name.endsWith(".wcp") }?.sortedBy { it.name }
-        ?.mapNotNull { f -> runCatching { packageInfo(f) }.onFailure { Log.w(TAG, "skipping ${f.name}", it) }.getOrNull() }
+        ?.mapNotNull { f -> runCatching { packageInfo(context, f) }.onFailure { Log.w(TAG, "skipping ${f.name}", it) }.getOrNull() }
         ?: emptyList()
 
     /** Unpacks a package's files/ into a Proton; for DXVK/VKD3D the component's own DLLs are replaced as a set. */
@@ -363,7 +365,7 @@ object ComponentsManager {
         return versions.flatMap { v ->
             COMPONENTS.mapNotNull { comp ->
                 val f = File(v, "$comp.wcp")
-                if (!f.isFile) null else Original(comp, v.name, runCatching { readProfile(f).optString("description") }.getOrDefault(""), f.length())
+                if (!f.isFile) null else Original(comp, v.name, runCatching { readProfile(context, f).optString("description") }.getOrDefault(""), f.length())
             }
         }
     }
@@ -415,7 +417,7 @@ object ComponentsManager {
         val syncPacks = EsyncPacks.status(root(context))
         val views = protons(context).map { p ->
             val comps = COMPONENTS.associateWith { comp ->
-                val detected = if (comp == "fex") fexVersion(p.dir) else readVersionFile(File(p.dir, "${COMP_DIR.getValue(comp)}/version"))
+                val detected = if (comp == "fex") fexVersion(p.dir, context.getString(R.string.cmgr_fex_unnamed)) else readVersionFile(File(p.dir, "${COMP_DIR.getValue(comp)}/version"))
                 val detail = if (comp == "fex") context.getString(if (File(p.dir, FEX_FILES[2]).isFile) R.string.cmgr_fex_linux_helpers else R.string.cmgr_fex_dlls_only) else ""
                 val active = state.sub("active").optJSONObject(p.id)?.optJSONObject(comp)
                 val inUseLabel = when {
@@ -518,7 +520,7 @@ object ComponentsManager {
     fun swap(context: Context, protonId: String, file: String): String = synchronized(lock) {
         val p = proton(context, protonId)
         val wcp = File(packagesDir(context), safeName(file))
-        val info = packageInfo(wcp)
+        val info = packageInfo(context, wcp)
         val state = loadState(context)
         if (inUse(context, p)) {
             state.sub("queued").sub(p.id).put(info.comp, JSONObject().put("kind", "package").put("file", wcp.name).put("label", info.version))
@@ -586,7 +588,7 @@ object ComponentsManager {
                         applyOriginal(context, p, comp, v, File(originalsDir(context), "$pid/${safeName(v)}/$comp.wcp"), state)
                     } else {
                         val wcp = File(packagesDir(context), q.optString("file"))
-                        applyPackage(context, p, packageInfo(wcp), wcp, state)
+                        applyPackage(context, p, packageInfo(context, wcp), wcp, state)
                     }
                     done += "${LABEL[comp]} ${q.optString("label")} → ${p.name}"
                 }.onFailure { Log.w(TAG, "queued $comp for ${p.name}", it) }
@@ -630,7 +632,7 @@ object ComponentsManager {
 
     /** Imports a -linux .wcp from anywhere the app can read (the file picker hands over a copy). */
     fun importPackage(context: Context, source: File, name: String): Package = synchronized(lock) {
-        val info = packageInfo(source)
+        val info = packageInfo(context, source)
         val dest = File(packagesDir(context), safeName(name).let { if (it.endsWith(".wcp")) it else "$it.wcp" })
         source.copyTo(File(dest.parentFile, dest.name + ".part"), overwrite = true).renameTo(dest)
         info.copy(file = dest.name)
@@ -680,7 +682,7 @@ object ComponentsManager {
         part.delete()
         check(Downloader.downloadFile(item.url, part, false) { f -> progress(if (f < 0) -1 else (f * 100).toInt().coerceIn(0, 100)) }) { context.getString(R.string.user_apps_download_failed) }
         if (!Hashes.sha256(part).equals(item.digest.substringAfter(':'), true)) { part.delete(); error(context.getString(R.string.cmgr_checksum_mismatch)) }
-        val info = runCatching { packageInfo(part) }.getOrElse { part.delete(); throw it }
+        val info = runCatching { packageInfo(context, part) }.getOrElse { part.delete(); throw it }
         synchronized(lock) { part.renameTo(dest) }
         return info.copy(file = dest.name)
     }
