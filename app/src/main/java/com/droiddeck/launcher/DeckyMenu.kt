@@ -41,11 +41,11 @@ internal class DeckyMenu(private val activity: android.app.Activity, private val
 
     fun installDecky(release: DeckyManager.Release) {
         if (deckyStage != null || SessionState.running) return
-        deckyStage = "Starting…"; deckyPercent = -1
+        deckyStage = activity.getString(R.string.store_starting); deckyPercent = -1
         Thread({
             val problem = runCatching {
                 DeckyManager.install(activity, release) { label, value -> ui.post { deckyStage = label; deckyPercent = value } }
-            }.getOrElse { error -> "Decky install failed: ${error.message ?: error.javaClass.simpleName}" }
+            }.getOrElse { error -> activity.getString(R.string.decky_install_failed, error.message ?: error.javaClass.simpleName) }
             ui.post {
                 deckyStage = null; deckyPercent = -1; deckyInstalled = DeckyManager.installed(activity)
                 if (problem != null) android.widget.Toast.makeText(activity, problem, android.widget.Toast.LENGTH_LONG).show()
@@ -55,16 +55,16 @@ internal class DeckyMenu(private val activity: android.app.Activity, private val
 
     fun importPluginZip(archive: File) {
         if (deckyStage != null || SessionState.running || deckyInstalled == null) return
-        deckyStage = "Starting plugin import…"; deckyPercent = -1
+        deckyStage = activity.getString(R.string.decky_plugin_starting); deckyPercent = -1
         Thread({
             val problem = runCatching {
                 DeckyManager.installPluginZip(activity, archive) { label, value ->
                     ui.post { deckyStage = label; deckyPercent = value }
                 }
-            }.getOrElse { error -> "Plugin import failed: ${error.message ?: error.javaClass.simpleName}" }
+            }.getOrElse { error -> activity.getString(R.string.decky_plugin_failed, error.message ?: error.javaClass.simpleName) }
             ui.post {
                 deckyStage = null; deckyPercent = -1
-                val message = problem ?: "Plugin installed. Restart Steam to load it."
+                val message = problem ?: activity.getString(R.string.decky_plugin_installed)
                 android.widget.Toast.makeText(activity, message, android.widget.Toast.LENGTH_LONG).show()
             }
         }, "import-decky-plugin").start()
