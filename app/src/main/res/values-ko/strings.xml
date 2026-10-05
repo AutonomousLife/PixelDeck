@@ -2036,8 +2036,8 @@
     <string name="display_frame_rate">프레임 속도</string>
     <string name="display_window_compatibility">게임 창 호환성</string>
     <string name="display_force_fullscreen">게임 창 강제 전체 화면</string>
-    <string name="display_force_fullscreen_hint">포커스가 바뀌어도 게임을 전체 화면으로 유지합니다. 게임이 작게 표시되면 끄세요. 세션 중에도 즉시 적용됩니다.</string>
-    <string name="display_force_fullscreen_live">포커스가 바뀌어도 게임을 전체 화면으로 유지합니다. 즉시 적용됩니다.</string>
+    <string name="display_force_fullscreen_hint">모든 게임 창을 화면 크기로 맞춥니다. 앱을 전환한 뒤 게임이 작아지거나 구석에 표시되면 켜고, 게임 크기가 깜박이면 끈 상태로 두세요. 세션 중에도 즉시 적용됩니다.</string>
+    <string name="display_force_fullscreen_live">전환 후 게임이 작아지면 켜고, 깜박이면 끄세요. 즉시 적용됩니다.</string>
     <string name="display_look_filter">%1$s 스케일링을 %2$s(으)로 설정합니다.</string>
     <string name="display_match_screen">화면에 맞춤(%1$d×%2$d)</string>
     <string name="mode_tab_steam">Steam</string>

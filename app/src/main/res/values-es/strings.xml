@@ -2074,8 +2074,8 @@
     <string name="display_frame_rate">Velocidad de fotogramas</string>
     <string name="display_window_compatibility">Compatibilidad de ventanas de juego</string>
     <string name="display_force_fullscreen">Forzar ventanas de juego a pantalla completa</string>
-    <string name="display_force_fullscreen_hint">Mantiene los juegos a pantalla completa tras cambios de foco. Desactívalo si un juego se ve pequeño. Se aplica al instante durante una sesión.</string>
-    <string name="display_force_fullscreen_live">Mantiene los juegos a pantalla completa tras cambios de foco. Se aplica al instante.</string>
+    <string name="display_force_fullscreen_hint">Hace que cada ventana de juego ocupe toda la pantalla. Actívalo si un juego vuelve pequeño o en una esquina al cambiar de app; déjalo desactivado si un juego parpadea entre tamaños. Se aplica al instante durante una sesión.</string>
+    <string name="display_force_fullscreen_live">Actívalo si un juego vuelve pequeño al cambiar de app; desactívalo si parpadea. Se aplica al instante.</string>
     <string name="display_look_filter">%1$s Cambia el escalado a %2$s.</string>
     <string name="display_match_screen">Igual a la pantalla (%1$d×%2$d)</string>
     <string name="mode_tab_steam">Steam</string>

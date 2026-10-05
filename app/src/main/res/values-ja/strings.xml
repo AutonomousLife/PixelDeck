@@ -2036,8 +2036,8 @@
     <string name="display_frame_rate">フレームレート</string>
     <string name="display_window_compatibility">ゲームウィンドウの互換性</string>
     <string name="display_force_fullscreen">ゲームウィンドウを強制的に全画面にする</string>
-    <string name="display_force_fullscreen_hint">フォーカスが変わってもゲームを全画面のまま保ちます。ゲームが小さく表示される場合はオフにしてください。セッション中もすぐに反映されます。</string>
-    <string name="display_force_fullscreen_live">フォーカスが変わってもゲームを全画面のまま保ちます。すぐに反映されます。</string>
+    <string name="display_force_fullscreen_hint">すべてのゲームウィンドウを画面サイズにします。アプリを切り替えた後にゲームが小さくなったり隅に表示されたりする場合はオンに、ゲームのサイズがちらつく場合はオフのままにしてください。セッション中もすぐに反映されます。</string>
+    <string name="display_force_fullscreen_live">切り替え後にゲームが小さくなる場合はオン、ちらつく場合はオフ。すぐに反映されます。</string>
     <string name="display_look_filter">%1$s スケーリングを%2$sに設定します。</string>
     <string name="display_match_screen">画面に合わせる（%1$d×%2$d）</string>
     <string name="mode_tab_steam">Steam</string>

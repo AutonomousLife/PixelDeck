@@ -2036,8 +2036,8 @@
     <string name="display_frame_rate">帧率</string>
     <string name="display_window_compatibility">游戏窗口兼容性</string>
     <string name="display_force_fullscreen">强制游戏窗口全屏</string>
-    <string name="display_force_fullscreen_hint">焦点切换后仍让游戏保持全屏。如果游戏画面变小，请关闭此项。会话中即时生效。</string>
-    <string name="display_force_fullscreen_live">焦点切换后仍让游戏保持全屏。即时生效。</string>
+    <string name="display_force_fullscreen_hint">让每个游戏窗口都与屏幕大小一致。如果切换应用后游戏变小或显示在角落，请开启；如果游戏在不同尺寸间闪烁，请保持关闭。会话中即时生效。</string>
+    <string name="display_force_fullscreen_live">切换后游戏变小请开启；出现闪烁请关闭。即时生效。</string>
     <string name="display_look_filter">%1$s 将缩放设为 %2$s。</string>
     <string name="display_match_screen">匹配屏幕（%1$d×%2$d）</string>
     <string name="mode_tab_steam">Steam</string>

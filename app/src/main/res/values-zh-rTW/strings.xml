@@ -2036,8 +2036,8 @@
     <string name="display_frame_rate">影格率</string>
     <string name="display_window_compatibility">遊戲視窗相容性</string>
     <string name="display_force_fullscreen">強制遊戲視窗全螢幕</string>
-    <string name="display_force_fullscreen_hint">焦點變更後仍讓遊戲保持全螢幕。若遊戲畫面變小，請關閉此項。工作階段中立即生效。</string>
-    <string name="display_force_fullscreen_live">焦點變更後仍讓遊戲保持全螢幕。立即生效。</string>
+    <string name="display_force_fullscreen_hint">讓每個遊戲視窗都與螢幕同大。若切換應用程式後遊戲變小或顯示在角落，請開啟；若遊戲在不同尺寸間閃爍，請保持關閉。工作階段中立即生效。</string>
+    <string name="display_force_fullscreen_live">切換後遊戲變小請開啟；出現閃爍請關閉。立即生效。</string>
     <string name="display_look_filter">%1$s 將縮放設為 %2$s。</string>
     <string name="display_match_screen">符合螢幕（%1$d×%2$d）</string>
     <string name="mode_tab_steam">Steam</string>
