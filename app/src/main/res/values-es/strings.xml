@@ -259,6 +259,8 @@
     <string name="mode_controller_x360">Mando Xbox 360</string>
     <string name="mode_controller_note">Deck: botón de Quick Access y giroscopio. Xbox 360: abre Quick Access con Guide+A.</string>
     <string name="mode_back">Atrás</string>
+    <string name="back_menu_then_qam">Menú → QAM</string>
+    <string name="back_qam_then_menu">QAM → Menú</string>
     <string name="mode_session">Sesión</string>
     <string name="mode_suspend">Comportamiento en segundo plano</string>
     <string name="mode_suspend_hint">Cuando la app se oculta o la pantalla se apaga.</string>

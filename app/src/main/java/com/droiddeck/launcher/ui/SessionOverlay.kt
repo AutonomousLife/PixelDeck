@@ -410,7 +410,7 @@ fun SessionDrawer(open: Boolean, page: Int, controllerActive: Boolean, onPageCha
                                         chipModifier = focus.track(page, "keyboard-button"), onChange = a.onKeyboardButton)
                                 }
                                 if (a.steam) ChoiceRow(host, "back-actions", stringResource(R.string.mode_back), null,
-                                    listOf(false to SessionPrefs.BACK_MENU_THEN_QAM, true to SessionPrefs.BACK_QAM_THEN_MENU),
+                                    listOf(false to stringResource(SessionPrefs.BACK_MENU_THEN_QAM), true to stringResource(SessionPrefs.BACK_QAM_THEN_MENU)),
                                     a.backActionsInverted, chipModifier = focus.track(page, "back-actions"), onPick = a.onBackActionsInverted)
                             }
                             SettingsGroup(stringResource(R.string.drawer_keyboard)) {

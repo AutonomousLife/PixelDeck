@@ -1,6 +1,7 @@
 package com.droiddeck.launcher.session
 
 import android.content.Context
+import androidx.annotation.StringRes
 import com.droiddeck.launcher.R
 import com.droiddeck.launcher.core.TextureFiltering
 import com.droiddeck.launcher.gpu.ScreenEffects
@@ -19,10 +20,12 @@ object SessionPrefs {
     const val OSC_STEAM_QAM = "steam-qam"
     const val OSC_NEVER = "never"
 
-    const val BACK_MENU_THEN_QAM = "1: menu 2: QAM"
-    const val BACK_QAM_THEN_MENU = "1: QAM 2: menu"
+    /** What Back does in a Steam session, first press then second: the labels of the two orders. */
+    val BACK_MENU_THEN_QAM = R.string.back_menu_then_qam
+    val BACK_QAM_THEN_MENU = R.string.back_qam_then_menu
 
-    fun backActionsOrder(inverted: Boolean): String =
+    @StringRes
+    fun backActionsOrder(inverted: Boolean): Int =
         if (inverted) BACK_QAM_THEN_MENU else BACK_MENU_THEN_QAM
 
     private fun prefs(context: Context) = context.getSharedPreferences("session", Context.MODE_PRIVATE)

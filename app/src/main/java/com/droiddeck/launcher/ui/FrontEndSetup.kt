@@ -297,10 +297,10 @@ internal fun SetupPanel(
                     2 -> {
                         SettingsGroup(stringResource(R.string.setup_session)) {
                             ChoiceRow(
-                                host, "back-actions", stringResource(R.string.mode_back), SessionPrefs.backActionsOrder(s.backActionsInverted),
+                                host, "back-actions", stringResource(R.string.mode_back), stringResource(SessionPrefs.backActionsOrder(s.backActionsInverted)),
                                 listOf(
-                                    false to SessionPrefs.BACK_MENU_THEN_QAM,
-                                    true to SessionPrefs.BACK_QAM_THEN_MENU,
+                                    false to stringResource(SessionPrefs.BACK_MENU_THEN_QAM),
+                                    true to stringResource(SessionPrefs.BACK_QAM_THEN_MENU),
                                 ), s.backActionsInverted, onPick = a.onBackActionsInverted,
                             )
                             SettingsRow(stringResource(R.string.frame_gen_title), stringResource(R.string.frame_gen_hint)) {
