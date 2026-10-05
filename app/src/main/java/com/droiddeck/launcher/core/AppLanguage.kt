@@ -97,6 +97,22 @@ object AppLanguage {
     // 0 leaves it undefined, so only the locale is changed.
     private fun override(locale: Locale) = Configuration().apply { fontScale = 0f; setLocales(LocaleList(locale)) }
 
+    /** Which of the app's languages [locale] reads as, or null when the app does not ship it. */
+    fun supportedTag(locale: Locale): String? = when (locale.language) {
+        "en", "es", "ja", "ko" -> locale.language
+        "zh" -> when {
+            locale.script == "Hans" -> "zh-CN"
+            locale.country == "HK" || locale.country == "MO" -> "zh-HK"
+            locale.script == "Hant" || locale.country == "TW" -> "zh-TW"
+            else -> "zh-CN"
+        }
+        else -> null
+    }
+
+    /** [locale]'s language named in itself, without its region unless the app tells them apart. */
+    fun displayName(locale: Locale): String =
+        supportedTag(locale)?.let(::nativeName) ?: locale.getDisplayLanguage(locale).replaceFirstChar { it.titlecase(locale) }
+
     /** A language's name in that language, for the picker: what a reader of it looks for. */
     fun nativeName(tag: String): String = when (tag) {
         "en" -> "English"

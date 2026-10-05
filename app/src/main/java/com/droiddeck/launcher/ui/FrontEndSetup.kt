@@ -474,7 +474,7 @@ private fun SettingCard(label: String, value: String, id: String, modifier: Modi
 @Composable
 private fun LanguageRow(host: MenuHost, chosen: String, onPick: (String) -> Unit) {
     val context = androidx.compose.ui.platform.LocalContext.current
-    val systemName = AppLanguage.system(context).let { it.getDisplayName(it) }
+    val systemName = AppLanguage.displayName(AppLanguage.system(context))
     val systemLabel = stringResource(R.string.setup_language_system, systemName)
     SettingsRow(stringResource(R.string.setup_language), stringResource(R.string.setup_language_hint)) {
         Box {
