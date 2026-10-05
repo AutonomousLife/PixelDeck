@@ -53,6 +53,9 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -65,6 +68,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
@@ -263,7 +267,34 @@ fun AnchoredMenu(open: Boolean, onDismiss: () -> Unit, title: String? = null, no
                     title.uppercase(), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.5.sp, color = colors.onSurfaceVariant,
                     modifier = Modifier.padding(start = 10.dp, top = 6.dp, bottom = 6.dp),
                 )
-                Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())) { content(firstItemFocus) }
+                // While entries remain below the fold the list fades out at the bottom over a down
+                // arrow, so a short screen (a phone in landscape) shows that the menu goes on.
+                val scroll = rememberScrollState()
+                Box(Modifier.weight(1f, fill = false)) {
+                    Column(
+                        Modifier
+                            .graphicsLayer { compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.Offscreen }
+                            .drawWithContent {
+                                drawContent()
+                                if (scroll.canScrollForward) {
+                                    val fade = 36.dp.toPx().coerceAtMost(size.height / 3)
+                                    drawRect(
+                                        androidx.compose.ui.graphics.Brush.verticalGradient(
+                                            listOf(Color.Black, Color.Transparent), startY = size.height - fade, endY = size.height,
+                                        ),
+                                        topLeft = androidx.compose.ui.geometry.Offset(0f, size.height - fade),
+                                        size = androidx.compose.ui.geometry.Size(size.width, fade),
+                                        blendMode = androidx.compose.ui.graphics.BlendMode.DstIn,
+                                    )
+                                }
+                            }
+                            .verticalScroll(scroll),
+                    ) { content(firstItemFocus) }
+                    if (scroll.canScrollForward) Icon(
+                        Icons.Filled.KeyboardArrowDown, contentDescription = null, tint = colors.onSurfaceVariant,
+                        modifier = Modifier.align(Alignment.BottomCenter).size(20.dp),
+                    )
+                }
                 if (note != null) {
                     Spacer(Modifier.height(4.dp))
                     Box(Modifier.fillMaxWidth().height(1.dp).background(pal.line))
