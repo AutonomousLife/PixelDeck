@@ -1904,12 +1904,10 @@
     <string name="gstore_sd_card">SD 卡</string>
 
     <!-- %1$s is a size, like 12.3 GB -->
-    <string name="gstore_free">可用 %1$s</string>
     <string name="gstore_folder">資料夾</string>
     <string name="logshare_chooser">分享會話記錄</string>
 
     <!-- Stands in for the Steam account name when the client did not record one -->
-    <string name="offline_signed_in">已登入</string>
 
     <!-- Why the HDR switch is greyed out -->
     <string name="hdr_needs_android_10">需要 Android 10 或更新版本（支援色彩空間的顯示圖層）</string>
@@ -1957,4 +1955,12 @@
     <!-- %1$s is the technical reason, kept in English -->
 
     <!-- Label of the copied ADB command on the clipboard -->
+
+    <!-- Signed in, but the Steam client recorded no account name -->
+
+    <!-- Small uppercase tags beside a driver's name: where it came from -->
+
+    <!-- The driver is one half of a bundle that sets both drivers -->
+
+    <!-- %1$s is the limit's state (e.g. Child-process limit is on), %2$s what to do, %3$s the ADB command -->
 </resources>

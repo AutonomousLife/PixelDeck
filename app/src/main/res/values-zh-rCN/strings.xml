@@ -1904,12 +1904,10 @@
     <string name="gstore_sd_card">SD 卡</string>
 
     <!-- %1$s is a size, like 12.3 GB -->
-    <string name="gstore_free">可用 %1$s</string>
     <string name="gstore_folder">文件夹</string>
     <string name="logshare_chooser">分享会话日志</string>
 
     <!-- Stands in for the Steam account name when the client did not record one -->
-    <string name="offline_signed_in">已登录</string>
 
     <!-- Why the HDR switch is greyed out -->
     <string name="hdr_needs_android_10">需要 Android 10 或更高版本（支持色彩空间的显示图层）</string>
@@ -1953,4 +1951,16 @@
     <!-- A storage volume in the second-library menu; %1$s is its name, %2$s its free space, like 12.3 GB -->
 
     <!-- The second-library setting's value when it is automatic (short form of mode_storage_auto) -->
+
+    <!-- %1$s is the technical reason, kept in English -->
+
+    <!-- Label of the copied ADB command on the clipboard -->
+
+    <!-- Signed in, but the Steam client recorded no account name -->
+
+    <!-- Small uppercase tags beside a driver's name: where it came from -->
+
+    <!-- The driver is one half of a bundle that sets both drivers -->
+
+    <!-- %1$s is the limit's state (e.g. Child-process limit is on), %2$s what to do, %3$s the ADB command -->
 </resources>

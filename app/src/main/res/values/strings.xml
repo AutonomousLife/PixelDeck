@@ -1818,12 +1818,10 @@
     <!-- Game storage -->
     <string name="gstore_sd_card">SD card</string>
     <!-- %1$s is a size, like 12.3 GB -->
-    <string name="gstore_free">%1$s free</string>
     <string name="gstore_folder">Folder</string>
 
     <string name="logshare_chooser">Share session logs</string>
     <!-- Stands in for the Steam account name when the client did not record one -->
-    <string name="offline_signed_in">signed in</string>
 
     <!-- Why the HDR switch is greyed out -->
     <string name="hdr_needs_android_10">needs Android 10 or newer (display layers with a color space)</string>
