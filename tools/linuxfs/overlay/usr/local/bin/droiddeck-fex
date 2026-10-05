@@ -30,6 +30,11 @@ FEX_APPID = "3127680"
 SNIPER_APPID = "1628350"
 INSTALL_DIRS = {FEX_APPID: "FEX-Emu", SNIPER_APPID: "SteamLinuxRuntime_sniper"}
 MARKER = ".droiddeck-fex"
+# Without Steam's FEX and runtime: DroidDeck's own FEX build in /usr/local (the x86-64 client's,
+# with GL/Vulkan thunks) and a plain x86 root - FEX's Ubuntu image unpacked - marked complete here.
+OWN_ROOTFS = "/opt/droiddeck-fex/rootfs"
+OWN_ROOTFS_DONE = ".droiddeck-complete"
+SYSTEM_PREFIXES = ("/usr/local", "/usr")
 LAYOUT = 1
 GUEST_LIBDIRS = (("x86_64", "lib/x86_64-linux-gnu"), ("i386", "lib/i386-linux-gnu"))
 PRELOAD_NAMES = ("libblsession.so", "libfakeinput.so")
@@ -142,7 +147,7 @@ def fex_install():
     tool = app_dir(FEX_APPID)
     if tool:
         prefixes += [(os.path.join(tool, sub), True) for sub in ("usr", "", "files/usr", "files")]
-    prefixes.append(("/usr", False))
+    prefixes += [(prefix, False) for prefix in SYSTEM_PREFIXES]
     for prefix, portable in prefixes:
         binary = next((os.path.join(prefix, "bin", name) for name in ("FEX", "FEXInterpreter")
                        if os.access(os.path.join(prefix, "bin", name), os.X_OK)), None)
@@ -177,6 +182,13 @@ def runtime_platform():
     platforms = [path for path in platforms if os.path.isdir(os.path.join(path, "files"))
                  and os.path.isfile(os.path.join(path, "usr-mtree.txt.gz"))]
     return max(platforms, key=platform_version, default=None)
+
+
+def own_rootfs():
+    if os.path.isfile(os.path.join(OWN_ROOTFS, OWN_ROOTFS_DONE)) and \
+            os.path.isfile(os.path.join(OWN_ROOTFS, "lib/x86_64-linux-gnu/libc.so.6")):
+        return OWN_ROOTFS
+    return None
 
 
 def unescape(raw):
@@ -308,6 +320,7 @@ def request_install():
 
 
 def describe(fex, platform):
+    # platform: Steam's sniper platform folder, or the own root when Steam's runtime is absent.
     return {
         "fex": fex["bin"] if fex else None,
         "server": fex["server"] if fex else None,
@@ -322,7 +335,7 @@ def describe(fex, platform):
 def prepare():
     with locked():
         fex = fex_install()
-        platform = runtime_platform()
+        platform = runtime_platform() or own_rootfs()
         status = describe(fex, platform)
         if not status["ready"]:
             missing = []
@@ -341,9 +354,12 @@ def prepare():
                 "the Steam client was asked to install it" if requested else "open Steam once and it is installed for you"))
             write_if_changed(STATUS_FILE, json.dumps(status, indent=2) + "\n")
             return None
-        root = os.path.join(platform, "files")
-        if materialize(platform):
-            say("prepared %s as the x86 runtime" % os.path.basename(platform))
+        if platform == OWN_ROOTFS:
+            root = OWN_ROOTFS
+        else:
+            root = os.path.join(platform, "files")
+            if materialize(platform):
+                say("prepared %s as the x86 runtime" % os.path.basename(platform))
         install_preloads(root)
         write_config(fex, root)
         fex["rootfs"] = root

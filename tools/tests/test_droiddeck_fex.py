@@ -245,6 +245,28 @@ class PrepareTest(FexTestCase):
         self.assertFalse((self.home / ".config/droiddeck/fex-wanted").exists())
         self.assertEqual(self.quiet(FEX["prepare"])[1], "")
 
+    def test_the_own_build_and_root_stand_in_for_steams(self):
+        local = self.tmp / "usr-local"
+        self.write(local / "bin/FEX", elf(183), 0o755)
+        self.write(local / "bin/FEXServer", elf(183), 0o755)
+        (local / "lib/fex-emu/HostThunks").mkdir(parents=True)
+        (local / "share/fex-emu/GuestThunks").mkdir(parents=True)
+        self.write(local / "share/fex-emu/ThunksDB.json", "{}")
+        root = self.tmp / "own-rootfs"
+        self.write(root / "lib/x86_64-linux-gnu/libc.so.6", elf(62))
+        with mock.patch.dict(G, {"SYSTEM_PREFIXES": (str(local),), "OWN_ROOTFS": str(root),
+                                 "steam_running": lambda: False}):
+            # An unpack that did not finish is not a root.
+            self.assertIsNone(self.quiet(FEX["prepare"])[0])
+            self.write(root / ".droiddeck-complete")
+            fex, said = self.quiet(FEX["prepare"])
+        self.assertEqual((fex["bin"], fex["rootfs"], fex["portable"]), (str(local / "bin/FEX"), str(root), False))
+        self.assertNotIn("prepared", said)
+        status = json.loads((self.home / ".local/share/droiddeck-fex/status.json").read_text())
+        self.assertEqual((status["ready"], status["runtime"], status["thunks"]), (True, str(root), True))
+        config = json.loads((self.home / ".local/share/droiddeck-fex/config/Config.json").read_text())
+        self.assertEqual(config["Config"]["RootFS"], str(root))
+
     def test_status_refreshes_what_the_app_reads_once_steam_installed_fex(self):
         with mock.patch.dict(G, {"steam_running": lambda: False}):
             self.quiet(FEX["prepare"])
