@@ -475,6 +475,7 @@
     <string name="drawer_page_effects">画面效果</string>
     <string name="drawer_page_controls">控制</string>
     <string name="drawer_page_components">组件</string>
+    <string name="drawer_page_controller">手柄</string>
     <string name="drawer_page_settings">设置</string>
     <string name="drawer_page_desc">%1$s 页面</string>
     <string name="drawer_steam">Steam</string>
@@ -490,8 +491,11 @@
     <string name="drawer_scaling_sharpness">缩放锐度</string>
     <string name="drawer_effects">屏幕效果</string>
     <string name="drawer_effects_hint">实时生效。任何效果开启期间会占用少量 GPU 时间。</string>
-    <string name="drawer_look">观感</string>
+    <string name="drawer_look">预设</string>
     <string name="drawer_look_custom">自定义</string>
+    <string name="drawer_effects_advanced">高级</string>
+    <string name="widgets_expanded">已展开</string>
+    <string name="widgets_collapsed">已折叠</string>
     <string name="drawer_cas">锐化（CAS）</string>
     <string name="drawer_cas_level">锐化级别</string>
     <string name="drawer_fake_hdr">伪 HDR</string>
@@ -515,6 +519,7 @@
     <string name="drawer_pc_keyboard">PC 键盘</string>
     <string name="drawer_android_keyboard">Android</string>
     <string name="drawer_second_screen">副屏</string>
+    <string name="drawer_second_screen_mode">模式</string>
     <string name="drawer_second_screen_shows">显示</string>
     <string name="drawer_android_apps">Android 应用</string>
     <string name="drawer_launch_app">启动应用</string>
@@ -2012,4 +2017,25 @@
 
     <!-- %1$s is the limit's state (e.g. Child-process limit is on), %2$s what to do, %3$s the ADB command -->
     <string name="phantom_warning">%1$s。%2$s\n\n%3$s</string>
+    <string name="display_session">会话显示</string>
+    <string name="display_resolution">分辨率</string>
+    <string name="display_game_fit">16:9 游戏适配</string>
+    <string name="display_game_fit_hint">16:9 游戏如何适配此屏幕。下次会话生效。</string>
+    <string name="display_game_fit_unavailable">请选择“匹配屏幕”或比 16:9 更窄的自定义尺寸。</string>
+    <string name="display_preserve">保持比例</string>
+    <string name="display_stretch">拉伸至屏幕</string>
+    <string name="display_image_scaling">画面缩放</string>
+    <string name="display_filter">缩放滤镜</string>
+    <string name="display_filter_hint">由 Steam 和桌面共享。</string>
+    <string name="display_filter_live">即时生效。由 Steam 和桌面共享。</string>
+    <string name="display_filter_note">FSR、GSR 和 NIS 在放大会话画面时生效。“仅锐化”在不放大时也可用。</string>
+    <string name="display_sharpness">滤镜锐度</string>
+    <string name="display_frame_rate">帧率</string>
+    <string name="display_window_compatibility">游戏窗口兼容性</string>
+    <string name="display_force_fullscreen">强制游戏窗口全屏</string>
+    <string name="display_force_fullscreen_hint">焦点切换后仍让游戏保持全屏。如果游戏画面变小，请关闭此项。会话中即时生效。</string>
+    <string name="display_force_fullscreen_live">焦点切换后仍让游戏保持全屏。即时生效。</string>
+    <string name="display_look_filter">%1$s 将缩放设为 %2$s。</string>
+    <string name="display_match_screen">匹配屏幕（%1$d×%2$d）</string>
+    <string name="mode_tab_steam">Steam</string>
 </resources>

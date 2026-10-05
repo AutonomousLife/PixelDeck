@@ -475,6 +475,7 @@
     <string name="drawer_page_effects">エフェクト</string>
     <string name="drawer_page_controls">コントロール</string>
     <string name="drawer_page_components">コンポーネント</string>
+    <string name="drawer_page_controller">コントローラー</string>
     <string name="drawer_page_settings">設定</string>
     <string name="drawer_page_desc">%1$sページ</string>
     <string name="drawer_steam">Steam</string>
@@ -490,8 +491,11 @@
     <string name="drawer_scaling_sharpness">スケーリングのシャープネス</string>
     <string name="drawer_effects">画面エフェクト</string>
     <string name="drawer_effects_hint">即時反映。エフェクトがオンの間はGPUを少し消費します。</string>
-    <string name="drawer_look">スタイル</string>
+    <string name="drawer_look">プリセット</string>
     <string name="drawer_look_custom">カスタム</string>
+    <string name="drawer_effects_advanced">詳細設定</string>
+    <string name="widgets_expanded">展開</string>
+    <string name="widgets_collapsed">折りたたみ</string>
     <string name="drawer_cas">シャープ化（CAS）</string>
     <string name="drawer_cas_level">シャープ化レベル</string>
     <string name="drawer_fake_hdr">疑似HDR</string>
@@ -515,6 +519,7 @@
     <string name="drawer_pc_keyboard">PCキーボード</string>
     <string name="drawer_android_keyboard">Android</string>
     <string name="drawer_second_screen">セカンドスクリーン</string>
+    <string name="drawer_second_screen_mode">モード</string>
     <string name="drawer_second_screen_shows">表示</string>
     <string name="drawer_android_apps">Androidアプリ</string>
     <string name="drawer_launch_app">アプリを起動</string>
@@ -2012,4 +2017,25 @@
 
     <!-- %1$s is the limit's state (e.g. Child-process limit is on), %2$s what to do, %3$s the ADB command -->
     <string name="phantom_warning">%1$s。%2$s\n\n%3$s</string>
+    <string name="display_session">セッションの表示</string>
+    <string name="display_resolution">解像度</string>
+    <string name="display_game_fit">16:9ゲームの表示</string>
+    <string name="display_game_fit_hint">16:9のゲームをこのディスプレイにどう合わせるか。次回のセッションから。</string>
+    <string name="display_game_fit_unavailable">「画面に合わせる」か、16:9より縦長のカスタムサイズを選んでください。</string>
+    <string name="display_preserve">縦横比を保持</string>
+    <string name="display_stretch">画面いっぱいに引き伸ばす</string>
+    <string name="display_image_scaling">画像のスケーリング</string>
+    <string name="display_filter">スケーリングフィルター</string>
+    <string name="display_filter_hint">Steamとデスクトップで共有されます。</string>
+    <string name="display_filter_live">すぐに反映されます。Steamとデスクトップで共有されます。</string>
+    <string name="display_filter_note">FSR、GSR、NISはセッションの映像を拡大するときに機能します。「シャープのみ」は拡大しなくても機能します。</string>
+    <string name="display_sharpness">フィルターのシャープネス</string>
+    <string name="display_frame_rate">フレームレート</string>
+    <string name="display_window_compatibility">ゲームウィンドウの互換性</string>
+    <string name="display_force_fullscreen">ゲームウィンドウを強制的に全画面にする</string>
+    <string name="display_force_fullscreen_hint">フォーカスが変わってもゲームを全画面のまま保ちます。ゲームが小さく表示される場合はオフにしてください。セッション中もすぐに反映されます。</string>
+    <string name="display_force_fullscreen_live">フォーカスが変わってもゲームを全画面のまま保ちます。すぐに反映されます。</string>
+    <string name="display_look_filter">%1$s スケーリングを%2$sに設定します。</string>
+    <string name="display_match_screen">画面に合わせる（%1$d×%2$d）</string>
+    <string name="mode_tab_steam">Steam</string>
 </resources>

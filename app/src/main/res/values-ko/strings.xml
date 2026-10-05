@@ -475,6 +475,7 @@
     <string name="drawer_page_effects">효과</string>
     <string name="drawer_page_controls">컨트롤</string>
     <string name="drawer_page_components">구성 요소</string>
+    <string name="drawer_page_controller">컨트롤러</string>
     <string name="drawer_page_settings">설정</string>
     <string name="drawer_page_desc">%1$s 페이지</string>
     <string name="drawer_steam">Steam</string>
@@ -490,8 +491,11 @@
     <string name="drawer_scaling_sharpness">스케일링 선명도</string>
     <string name="drawer_effects">화면 효과</string>
     <string name="drawer_effects_hint">즉시 적용됩니다. 효과가 하나라도 켜져 있으면 GPU 시간을 약간 사용합니다.</string>
-    <string name="drawer_look">스타일</string>
+    <string name="drawer_look">프리셋</string>
     <string name="drawer_look_custom">사용자 정의</string>
+    <string name="drawer_effects_advanced">고급</string>
+    <string name="widgets_expanded">펼쳐짐</string>
+    <string name="widgets_collapsed">접힘</string>
     <string name="drawer_cas">샤프닝(CAS)</string>
     <string name="drawer_cas_level">샤프닝 강도</string>
     <string name="drawer_fake_hdr">가상 HDR</string>
@@ -515,6 +519,7 @@
     <string name="drawer_pc_keyboard">PC 키보드</string>
     <string name="drawer_android_keyboard">Android</string>
     <string name="drawer_second_screen">보조 화면</string>
+    <string name="drawer_second_screen_mode">모드</string>
     <string name="drawer_second_screen_shows">표시</string>
     <string name="drawer_android_apps">Android 앱</string>
     <string name="drawer_launch_app">앱 실행</string>
@@ -2012,4 +2017,25 @@
 
     <!-- %1$s is the limit's state (e.g. Child-process limit is on), %2$s what to do, %3$s the ADB command -->
     <string name="phantom_warning">%1$s. %2$s\n\n%3$s</string>
+    <string name="display_session">세션 디스플레이</string>
+    <string name="display_resolution">해상도</string>
+    <string name="display_game_fit">16:9 게임 맞춤</string>
+    <string name="display_game_fit_hint">16:9 게임을 이 디스플레이에 맞추는 방식입니다. 다음 세션부터 적용됩니다.</string>
+    <string name="display_game_fit_unavailable">화면에 맞춤 또는 16:9보다 좁은 사용자 정의 크기를 선택하세요.</string>
+    <string name="display_preserve">비율 유지</string>
+    <string name="display_stretch">화면에 맞게 늘이기</string>
+    <string name="display_image_scaling">이미지 스케일링</string>
+    <string name="display_filter">스케일링 필터</string>
+    <string name="display_filter_hint">Steam과 데스크톱에서 공유됩니다.</string>
+    <string name="display_filter_live">즉시 적용됩니다. Steam과 데스크톱에서 공유됩니다.</string>
+    <string name="display_filter_note">FSR, GSR, NIS는 세션 이미지를 확대할 때 적용됩니다. 샤프닝 전용은 확대하지 않아도 작동합니다.</string>
+    <string name="display_sharpness">필터 선명도</string>
+    <string name="display_frame_rate">프레임 속도</string>
+    <string name="display_window_compatibility">게임 창 호환성</string>
+    <string name="display_force_fullscreen">게임 창 강제 전체 화면</string>
+    <string name="display_force_fullscreen_hint">포커스가 바뀌어도 게임을 전체 화면으로 유지합니다. 게임이 작게 표시되면 끄세요. 세션 중에도 즉시 적용됩니다.</string>
+    <string name="display_force_fullscreen_live">포커스가 바뀌어도 게임을 전체 화면으로 유지합니다. 즉시 적용됩니다.</string>
+    <string name="display_look_filter">%1$s 스케일링을 %2$s(으)로 설정합니다.</string>
+    <string name="display_match_screen">화면에 맞춤(%1$d×%2$d)</string>
+    <string name="mode_tab_steam">Steam</string>
 </resources>

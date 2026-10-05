@@ -477,6 +477,7 @@
     <string name="drawer_page_effects">Efectos</string>
     <string name="drawer_page_controls">Controles</string>
     <string name="drawer_page_components">Componentes</string>
+    <string name="drawer_page_controller">Mando</string>
     <string name="drawer_page_settings">Ajustes</string>
     <string name="drawer_page_desc">Página %1$s</string>
     <string name="drawer_steam">Steam</string>
@@ -492,8 +493,11 @@
     <string name="drawer_scaling_sharpness">Nitidez del escalado</string>
     <string name="drawer_effects">Efectos de pantalla</string>
     <string name="drawer_effects_hint">Se aplica al instante. Usa algo de GPU mientras haya un efecto activo.</string>
-    <string name="drawer_look">Estilo</string>
+    <string name="drawer_look">Ajustes predefinidos</string>
     <string name="drawer_look_custom">Personalizado</string>
+    <string name="drawer_effects_advanced">Avanzado</string>
+    <string name="widgets_expanded">Expandido</string>
+    <string name="widgets_collapsed">Contraído</string>
     <string name="drawer_cas">Nitidez (CAS)</string>
     <string name="drawer_cas_level">Nivel de nitidez</string>
     <string name="drawer_fake_hdr">HDR simulado</string>
@@ -517,6 +521,7 @@
     <string name="drawer_pc_keyboard">Teclado de PC</string>
     <string name="drawer_android_keyboard">Android</string>
     <string name="drawer_second_screen">Segunda pantalla</string>
+    <string name="drawer_second_screen_mode">Modo</string>
     <string name="drawer_second_screen_shows">Muestra</string>
     <string name="drawer_android_apps">Apps de Android</string>
     <string name="drawer_launch_app">Abrir una app</string>
@@ -2050,4 +2055,25 @@
 
     <!-- %1$s is the limit's state (e.g. Child-process limit is on), %2$s what to do, %3$s the ADB command -->
     <string name="phantom_warning">%1$s. %2$s\n\n%3$s</string>
+    <string name="display_session">Pantalla de la sesión</string>
+    <string name="display_resolution">Resolución</string>
+    <string name="display_game_fit">Ajuste de juegos 16:9</string>
+    <string name="display_game_fit_hint">Cómo se ajustan los juegos 16:9 a esta pantalla. Próxima sesión.</string>
+    <string name="display_game_fit_unavailable">Elige Igual a la pantalla o un tamaño personalizado más estrecho que 16:9.</string>
+    <string name="display_preserve">Mantener proporciones</string>
+    <string name="display_stretch">Estirar a la pantalla</string>
+    <string name="display_image_scaling">Escalado de imagen</string>
+    <string name="display_filter">Filtro de escalado</string>
+    <string name="display_filter_hint">Compartido por Steam y Escritorio.</string>
+    <string name="display_filter_live">Se aplica al instante. Compartido por Steam y Escritorio.</string>
+    <string name="display_filter_note">FSR, GSR y NIS se aplican al ampliar la imagen de la sesión. Solo nitidez también funciona sin ampliar.</string>
+    <string name="display_sharpness">Nitidez del filtro</string>
+    <string name="display_frame_rate">Velocidad de fotogramas</string>
+    <string name="display_window_compatibility">Compatibilidad de ventanas de juego</string>
+    <string name="display_force_fullscreen">Forzar ventanas de juego a pantalla completa</string>
+    <string name="display_force_fullscreen_hint">Mantiene los juegos a pantalla completa tras cambios de foco. Desactívalo si un juego se ve pequeño. Se aplica al instante durante una sesión.</string>
+    <string name="display_force_fullscreen_live">Mantiene los juegos a pantalla completa tras cambios de foco. Se aplica al instante.</string>
+    <string name="display_look_filter">%1$s Cambia el escalado a %2$s.</string>
+    <string name="display_match_screen">Igual a la pantalla (%1$d×%2$d)</string>
+    <string name="mode_tab_steam">Steam</string>
 </resources>
