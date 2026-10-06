@@ -2,7 +2,7 @@
 
 Current status: **Steam's sign-in screen, native Vulkan game rendering, Windows
 Vulkan and one Windows Direct3D 9 game are verified on the Pixel 7 Pro**. The
-installed `19a5ac8` build automatically selects the tested WineD3D/Zink fallback
+device-tested `19a5ac8` build automatically selects the tested WineD3D/Zink fallback
 for PanVK game launches. Steam login, player input, audible quality and general
 D3D11/12 compatibility still need verification. The sections below record the
 bring-up sequence, including earlier failures and the fixes that supersede them.
@@ -369,11 +369,17 @@ checks and the incremental APK build/install passed.
 
 ## Remaining steps
 
-On the installed `19a5ac8` build, Steam's own `controller.txt` log identifies the
+On the `19a5ac8` build, Steam's own `controller.txt` log identifies the
 virtual Steam Deck controller at `/dev/hidraw16`, opens it, reserves XInput slot
 0 and queues its UI mapping. The session's `pad.log` confirms the shared ring
 at the PixelDeck package path opens successfully. This establishes controller
 discovery, not a player-input or Steam Input game-mapping test.
+
+The subsequent control review found that pausing the activity released the
+on-screen pad but could preserve physical controller buttons/axes and guest
+keyboard keys. Build `486b06e` adds the same controller/key release calls already
+used by picture-in-picture. Its incremental APK build and installation passed;
+the held-input/background/resume behavior still needs a physical-input check.
 
 1. Verify game input. A direct
    Wayland cube visibly rotates at 60 display FPS; vkQuake now shows its 3D demo
