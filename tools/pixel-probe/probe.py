@@ -59,8 +59,14 @@ def build(sdk):
     aligned = BUILD / "aligned.apk"
     output = BUILD / "pixeldeck-probe.apk"
     run(tools / ("zipalign" + exe), "-f", "-p", "4", unsigned, aligned)
+    key = BUILD / "debug.jks"
+    if not key.exists():
+        run(Path(java).with_name("keytool" + exe), "-genkeypair", "-alias", "androiddebugkey",
+            "-keyalg", "RSA", "-keysize", "2048", "-validity", "3650", "-keystore", key,
+            "-storetype", "JKS", "-storepass", "android", "-keypass", "android",
+            "-dname", "CN=PixelDeck local debug,O=PixelDeck,C=US")
     run(java, "-jar", tools / "lib" / "apksigner.jar", "sign", "--ks",
-        ROOT / "keystore" / "testkey.p12", "--ks-key-alias", "testkey", "--ks-pass",
+        key, "--ks-key-alias", "androiddebugkey", "--ks-pass",
         "pass:android", "--out", output, aligned)
     run(java, "-jar", tools / "lib" / "apksigner.jar", "verify", output)
     (BUILD / "provenance.json").write_text(json.dumps({
@@ -78,7 +84,12 @@ def device_test(apk, serial):
     state = subprocess.run(prefix + ["get-state"], capture_output=True, text=True, timeout=15)
     if state.returncode or state.stdout.strip() != "device":
         raise RuntimeError("Device unavailable/unauthorized: " + state.stderr.strip())
-    run(*prefix, "install", "-r", "--no-incremental", apk)
+    remote_apk = "/data/local/tmp/pixeldeck-probe.apk"
+    run(*prefix, "push", apk, remote_apk)
+    try:
+        run(*prefix, "shell", "pm", "install", "-r", remote_apk)
+    finally:
+        run(*prefix, "shell", "rm", "-f", remote_apk)
     run(*prefix, "shell", "am", "force-stop", PACKAGE)
     # Remove only the probe's previous report so stale success cannot pass a new run.
     run(*prefix, "shell", "run-as", PACKAGE, "rm", "-f", "files/report.json")

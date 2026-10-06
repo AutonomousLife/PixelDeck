@@ -30,12 +30,12 @@ public final class ProbeActivity extends Activity implements GLSurfaceView.Rende
         try { report.put(key, value); } catch (Exception e) { throw new RuntimeException(e); }
     }
 
-    private void checkOpen(String path) {
+    private void checkOpen(String path, int mode, String label) {
         try {
-            FileDescriptor fd = Os.open(path, OsConstants.O_RDWR | OsConstants.O_CLOEXEC, 0);
+            FileDescriptor fd = Os.open(path, mode | OsConstants.O_CLOEXEC, 0);
             Os.close(fd);
-            put("open." + path, "ok (open only; driver context and allocation untested)");
-        } catch (Exception e) { put("open." + path, e.toString()); }
+            put("open." + label + "." + path, "ok (open only; driver context and allocation untested)");
+        } catch (Exception e) { put("open." + label + "." + path, e.toString()); }
     }
 
     private void save() {
@@ -55,9 +55,11 @@ public final class ProbeActivity extends Activity implements GLSurfaceView.Rende
         put("uid", Process.myUid());
         put("target_sdk", getApplicationInfo().targetSdkVersion);
         put("debuggable", true);
-        checkOpen("/dev/mali0");
-        checkOpen("/dev/dma_heap/system");
-        checkOpen("/dev/dma_heap/system-uncached");
+        checkOpen("/dev/mali0", OsConstants.O_RDWR, "rw");
+        for (String path : new String[]{"/dev/dma_heap/system", "/dev/dma_heap/system-uncached"}) {
+            checkOpen(path, OsConstants.O_RDWR, "rw");
+            checkOpen(path, OsConstants.O_RDONLY, "ro");
+        }
         save();
         surface = new GLSurfaceView(this);
         surface.setEGLContextClientVersion(2);

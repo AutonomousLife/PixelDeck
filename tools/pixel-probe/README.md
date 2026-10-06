@@ -35,8 +35,9 @@ The Vulkan query reuses upstream's unmodified `libdeviceinfo.so` from CI artifac
 GitHub's artifact SHA-256 before extracting it. Actions artifacts eventually expire;
 the cached ZIP permits subsequent offline builds. If it expires before download,
 build upstream's `deviceinfo` CMake target with the NDK or select a verified newer
-artifact and update the pinned ID/hash. The signing key is upstream's public AOSP
-test key, suitable only for this local experiment.
+artifact and update the pinned ID/hash. A local debug signing key is generated at
+`build/pixel-probe/debug.jks`; preserve it for updates and never commit it.
+The runner uses a file-based ADB install and keeps Android's verification enabled.
 
 Target SDK 28 matches DroidDeck. The probe is debuggable, so device-node results
 describe a debug app; release permissions and Mali context creation need separate
