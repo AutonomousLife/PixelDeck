@@ -1,5 +1,8 @@
 name: Pixel vkQuake game experiment
 on:
+  push:
+    branches: [codex/pixel-gpu-probe]
+    paths: [.github/workflows/pixel-vkquake.yml]
   workflow_dispatch:
 permissions:
   contents: read
