@@ -54,7 +54,11 @@ def check(root, readelf):
             assert soname == [path.name], f"{path}: SONAME {soname}"
         if path.name.startswith("module-"):
             symbols = subprocess.check_output([readelf, "--dyn-syms", "--wide", str(path)], text=True)
-            for symbol in ("pa__init", "pa__done", "pa__get_version"):
+            # PulseAudio's module loader accepts an absent pa__done (e.g. module-detect).
+            required = ["pa__init", "pa__get_version"]
+            if path.name in {"module-aaudio-classic-sink.so", "module-aaudio-sink.so", "module-directaudio-sink.so"}:
+                required.append("pa__done")
+            for symbol in required:
                 assert re.search(rf"\s(?:\w+_LTX_)?{symbol}$", symbols, re.M), f"{path}: missing {symbol}"
         print(f"PASS {path.relative_to(root)} LOAD/RELRO 16KB; imports={','.join(sorted(needed))}")
     assert b"13.0" in (root / "lib/libpulseaudio.so").read_bytes()
