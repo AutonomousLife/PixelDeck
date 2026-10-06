@@ -34,6 +34,14 @@ class DriverBundleTest {
         SessionPrefs.setLinuxDriver(context, "")
     }
 
+    @Test fun nonAdrenoAutoUsesSystemWithoutUnpackingTurnip() {
+        assertEquals(GpuInfo.Family.NOT_ADRENO, GpuInfo.detect().family)
+        val display = TurnipDriver(context)
+        assertEquals("system", display.autoId())
+        assertNull(display.install())
+        assertFalse(File(context.filesDir, "graphics_driver").exists())
+    }
+
     /** Enough of an AArch64 ELF for the importers: the header they read, then the libc they look for. */
     private fun library(libc: String) = ByteArray(64).also {
         byteArrayOf(0x7f, 'E'.code.toByte(), 'L'.code.toByte(), 'F'.code.toByte(), 2, 1).copyInto(it)

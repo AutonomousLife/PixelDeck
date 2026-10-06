@@ -16,7 +16,8 @@ from pathlib import Path
 from adb_device import DeviceResolutionError, resolve_serial
 
 
-AUTHORITY = "content://com.droiddeck.launcher.agent"
+PACKAGE = "com.droiddeck.launcher"
+AUTHORITY = "content://" + PACKAGE + ".agent"
 
 
 class ControlError(RuntimeError):
@@ -96,7 +97,7 @@ def start_agent_activity(adb: str, serial: str, request: dict) -> None:
         "start",
         "-W",
         "-n",
-        "com.droiddeck.launcher/.agent.AgentStartActivity",
+        PACKAGE + "/com.droiddeck.launcher.agent.AgentStartActivity",
         "--es",
         "request",
         encoded,
@@ -278,6 +279,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--adb", help="adb executable (defaults to ADB, PATH, or the Android SDK)")
     parser.add_argument("--serial", help="ADB serial; defaults to ADB_SERIAL or ANDROID_SERIAL")
+    parser.add_argument("--package", default=PACKAGE, help="App ID (PixelDeck: dev.pixeldeck.launcher)")
     commands = parser.add_subparsers(dest="command", required=True)
 
     state = commands.add_parser("state", help="print machine-readable session state")
@@ -330,7 +332,10 @@ def exit_code(exc: Exception) -> int:
 
 
 def main() -> int:
+    global PACKAGE, AUTHORITY
     args = build_parser().parse_args()
+    PACKAGE = args.package
+    AUTHORITY = "content://" + PACKAGE + ".agent"
     serial = None
     try:
         adb = adb_path(args.adb)

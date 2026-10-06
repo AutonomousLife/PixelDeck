@@ -1,0 +1,154 @@
+name: Pixel PanVK experiment
+on:
+  push:
+    branches: [codex/pixel-gpu-probe]
+    paths: [.github/workflows/pixel-panvk.yml, tools/pixel-probe/linux_clear.c]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  panvk:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    container: debian:13
+    env:
+      BUILD_DIR: build-pixel
+      LIBDIR: lib
+      MESA_COMMIT: 10acbfc4d9780c38d3896c95df2693ca88d8b28f
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install build dependencies
+        shell: bash
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y \
+            --no-install-recommends \
+            bison \
+            build-essential \
+            ca-certificates \
+            cmake \
+            dpkg-dev \
+            flex \
+            glslang-tools \
+            libclang-cpp-dev \
+            libclang-dev \
+            libdrm-dev \
+            libelf-dev \
+            libwayland-dev \
+            wayland-protocols \
+            libvulkan-dev \
+            git \
+            libexpat1-dev \
+            libx11-dev \
+            libx11-xcb-dev \
+            libxrandr-dev \
+            libxcb-dri3-dev \
+            libxcb-present-dev \
+            libxcb-randr0-dev \
+            libxcb-shm0-dev \
+            libxcb-sync-dev \
+            libxcb-xfixes0-dev \
+            libxshmfence-dev \
+            libxxf86vm-dev \
+            llvm-dev \
+            ninja-build \
+            pkgconf \
+            python3 \
+            python3-mako \
+            python3-packaging \
+            python3-pip \
+            python3-setuptools \
+            python3-yaml \
+            spirv-tools \
+            zlib1g-dev
+          LLVM_MAJOR="$(llvm-config --version | cut -d. -f1)"
+          DEBIAN_FRONTEND=noninteractive apt-get install -y \
+            --no-install-recommends \
+            "libclc-${LLVM_MAJOR}-dev" \
+            "libllvmspirvlib-${LLVM_MAJOR}-dev"
+          python3 -m pip install --break-system-packages \
+            'meson>=1.4.0,<2'
+
+      - name: Fetch pinned PanVK and adapt read-only Android heap access
+        shell: bash
+        run: |
+          git init mesa
+          git -C mesa remote add origin https://github.com/funnymdzz/mesa.git
+          git -C mesa fetch --depth=1 origin "$MESA_COMMIT"
+          git -C mesa checkout --detach FETCH_HEAD
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('mesa/src/panfrost/lib/kmod/kbase_kmod.c')
+          text = p.read_text()
+          old = 'open(dma_heap, O_RDWR | O_CLOEXEC)'
+          assert text.count(old) == 1
+          p.write_text(text.replace(old, 'open(dma_heap, O_RDONLY | O_CLOEXEC)'))
+          PY
+      - name: Configure Wayland and X11 driver
+
+        working-directory: mesa
+        shell: bash
+        run: |
+          meson setup "${BUILD_DIR}" \
+            --buildtype=release \
+            --prefix=/usr \
+            --libdir="${LIBDIR}" \
+            -Db_ndebug=true \
+            -Dbuild-tests=false \
+            -Ddisplay-info=disabled \
+            -Degl=disabled \
+            -Denable-glcpp-tests=false \
+            -Dgallium-drivers= \
+            -Dgbm=disabled \
+            -Dgles1=disabled \
+            -Dgles2=disabled \
+            -Dglx=disabled \
+            -Dinstall-mesa-clc=false \
+            -Dinstall-precomp-compiler=false \
+            -Dlibunwind=disabled \
+            -Dlmsensors=disabled \
+            -Dllvm=enabled \
+            -Dmesa-clc=enabled \
+            -Dopengl=false \
+            -Dpanfrost-kmds=kbase,panthor \
+            -Dplatforms=x11,wayland \
+            -Dprecomp-compiler=enabled \
+            -Dshared-glapi=disabled \
+            -Dtools= \
+            -Dvalgrind=disabled \
+            -Dvideo-codecs= \
+            -Dvulkan-drivers=panfrost \
+            -Dvulkan-layers= \
+            -Dxmlconfig=disabled \
+            -Dzstd=disabled
+
+      - name: Build with all available cores
+        working-directory: mesa
+        run: meson compile -C "${BUILD_DIR}" -j "$(nproc)"
+
+      - name: Package driver and GPU check
+        shell: bash
+        run: |
+          mkdir pixel-panvk
+          cp mesa/$BUILD_DIR/src/panfrost/vulkan/libvulkan_panfrost.so pixel-panvk/libvulkan_panfrost_kbase.so
+          strip --strip-unneeded pixel-panvk/libvulkan_panfrost_kbase.so
+          gcc -O2 -Wall -Wextra tools/pixel-probe/linux_clear.c -lvulkan -o pixel-panvk/linux-clear
+          cp mesa/docs/panvk-kbase.md pixel-panvk/UPSTREAM.md
+          cp mesa/$BUILD_DIR/src/panfrost/vulkan/panfrost_icd.aarch64.json pixel-panvk/icd.json
+          printf '%s\n' "$MESA_COMMIT" > pixel-panvk/SOURCE_COMMIT
+          git -C mesa diff > pixel-panvk/pixel-heap.patch
+          cd pixel-panvk
+          sha256sum libvulkan_panfrost_kbase.so linux-clear > SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pixel-panvk-aarch64
+          path: pixel-panvk/
+          if-no-files-found: error
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pixel-panvk-build-logs
+          path: mesa/build-pixel/meson-logs/
+          if-no-files-found: ignore
+          retention-days: 7

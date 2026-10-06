@@ -6,15 +6,17 @@ custom Mali contexts, install a Linux environment, or prove PanVK/Proton support
 
 ## Build and run from Windows
 
-Prerequisites: JDK, Python, GitHub CLI authenticated for upstream Actions artifacts,
-Android SDK platform 34 and build-tools 35.0.0, and ADB on PATH.
+Prerequisites: JDK, Python, Android SDK platform 34 and build-tools 35.0.0,
+NDK 27.3.13750724, and ADB on PATH. No upstream binary or Actions artifact is needed.
 
 From the repository root:
 
 ```powershell
+python tools/pixel-probe/bootstrap_sdk.py  # Windows: install pinned NDK and CMake if missing
 python tools/pixel-probe/probe.py
 adb devices -l
 python tools/pixel-probe/probe.py --no-build --serial YOUR_AUTHORIZED_DEVICE_SERIAL
+python tools/pixel-probe/probe.py --no-build --no-install --native --serial YOUR_AUTHORIZED_DEVICE_SERIAL
 ```
 
 The device must be unlocked and authorize this computer for USB debugging. The
@@ -28,14 +30,15 @@ Artifacts are under `build/pixel-probe/` (gitignored):
   and GLES clear/readback result.
 - `device-screen.png`: device screenshot at completion.
 - `device-logcat.txt`: filtered diagnostic/crash log.
-- `provenance.json`: source artifact and binary hashes.
+- `native-report.json`: DMA-heap allocation, app-specific extensions, Vulkan AHB
+  import, GPU clear/blit, presentation result and CPU pixel readback.
+- `native-screen.png`: screenshot while the Vulkan swapchain is still live.
+- `native-logcat.txt`: filtered native-test log.
+- `provenance.json`: NDK version and locally compiled binary hashes.
 
-The Vulkan query reuses upstream's unmodified `libdeviceinfo.so` from CI artifact
-11390530317, commit `b44235c495fa6458aa438c9ba3be06562e5d1a3c`. The script verifies
-GitHub's artifact SHA-256 before extracting it. Actions artifacts eventually expire;
-the cached ZIP permits subsequent offline builds. If it expires before download,
-build upstream's `deviceinfo` CMake target with the NDK or select a verified newer
-artifact and update the pinned ID/hash. A local debug signing key is generated at
+Both JNI libraries are built directly from this checkout with the NDK. The basic
+query uses upstream's `app/src/main/cpp/deviceinfo/vkinfo.c`; the native buffer test
+uses `native_probe.c`. A local debug signing key is generated at
 `build/pixel-probe/debug.jks`; preserve it for updates and never commit it.
 The runner uses a file-based ADB install and keeps Android's verification enabled.
 
@@ -43,20 +46,37 @@ Target SDK 28 matches DroidDeck. The probe is debuggable, so device-node results
 describe a debug app; release permissions and Mali context creation need separate
 verification. An `open` success does not prove that kernel ioctls or memory
 allocation work. A green screen proves stock GLES rendering, not Vulkan rendering.
-The Vulkan query only creates an instance and queries device information.
+The basic Vulkan query only creates an instance and queries device information.
+The `--native` test additionally allocates 4096-byte buffers using the standard
+DMA-heap ioctl through read-only heap handles, imports a gralloc AHardwareBuffer
+into stock Vulkan, clears it magenta, blits to an Android swapchain, presents,
+and verifies CPU readback equals RGBA `255,0,255,255`. It does not test Linux
+dma-buf formats/modifiers, guest Vulkan, gamescope or Proton. Keep the phone
+unlocked to verify the screenshot; a successful present call alone does not
+establish that the display was awake.
 
-## Next experiment
+## Full compositor check
 
-Record Android/kernel versions and the report before choosing the Linux graphics
-route. PanVK-kbase v0.1.2 documents Pixel 7/Tensor G2 testing with DroidSpaces and
-requires `/dev/mali0` plus a suitable DMA heap for fast X11 presentation:
+After building the full app with `python tools/pixel-build.py`, run:
 
-https://github.com/funnymdzz/mesa/blob/main/docs/panvk-kbase.md
+```powershell
+python tools/pixel-probe/probe.py --compositor --serial YOUR_AUTHORIZED_DEVICE_SERIAL
+```
 
-That environment's permissions do not establish unrooted DroidDeck compatibility.
-The author documents possible container-triggered kernel panics. Do not run its
-custom driver in a container or install a kernel patch until the exact phone/kernel
-requirements have been reviewed. First milestone: native Linux `vulkaninfo`, then
-`vkcube`; retain stdout, stderr and the exact driver package hash. If device access
-blocks that route, investigate the system-driver Vulkan wrapper before considering
-kernel changes.
+This packages the locally built compositor into the isolated probe, verifies a
+cyan SHM image against all 4096 GPU-readback pixels, presents it to the Android
+surface, queries the actual ARGB8888 modifiers, and tests importing a system-heap
+dma-buf. Import success alone does not verify rendering into the imported buffer.
+Results use the `compositor-` prefix under `build/pixel-probe/`.
+
+## Linux driver check
+
+`tools/pixel-guest.py --serial SERIAL COMMAND...` runs a command in the debug
+app's installed Linux environment without starting gamescope. It requires the
+full app and a previously installed runtime. Pass a selected ICD explicitly;
+the helper does not change the app's selected graphics driver.
+
+The pinned release enumerated the GPU but failed actual submission on the tested
+Pixel 7 Pro. See [the bring-up record](../../docs/development/pixel7pro-bringup.md)
+for versions, cache-sync errors, and the separate Wayland driver build. Do not
+interpret Vulkan enumeration as a rendering or Steam compatibility result.

@@ -73,7 +73,7 @@ android {
     ndkVersion project.findProperty('ndkVersion') ?: '27.3.13750724'
 
     defaultConfig {
-        applicationId "com.droiddeck.launcher"
+        applicationId "dev.pixeldeck.launcher"
         minSdkVersion 26
         // 28 is not a leftover. An app on targetSdk 29+ runs in a domain that may not execute a
         // file out of its own data directory, and this app's entire job is to exec a rootfs:
@@ -126,7 +126,8 @@ android {
     buildTypes {
         debug {
             minifyEnabled false
-            signingConfig signingConfigs.testkey
+            // Local development uses Gradle's private debug key, preserved across iterations.
+            signingConfig signingConfigs.debug
         }
         release {
             minifyEnabled false

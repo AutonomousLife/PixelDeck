@@ -1,3 +1,29 @@
+# PixelDeck (experimental)
+
+PixelDeck is a Tensor-device port of [DroidDeck](https://github.com/Droid-Deck/DroidDeck).
+On a locked Pixel 7 Pro running Android 17, stock GLES and Vulkan hardware-buffer
+import/render/readback/presentation have passed. Linux GPU rendering, Steam and
+games are still under development; the upstream requirements below do not yet
+describe Pixel support. See [bring-up results](docs/development/pixel7pro-bringup.md).
+
+For the Windows development loop, install JDK 21, Python, Android SDK platform 34
+and build-tools 35.0.0, then run:
+
+```powershell
+python tools/pixel-probe/bootstrap_sdk.py
+python tools/pixel-build.py --serial YOUR_DEVICE_SERIAL
+python tools/droiddeckctl --package dev.pixeldeck.launcher --serial YOUR_DEVICE_SERIAL state
+```
+
+The full-app helper stages checked upstream CI prebuilts for Linux once, then uses
+incremental Gradle/NDK builds. Keep `build/pixel-probe/upstream-ci.zip`: upstream
+Actions artifacts expire. Changed Linux native components need their own Linux
+build; this shortcut rebuilds Android native/Java/Kotlin code and session scripts.
+
+The original DroidDeck README follows, with its upstream credits and instructions.
+
+---
+
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="artwork/droiddeck-banner-dark.svg">
