@@ -192,6 +192,11 @@ These defaults apply to all OpenGL child applications, including OpenGL games
 and WineD3D. Vulkan applications still use PanVK. This is an experimental
 working fallback, not hardware-accelerated OpenGL support for Steam.
 
+Valve's optional `mangoapp` overlay threw on inaccessible `/sys/class/thermal`
+and restarted six times before the runtime disabled it. PanVK now defaults this
+overlay off; an explicit user setting still overrides that default. PixelDeck's
+own display HUD remains available.
+
 In the live Gamescope Xwayland display, a separate Zink `glxinfo -B` reported
 accelerated Mali-G710 OpenGL 3.3 core/compatibility and GLES 3.1. Windowed
 `glxgears` rendered 374 frames in 5 seconds. Thus windowed Zink works for this
