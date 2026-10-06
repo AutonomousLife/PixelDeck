@@ -349,6 +349,16 @@ The test set `PROTON_USE_WINED3D=1`, restored
 `SDL_VIDEODRIVER` override. Steam's client still needs software OpenGL; the game
 can use the accelerated Zink context instead.
 
+The clean `19a5ac8` APK was then built and installed with this behavior in the
+normal game launcher. A fresh numeric game prefix launched via
+`waitforexitandrun` inherited the client's `llvmpipe` setting, then selected
+WineD3D and hardware Zink automatically. FTE's D3D9 demo rendered on the phone;
+steady compositor samples were **37.1–39.7 display FPS**. The test supplied no
+graphics overrides. Only PanVK game launches receive these defaults; Steam's
+client/probes and other drivers keep their existing settings, and explicit
+shared or per-game profiles override the defaults. Targeted launch/profile
+checks and the incremental APK build/install passed.
+
 ## Remaining steps
 
 1. Verify game input. A direct
