@@ -292,13 +292,44 @@ phone captures show different 3D scenes as the demo advances; game input remains
 untested. The correct copy path currently allocates/uploads
 a texture per client commit; reusing safe staging resources is a later optimization.
 
+### Windows Vulkan game check
+
+ARM64 Proton Experimental `experimental-11.0-20260924-arm64` (Wine 11.0) ran
+`cmd.exe` through the normal app-launched session and wrote a verified marker
+file with exit status 0. Running the same check through `pixel-guest.py` failed
+to make relocated Windows DLL sections executable. That helper runs under
+Android's `runas_app` security context; the actual session reports
+`untrusted_app_27`, which has the needed `execmod` permission. Use the normal
+app session for Windows execution checks rather than diagnosing that helper's
+mapping failure as a Proton failure.
+
+The official [vkQuake 1.35.0 Windows x64 release](https://github.com/Novum/vkQuake/releases/tag/1.35.0)
+ZIP SHA-256 is
+`abe075a51535744427b0591418aa6333af3732cc7c30893eb1ecfdb9cd19fd67`.
+Its executable was verified as PE machine `0x8664`. With the same free LibreQuake
+data, it rendered changing 3D scenes at 1280×720 through Proton/FEX; compositor
+samples during the demo were **33.5–35.5 display FPS**. The game's log identifies
+Mali-G710 MC7 / PanVK Mesa `26.2.0-devel (git-10acbfc4d9)` and initializes WASAPI
+stereo 44.1 kHz audio through PulseAudio. Audible quality and player input still
+require a human check.
+
+The initial Windows launch failed in SDL display enumeration after DXVK failed
+to initialize. The successful test used per-process `WINEDLLOVERRIDES=dxgi=b`
+and unset the Linux-only `SDL_VIDEODRIVER=x11` override. Built-in DXGI supplies
+display discovery while vkQuake renders with Vulkan directly; this does not
+establish working Direct3D translation. These overrides were confined to the
+test script, and are not global defaults. To repeat a script check without
+scanning its enclosing game tree for FEX binaries, launch its ARM64 interpreter:
+`droiddeckctl ... run /bin/bash -- /root/your-check.sh`.
+
 ## Remaining steps
 
 1. Verify game input. A direct
    Wayland cube visibly rotates at 60 display FPS; vkQuake now shows its 3D demo
    through Gamescope. Disabling the Gamescope WSI layer or using kernel cache
    synchronization did not fix the old memoization bug; those overrides were reverted.
-2. Sign in to the now-visible Steam client and test Proton/Windows games.
+2. Sign in to the now-visible Steam client and test Steam game launches and
+   Direct3D translation. One standalone Windows Vulkan demo is verified above.
 3. Fix Steam's Zink UI context and verify audible quality of the rebuilt audio stack.
 4. Improve the current SHM presentation to dma-buf sharing and measure performance.
 

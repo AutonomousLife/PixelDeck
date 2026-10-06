@@ -7,8 +7,9 @@ a 600-frame cube test inside patched Gamescope have also passed. Native ARM64
 vkQuake with free LibreQuake data completed a Vulkan benchmark at 44.4 engine FPS
 at 1280×720 with moving 3D output; the copied display path showed about 33–35 FPS. Steam has
 rendered its Big Picture sign-in screen on the phone using software OpenGL after
-fixing Gamescope's copied XRGB alpha handling. Steam login and
-Proton/Windows games remain untested. The upstream requirements below do not yet
+fixing Gamescope's copied XRGB alpha handling. The x64 Windows vkQuake build also
+shows a moving Vulkan demo through ARM64 Proton with built-in DXGI for display
+discovery. Steam login and Direct3D game compatibility remain untested. The upstream requirements below do not yet
 describe Pixel support. See [bring-up results](docs/development/pixel7pro-bringup.md).
 Reused copied buffers now refresh each frame, and the Vulkan game demo visibly
 advances through its 3D level on the phone at about 33 display FPS. Input still
