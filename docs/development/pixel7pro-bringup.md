@@ -322,6 +322,15 @@ test script, and are not global defaults. To repeat a script check without
 scanning its enclosing game tree for FEX binaries, launch its ARM64 interpreter:
 `droiddeckctl ... run /bin/bash -- /root/your-check.sh`.
 
+An app-launched follow-up with `DXVK_LOG_LEVEL=debug` identified the default
+Direct3D initialization blocker. The installed DXVK build
+`v3.1.1-27-g25ca63f17f34bdc` finds Mali-G710 MC7, then rejects it with
+`Device does not support required feature 'geometryShader'`. The current PanVK
+driver's Vulkan version does not establish support for every feature DXVK needs.
+The Windows vkQuake result above bypasses DXVK, so it remains valid; Direct3D
+through this DXVK build is not working. A real D3D9 game through WineD3D/Zink is
+the next fallback to verify, not an established result.
+
 ## Remaining steps
 
 1. Verify game input. A direct
