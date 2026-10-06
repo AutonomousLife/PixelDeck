@@ -10,8 +10,9 @@ rendered its Big Picture sign-in screen on the phone using software OpenGL after
 fixing Gamescope's copied XRGB alpha handling. Steam login and
 Proton/Windows games remain untested. The upstream requirements below do not yet
 describe Pixel support. See [bring-up results](docs/development/pixel7pro-bringup.md).
-Vulkan game presentation through Gamescope still shows stale startup frames;
-the benchmark and GPU readback do not establish playable phone output.
+Reused copied buffers now refresh each frame, and the Vulkan game demo visibly
+advances through its 3D level on the phone at about 33 display FPS. Input still
+needs a device check.
 
 For the Windows development loop, install JDK 21, Python 3.14+, GitHub CLI,
 Android SDK platform 34

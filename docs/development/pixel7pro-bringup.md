@@ -276,12 +276,24 @@ The direct Wayland vkQuake timedemo also completed 4,527 frames in 89.4 seconds,
 The compositor diagnostic additionally passed a second magenta upload into the
 same SHM image after its initial cyan frame, verifying all pixels by GPU readback.
 
+Gamescope also memoized uploaded SHM snapshots by buffer identity. Reusing a
+triple-buffered client swapchain then cycled old startup images instead of
+uploading new pixels. Patch `0116-refresh-reused-shm-buffers.patch` restricts that
+memoization to live dma-buf imports. Copied SHM textures upload on every commit;
+the commit's reference retains the texture through rendering and buffer release
+ordering remains unchanged. The build from
+[run 37486644346](https://github.com/AutonomousLife/PixelDeck/actions/runs/37486644346)
+now shows vkQuake's textured 3D demo on the phone at about 33 display FPS. Earlier
+benchmark rates measured the stale-image implementation and must not be treated
+as final playable performance. The correct copy path currently allocates/uploads
+a texture per client commit; reusing safe staging resources is a later optimization.
+
 ## Remaining steps
 
-1. Fix stale Vulkan game frames through Gamescope and verify game input. A direct
-   Wayland cube visibly rotates at 60 display FPS, but vkQuake through Gamescope
-   still shows old startup frames despite the engine running. Disabling the
-   Gamescope WSI layer did not fix the initial check; that override was reverted.
+1. Verify game input and benchmark the corrected presentation path. A direct
+   Wayland cube visibly rotates at 60 display FPS; vkQuake now shows its 3D demo
+   through Gamescope. Disabling the Gamescope WSI layer or using kernel cache
+   synchronization did not fix the old memoization bug; those overrides were reverted.
 2. Sign in to the now-visible Steam client and test Proton/Windows games.
 3. Fix Steam's Zink UI context and verify audible quality of the rebuilt audio stack.
 4. Improve the current SHM presentation to dma-buf sharing and measure performance.
