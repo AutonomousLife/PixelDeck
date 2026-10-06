@@ -4,8 +4,8 @@ PixelDeck is a Tensor-device port of [DroidDeck](https://github.com/Droid-Deck/D
 On a locked Pixel 7 Pro running Android 17, stock GLES and Vulkan hardware-buffer
 import/render/readback/presentation have passed. Linux PanVK GPU readback and
 a 600-frame cube test inside patched Gamescope have also passed. Native ARM64
-vkQuake with free LibreQuake data completed a Vulkan benchmark at 42.1 engine FPS
-at 1280×720; the current copied display path showed about 32–34 FPS. Steam has
+vkQuake with free LibreQuake data completed a Vulkan benchmark at 44.4 engine FPS
+at 1280×720 with moving 3D output; the copied display path showed about 33–35 FPS. Steam has
 rendered its Big Picture sign-in screen on the phone using software OpenGL after
 fixing Gamescope's copied XRGB alpha handling. Steam login and
 Proton/Windows games remain untested. The upstream requirements below do not yet

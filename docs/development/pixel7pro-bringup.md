@@ -285,12 +285,16 @@ ordering remains unchanged. The build from
 [run 37486644346](https://github.com/AutonomousLife/PixelDeck/actions/runs/37486644346)
 now shows vkQuake's textured 3D demo on the phone at about 33 display FPS. Earlier
 benchmark rates measured the stale-image implementation and must not be treated
-as final playable performance. The correct copy path currently allocates/uploads
+as final playable performance. A fresh timedemo on the clean `b3d290f` APK with
+the corrected copy path completed **4,527 frames in 102.0 seconds, 44.4 engine
+FPS** at 1280×720. On-screen compositor samples were about 33–35 FPS. Separate
+phone captures show different 3D scenes as the demo advances; game input remains
+untested. The correct copy path currently allocates/uploads
 a texture per client commit; reusing safe staging resources is a later optimization.
 
 ## Remaining steps
 
-1. Verify game input and benchmark the corrected presentation path. A direct
+1. Verify game input. A direct
    Wayland cube visibly rotates at 60 display FPS; vkQuake now shows its 3D demo
    through Gamescope. Disabling the Gamescope WSI layer or using kernel cache
    synchronization did not fix the old memoization bug; those overrides were reverted.
