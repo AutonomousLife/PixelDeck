@@ -22,8 +22,8 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 /**
- * Imported LINUX Vulkan drivers: glibc Turnip ICDs ({@code Turnip-<tag>[-variant]-Linux.zip} from
- * Banners-Turnip) for the runtime - the gamescope session that runs Valve's native ARM64 Steam
+ * Imported Linux Vulkan drivers: glibc Turnip and PanVK ICDs for the runtime,
+ * including the gamescope session that runs Valve's native ARM64 Steam
  * client, and the labwc desktop beside it. This is the driver that DRAWS there: the client's own UI
  * (OpenGL through the runtime's Zink), every game the client launches (D3D through Proton's
  * DXVK/VKD3D) and everything on the desktop. Putting the frame on the screen stays the Android
@@ -36,19 +36,19 @@ import java.util.zip.ZipInputStream;
  * <p>Layout (under the app's files dir, which the session sees by its full host path):
  * <pre>
  *   files/linux_vulkan_drivers/&lt;id&gt;/
- *       libvulkan_freedreno.so   the driver
+ *       libvulkan_driver.so     the driver (older imports retain libvulkan_freedreno.so)
  *       icd.json                 generated Vulkan ICD manifest; library_path = the .so's ABSOLUTE path
  *       meta.json                name / driverVersion / minGlibc, our own schema
  * </pre>
  * The session gets {@code icd.json}'s path in {@code BL_VK_DRIVER} and exports it as
  * {@code VK_DRIVER_FILES}, so nothing inside the runtime is modified and the choice is reversible.
  *
- * <p>Ported from Bannerlator's {@code LinuxVulkanDriverManager} (GPL-3.0), unchanged in behaviour.
+ * <p>Ported from Bannerlator's {@code LinuxVulkanDriverManager} (GPL-3.0).
  */
 public class LinuxVulkanDriverManager {
     private static final String TAG = "LinuxVulkanDriver";
     public static final String DIR_NAME = "linux_vulkan_drivers";
-    public static final String LIB_NAME = "libvulkan_freedreno.so";
+    public static final String LIB_NAME = "libvulkan_driver.so";
     public static final String ICD_NAME = "icd.json";
     public static final String META_NAME = "meta.json";
 
@@ -69,7 +69,13 @@ public class LinuxVulkanDriverManager {
     public boolean isInstalled(String id) {
         if (id == null || id.isEmpty() || id.contains("/") || id.contains("..")) return false;
         File dir = getDriverDir(id);
-        return new File(dir, LIB_NAME).isFile() && new File(dir, ICD_NAME).isFile();
+        return (new File(dir, LIB_NAME).isFile() || new File(dir, "libvulkan_freedreno.so").isFile())
+                && new File(dir, ICD_NAME).isFile();
+    }
+
+    static boolean isDriverLibraryName(String name) {
+        return name.endsWith(".so") && (name.startsWith("libvulkan_freedreno")
+                || name.startsWith("libvulkan_panfrost"));
     }
 
     /** Absolute path of the driver's ICD manifest, or null when the id isn't installed. */
@@ -140,8 +146,8 @@ public class LinuxVulkanDriverManager {
                     // Flatten: only the base name matters, and it also defeats zip-slip paths.
                     String base = new File(entry.getName()).getName();
                     if (base.isEmpty()) continue;
-                    if (base.startsWith("libvulkan_freedreno") && base.endsWith(".so")) {
-                        if (soName != null) Log.w(TAG, "zip has several libvulkan_freedreno*.so; using the first (" + soName + ")");
+                    if (isDriverLibraryName(base)) {
+                        if (soName != null) Log.w(TAG, "zip has several Vulkan ICDs; using the first (" + soName + ")");
                         else {
                             Files.copy(zis, new File(tmpDir, LIB_NAME).toPath(), StandardCopyOption.REPLACE_EXISTING);
                             soName = base;
@@ -181,8 +187,8 @@ public class LinuxVulkanDriverManager {
     String adopt(File tmpDir, String soName, JSONObject zipMeta, String displayName) throws IOException {
         try {
             if (soName == null) {
-                throw new IllegalArgumentException("No libvulkan_freedreno*.so in this zip. An Android "
-                        + "(AdrenoTools) or -Wayland Turnip zip is not a Linux runtime driver.");
+                throw new IllegalArgumentException("No Turnip or PanVK ICD in this zip. Import an ARM64 "
+                        + "Linux (glibc) Vulkan driver package.");
             }
             File so = new File(tmpDir, LIB_NAME);
             if (!isAarch64Elf(so)) {
@@ -217,7 +223,7 @@ public class LinuxVulkanDriverManager {
             icd.put("file_format_version", "1.0.0");
             JSONObject icdBody = new JSONObject();
             icdBody.put("library_path", new File(dir, LIB_NAME).getAbsolutePath());
-            icdBody.put("api_version", "1.1.274");
+            icdBody.put("api_version", soName.startsWith("libvulkan_panfrost") ? "1.4.0" : "1.1.274");
             icd.put("ICD", icdBody);
             if (!FileUtils.writeString(new File(tmpDir, ICD_NAME), icd.toString(2))) throw new IOException("cannot write icd.json");
 

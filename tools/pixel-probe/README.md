@@ -76,7 +76,8 @@ app's installed Linux environment without starting gamescope. It requires the
 full app and a previously installed runtime. Pass a selected ICD explicitly;
 the helper does not change the app's selected graphics driver.
 
-The pinned release enumerated the GPU but failed actual submission on the tested
-Pixel 7 Pro. See [the bring-up record](../../docs/development/pixel7pro-bringup.md)
+The initial pinned release failed submission through the runtime DRM preload.
+The fixed shim and Wayland-enabled PanVK build subsequently passed GPU readback
+and a 600-frame Wayland cube run. See [the bring-up record](../../docs/development/pixel7pro-bringup.md)
 for versions, cache-sync errors, and the separate Wayland driver build. Do not
 interpret Vulkan enumeration as a rendering or Steam compatibility result.

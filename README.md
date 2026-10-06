@@ -2,7 +2,8 @@
 
 PixelDeck is a Tensor-device port of [DroidDeck](https://github.com/Droid-Deck/DroidDeck).
 On a locked Pixel 7 Pro running Android 17, stock GLES and Vulkan hardware-buffer
-import/render/readback/presentation have passed. Linux GPU rendering, Steam and
+import/render/readback/presentation have passed. Linux PanVK GPU readback and
+a 600-frame direct Wayland cube test have also passed. Gamescope, Steam and
 games are still under development; the upstream requirements below do not yet
 describe Pixel support. See [bring-up results](docs/development/pixel7pro-bringup.md).
 

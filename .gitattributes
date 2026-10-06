@@ -1,3 +1,6 @@
 # Linux scripts must remain executable by Bash after a Windows checkout.
 *.sh text eol=lf
 tools/linuxfs/overlay/** text eol=lf
+
+# Unified patches contain context-prefix spaces before source tabs.
+*.patch text eol=lf whitespace=-blank-at-eol,-space-before-tab

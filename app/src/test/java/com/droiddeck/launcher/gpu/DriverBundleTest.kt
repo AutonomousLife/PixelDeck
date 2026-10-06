@@ -87,6 +87,23 @@ class DriverBundleTest {
         assertTrue(DriverBundle.isBundle(context, bundle()))
     }
 
+    @Test fun importsPanvkAndStillRecognizesLegacyTurnipStorage() {
+        val manager = LinuxVulkanDriverManager(context)
+        val id = manager.installDriver(zip(mapOf(
+            "lib/libvulkan_panfrost_kbase.so" to library("libc.so.6"),
+        )), "Pixel PanVK")
+        assertTrue(manager.isInstalled(id))
+        val dir = manager.getDriverDir(id)
+        val icd = JSONObject(File(dir, LinuxVulkanDriverManager.ICD_NAME).readText()).getJSONObject("ICD")
+        assertEquals(File(dir, LinuxVulkanDriverManager.LIB_NAME).absolutePath, icd.getString("library_path"))
+        assertEquals("1.4.0", icd.getString("api_version"))
+
+        val legacy = manager.getDriverDir("legacy-turnip").apply { mkdirs() }
+        File(legacy, "libvulkan_freedreno.so").writeBytes(library("libc.so.6"))
+        File(legacy, LinuxVulkanDriverManager.ICD_NAME).writeText("{}")
+        assertTrue(manager.isInstalled("legacy-turnip"))
+    }
+
     @Test fun installsBothHalvesAndPicksAndDeletesThemTogether() {
         val b = DriverBundle.install(context, bundle())
         assertEquals("DD-Turnip-v0.1.0", b.id)

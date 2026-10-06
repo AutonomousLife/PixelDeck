@@ -263,11 +263,13 @@ class SessionService : Service() {
     }
 
     private fun extraEnv(): List<String> {
-        val file = File(Environment.getExternalStorageDirectory(), ENV_SWITCH).takeIf { it.isFile } ?: return emptyList()
+        val file = File(filesDir, "pixeldeck-env").takeIf { com.droiddeck.launcher.BuildConfig.DEBUG && it.isFile }
+            ?: File(Environment.getExternalStorageDirectory(), ENV_SWITCH).takeIf { it.isFile }
+            ?: return emptyList()
         val lines = FileUtils.readString(file)?.lines().orEmpty()
             .map { it.trim() }
             .filter { it.isNotEmpty() && !it.startsWith("#") && it.contains('=') && !it.startsWith("=") }
-        if (lines.isNotEmpty()) Log.i(TAG, "extra environment from $ENV_SWITCH: $lines")
+        if (lines.isNotEmpty()) Log.i(TAG, "extra environment from ${file.name}: $lines")
         return lines
     }
 

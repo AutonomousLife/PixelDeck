@@ -32,8 +32,8 @@ public final class LinuxVulkanDriver {
 
     public static final String HELP_TEXT =
             "The driver the Steam client, the games it launches and the desktop's programs render on, "
-            + "inside the Linux runtime. Imported \"-Linux\" Turnip zips only: these are Linux processes "
-            + "and cannot load an Android or Wayland driver. Frames still reach the screen through the "
+            + "inside the Linux runtime. Import an ARM64 Linux (glibc) Turnip or PanVK zip; "
+            + "Android (bionic) drivers cannot be loaded here. Frames still reach the screen through the "
             + "display driver below. Takes effect at the next session start.";
 
     private LinuxVulkanDriver() {}

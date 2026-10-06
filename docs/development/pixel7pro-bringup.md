@@ -110,22 +110,59 @@ experiment; it does not change the returned dma-buf's read/write flags.
 `vulkaninfo --summary` successfully enumerated Mali-G710 MC7 with PanVK API 1.4.352.
 However, `KBASE_IOCTL_MEM_SYNC` returned `ENOSYS`, and the headless green clear
 failed at `vkQueueSubmit` with `VK_ERROR_DEVICE_LOST` after a subqueue timeout.
-Enumeration therefore **does not establish working Linux GPU rendering**.
-The device remained connected after the failed submission.
+The device remained connected after the failed submission. The failure was
+subsequently traced to the runtime preload, rather than the kernel: see below.
 
 The release includes X11 WSI only. `.github/workflows/pixel-panvk.yml` builds a
 separate experimental artifact with Wayland and X11 from pinned upstream commit
 `10acbfc4d9780c38d3896c95df2693ca88d8b28f`. That revision includes upstream's
-userspace cache-maintenance path; our only source patch opens the allocation
-heap read-only. The workflow also builds `linux_clear.c` to verify real GPU
-submission/readback before trying gamescope. This artifact is not installed or
-selected automatically by PixelDeck.
+userspace cache-maintenance path; our only Mesa source patch opens the allocation
+heap read-only. The workflow also builds `linux_clear.c`. This artifact is not
+installed or selected automatically by PixelDeck.
+
+### Successful Linux GPU rendering
+
+The release driver passed the same GPU clear/readback when run directly with the
+installed glibc loader outside proot. Preloading libdrm explicitly then made it
+pass inside proot too. The runtime globally preloads `libblsession.so`; its DRM
+forwarder used `dlsym(RTLD_NEXT)`, which cannot find libdrm in a Vulkan ICD's local
+`dlopen` scope. The missing function returned `ENOSYS`. A handle-based fallback
+fixes this for all four DRM forwarders, retaining the existing Adreno behavior.
+A regression check loads a fake libdrm locally and verifies each forwarded call;
+`.github/workflows/pixel-runtime.yml` passed that check and built the ARM64 shim.
+
+After installing the fixed shim, the Wayland-enabled PanVK build passed the
+GPU clear/readback inside proot **without** the libdrm preload workaround:
+Mali-G710 MC7, RGBA `0,255,0,255`. Driver SHA-256:
+`b2300a77bb21048821da93b0441adedc2efd22fe268fe3d23190f9debf405ead`.
+Runtime shim SHA-256:
+`5c1d84bf93e2fe2696dc2ff4b1a4d52abfad2974b9fddf706e409208b7d447ce`.
+
+The normal driver importer now accepts glibc PanVK packages, uses the generic
+`libvulkan_driver.so` storage name, and still recognizes existing Turnip imports.
+Its PanVK import and legacy-storage regression tests passed. The experimental
+PanVK driver was selected only in the private PixelDeck debug app.
+
+### Direct Wayland test
+
+With gamescope bypassed, `vkcube --wsi wayland --c 600` selected Mali-G710 MC7,
+created Vulkan swapchain images, and submitted 600 Wayland frames. PixelDeck's
+session state recorded `firstFrame=true`. The current transport is **wl_shm**:
+GPU rendering is followed by a CPU copy, not zero-copy dma-buf sharing. The
+initial screenshot was obscured by Android's debug-app 16 KB compatibility
+dialog, so visible cube verification remains pending user dismissal.
+
+Gamescope's direct Wayland backend rejects kbase because it has no DRM primary
+or render node. Patch `0114-vulkan-swapchain-without-drm-node.patch` permits
+the Vulkan WSI backend to operate without a render node; the original DRM path
+remains in use when one is available. The patched binary still needs device
+validation with the SDL backend.
 
 ## Remaining steps
 
-1. Establish successful Linux GPU submission and pixel readback.
-2. Verify guest Wayland presentation and compositor dma-buf sharing end to end.
-3. Integrate the tested driver, then test gamescope, Steam, and a game.
+1. Verify the cube visibly after the Android compatibility dialog is dismissed.
+2. Validate patched gamescope on PanVK, then Steam and a game.
+3. Improve the current SHM presentation to dma-buf sharing and measure performance.
 
 Repeat the current baseline with
 `python tools/pixel-probe/probe.py --no-build --no-install --native --serial DEVICE_SERIAL` while the
