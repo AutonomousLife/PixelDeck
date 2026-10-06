@@ -33,9 +33,11 @@ Keep `build/pixel-probe/upstream-ci.zip` and `build/pixel-components/*.zip`:
 Actions artifacts expire. Changed Linux native components need their matching
 Linux CI build; this helper rebuilds Android native/Java/Kotlin code and scripts.
 PanVK remains an explicit experimental driver import. When selected, it uses
-Gamescope's SDL backend and software OpenGL, including OpenGL games;
-Vulkan remains on the Mali GPU. The helper refuses changed Pixel native sources
-until their CI artifacts and pins are rebuilt. Other Linux native components
+Gamescope's SDL backend and software OpenGL for Steam's client. Proton game
+launches automatically select WineD3D and hardware Zink; explicit game profiles
+can override those defaults. Vulkan remains on the Mali GPU. One D3D9 game has
+passed; general D3D11/12 compatibility has not been established. The helper
+refuses changed Pixel native sources until their CI artifacts and pins are rebuilt. Other Linux native components
 still come from the pinned upstream APK.
 
 Steam requires Developer options → **Restrict child processes** to be off.

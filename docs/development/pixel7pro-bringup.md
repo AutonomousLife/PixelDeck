@@ -1,12 +1,19 @@
 # Pixel 7 Pro: first checks, 2026-10-06
 
-Status: **stock GLES and Vulkan AHB import/render/readback/presentation passed**.
+Current status: **Steam's sign-in screen, native Vulkan game rendering, Windows
+Vulkan and one Windows Direct3D 9 game are verified on the Pixel 7 Pro**. The
+installed `19a5ac8` build automatically selects the tested WineD3D/Zink fallback
+for PanVK game launches. Steam login, player input, audible quality and general
+D3D11/12 compatibility still need verification. The sections below record the
+bring-up sequence, including earlier failures and the fixes that supersede them.
+
+Initial checks: **stock GLES and Vulkan AHB import/render/readback/presentation passed**.
 The diagnostic APK installed on a subsequent retry
 with the phone awake. Earlier attempts received `INSTALL_FAILED_VERIFICATION_FAILURE`;
 the exact reason for rejection and subsequent acceptance remains unknown.
 Android verification stayed enabled. The full PixelDeck debug APK builds and
-installs, and Linux runtime r9 is installed. Linux GPU rendering, Steam launch,
-and game compatibility have not been established.
+installs, and Linux runtime r9 is installed. At that stage, Linux GPU rendering,
+Steam launch and game compatibility had not been established.
 
 ## Observed device and stock driver
 
@@ -253,7 +260,8 @@ handling, and identity components for storage images. The rebuilt Gamescope from
 [run 37484454594](https://github.com/AutonomousLife/PixelDeck/actions/runs/37484454594)
 now presents Steam's Big Picture sign-in screen on the actual phone. This replaces
 the earlier black-output result. The software OpenGL fallback remains necessary;
-the sign-in screen currently displays around 8–9 FPS. Login and Proton remain untested.
+the sign-in screen displayed around 8–9 FPS. Login and Proton were untested at
+that stage; later Proton checks are recorded below.
 
 The original audio binaries exactly matched Bannerlator commit
 `198893a07bfbc850d488d46160fdb734a5d411ac`. The pinned rebuild uses PulseAudio 13.0,
@@ -360,6 +368,12 @@ shared or per-game profiles override the defaults. Targeted launch/profile
 checks and the incremental APK build/install passed.
 
 ## Remaining steps
+
+On the installed `19a5ac8` build, Steam's own `controller.txt` log identifies the
+virtual Steam Deck controller at `/dev/hidraw16`, opens it, reserves XInput slot
+0 and queues its UI mapping. The session's `pad.log` confirms the shared ring
+at the PixelDeck package path opens successfully. This establishes controller
+discovery, not a player-input or Steam Input game-mapping test.
 
 1. Verify game input. A direct
    Wayland cube visibly rotates at 60 display FPS; vkQuake now shows its 3D demo
