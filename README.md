@@ -6,11 +6,12 @@ import/render/readback/presentation have passed. Linux PanVK GPU readback and
 a 600-frame cube test inside patched Gamescope have also passed. Native ARM64
 vkQuake with free LibreQuake data completed a Vulkan benchmark at 42.1 engine FPS
 at 1280×720; the current copied display path showed about 32–34 FPS. Steam has
-rendered its Big Picture sign-in screen in a guest Chromium capture using software
-OpenGL, but its phone display path still shows black outside Android's dialog.
-Steam login and
+rendered its Big Picture sign-in screen on the phone using software OpenGL after
+fixing Gamescope's copied XRGB alpha handling. Steam login and
 Proton/Windows games remain untested. The upstream requirements below do not yet
 describe Pixel support. See [bring-up results](docs/development/pixel7pro-bringup.md).
+Vulkan game presentation through Gamescope still shows stale startup frames;
+the benchmark and GPU readback do not establish playable phone output.
 
 For the Windows development loop, install JDK 21, Python 3.14+, GitHub CLI,
 Android SDK platform 34
@@ -35,9 +36,10 @@ still come from the pinned upstream APK.
 
 Steam requires Developer options → **Restrict child processes** to be off.
 The connected test phone uses `settings_enable_monitor_phantom_procs=false`;
-the default process monitor killed Steam sessions. Six bundled audio libraries
-still need a 16 KB alignment rebuild, so Android displays a compatibility dialog
-that must be dismissed on the phone. This is an experimental debug build.
+the default process monitor killed Steam sessions. The bundled audio stack has
+been rebuilt with 16 KB alignment, including matching modules; all 22 APK native
+libraries pass the alignment check. An old Android warning dialog can survive an
+update and need dismissal once. This is an experimental debug build.
 
 The original DroidDeck README follows, with its upstream credits and instructions.
 

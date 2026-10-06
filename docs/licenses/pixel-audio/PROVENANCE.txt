@@ -1,0 +1,8 @@
+Bannerlator: https://github.com/The412Banner/Bannerlator/tree/198893a07bfbc850d488d46160fdb734a5d411ac/native/pulseaudio-android
+PixelDeck source: bcc3cd1b55d09e4f1369a45430e476d02abbbe38
+PulseAudio 13.0, libtool 2.4.6, libsndfile 1.0.31; pristine source archives included.
+Android arm64-v8a, bionic, API 26, NDK r27c 27.2.12479018.
+Pipeline change: max-page-size=16384 and common-page-size=16384 in LDFLAGS.
+Classic AAudio sink: Tom Yan / BrunoSX, adaptive changes from Bannerlator (LGPL-2.1-or-later).
+AAudio and DirectAudio sink source: PixelDeck tools/aaudio-sink, copied into sources/.
+No deployment or replacement of repository prebuilts occurs in this build.

@@ -173,7 +173,7 @@ Software OpenGL (`MESA_LOADER_DRIVER_OVERRIDE=swrast`,
 capture verified the actual rendered sign-in window behind Android's dialog.
 No credentials were entered and no account or Steam game has been tested.
 
-The final installed build sustained a Steam session for over two minutes with
+An earlier installed build sustained a Steam session for over two minutes with
 child-process restrictions off. However, the exposed phone area remained black
 while the guest Chromium capture showed sign-in. Steam logged
 `AcquirePixmap: failed to create glx pixmap` / `GLXBadPixmap`. Disabling DRI3
@@ -244,11 +244,46 @@ source/licenses are in `.github/workflows/pixel-vkquake.yml` and
 This proves a native Vulkan game; Steam login and Proton/Windows compatibility
 are separate outstanding checks.
 
+### Copied XRGB presentation and aligned audio update
+
+Gamescope treated internally created, sampled SHM XRGB textures as alpha-bearing.
+XRGB's alpha byte is unused. Patch `0115-shm-xrgb-opaque-alpha.patch` forces alpha
+to one for these opaque sampled textures, while preserving ARGB, imported dma-buf
+handling, and identity components for storage images. The rebuilt Gamescope from
+[run 37484454594](https://github.com/AutonomousLife/PixelDeck/actions/runs/37484454594)
+now presents Steam's Big Picture sign-in screen on the actual phone. This replaces
+the earlier black-output result. The software OpenGL fallback remains necessary;
+the sign-in screen currently displays around 8–9 FPS. Login and Proton remain untested.
+
+The original audio binaries exactly matched Bannerlator commit
+`198893a07bfbc850d488d46160fdb734a5d411ac`. The pinned rebuild uses PulseAudio 13.0,
+libtool 2.4.6, libsndfile 1.0.31 and Android NDK r27c, with both 16 KB linker flags.
+The six libraries, matching loadable modules, and pactl pass ELF alignment and ABI
+checks. All 22 libraries in the resulting APK have at least 16 KB LOAD alignment,
+including the existing libffi. The new daemon and classic AAudio sink load on the
+phone and accept vkQuake's stereo stream. See `tools/pixel-audio/README.md` for
+artifact provenance and source/license locations.
+
+Android retained an old compatibility dialog across the update, despite the
+installed library hash matching the aligned binary. AOSP's AppWarnings checks
+the new warning before dismissing an old instance, so a now-null warning can
+leave that stale instance open. The Android `CLOSE_SYSTEM_DIALOGS` API dismissed
+it without changing warning flags. Subsequent game and cube launches showed no
+compatibility dialog.
+
+The direct Wayland vkQuake timedemo also completed 4,527 frames in 89.4 seconds,
+50.7 engine FPS. This bypasses Gamescope and is a separate performance result.
+The compositor diagnostic additionally passed a second magenta upload into the
+same SHM image after its initial cyan frame, verifying all pixels by GPU readback.
+
 ## Remaining steps
 
-1. Verify phone presentation and input after the compatibility dialog is dismissed.
-2. Fix Steam's black phone output, then sign in and test Proton/Windows games.
-3. Fix Steam's Zink UI context and rebuild the audio prebuilts with 16 KB alignment.
+1. Fix stale Vulkan game frames through Gamescope and verify game input. A direct
+   Wayland cube visibly rotates at 60 display FPS, but vkQuake through Gamescope
+   still shows old startup frames despite the engine running. Disabling the
+   Gamescope WSI layer did not fix the initial check; that override was reverted.
+2. Sign in to the now-visible Steam client and test Proton/Windows games.
+3. Fix Steam's Zink UI context and verify audible quality of the rebuilt audio stack.
 4. Improve the current SHM presentation to dma-buf sharing and measure performance.
 
 Repeat the current baseline with

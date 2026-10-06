@@ -17,22 +17,29 @@ CACHE = ROOT / "build/pixel-probe/upstream-ci.zip"
 
 # Keep these cached: Actions artifacts expire. Source builds live in the matching workflows.
 PIXEL_COMPONENTS = [
-    # Built at 87fea13 and ef8575b respectively; source digests detect stale native binaries.
+    # Runtime 87fea13, Gamescope 259ab98, audio bcc3cd1; digests detect stale native sources.
     ("runtime", 11412689757, "2521cb89e66150616ef0ee0485726379e126336520117dd4ca17b484c4592359",
      "d025bc3abc9bda59a198ec6bdd185e1f3292b4a2942a6fe0f12e0c52a255d639"),
-    ("gamescope", 11413232368, "afdf55f704881e2a4b31e7304057d26a3bb2d8df722c628876290428328595de",
-     "cb3a827b5c0049fa30326e30b2e1046a1a73f40433636d8fbeb29cc9452ad5c4"),
+    ("gamescope", 11422309131, "8fd070d49e1d4dee0be72cbb36f6906cfea0da6be564cd6c77ebe95a62ec02e0",
+     "63eb608048f8855480406363c16ad8ddb110ca69eaaf6b8272a77fd6ce3862ad"),
+    ("audio", 11421664765, "11e6fd13e7dbb538f19149b1d8081576087ff0c418382df2605030cc86478bcf",
+     "4925c6fc41bbf10f3b4c6bd6467cac57f79b237671c003e09fcb1ad50b820374"),
 ]
 
 
 def source_digest(component):
-    directory = "tools/linuxfs/preload" if component == "runtime" else "tools/gamescope"
+    directories = {"runtime": ["tools/linuxfs/preload"], "gamescope": ["tools/gamescope"],
+                   "audio": ["tools/pixel-audio", "tools/aaudio-sink"]}[component]
     digest = hashlib.sha256()
-    for path in sorted((ROOT / directory).rglob("*")):
+    for path in sorted(p for directory in directories for p in (ROOT / directory).rglob("*")):
         if not path.is_file():
             continue
-        selected = (path.suffix in (".c", ".h") and "tests" not in path.parts) if component == "runtime" else (
-            path.suffix == ".patch" or path.name in ("build-in-arch.sh", "runtime-sonames.txt"))
+        if component == "runtime":
+            selected = path.suffix in (".c", ".h") and "tests" not in path.parts
+        elif component == "audio":
+            selected = path.suffix in (".c", ".h", ".sh", ".py")
+        else:
+            selected = path.suffix == ".patch" or path.name in ("build-in-arch.sh", "runtime-sonames.txt")
         if selected:
             digest.update(path.relative_to(ROOT).as_posix().encode() + b"\0" +
                           path.read_bytes().replace(b"\r\n", b"\n") + b"\0")
@@ -79,15 +86,22 @@ def stage():
                     destination.write_bytes(apk.read(name))
 
     for component, artifact, digest, _ in PIXEL_COMPONENTS:
-        cache = ROOT / ("build/pixel-components/" + component + ".zip")
+        cache = ROOT / f"build/pixel-components/{component}-{artifact}.zip"
         with checked_archive(cache, f"repos/AutonomousLife/PixelDeck/actions/artifacts/{artifact}", digest) as z:
             if component == "runtime":
                 content, relative = z.read("libblsession.so"), "libblsession.so"
-            else:
+            elif component == "gamescope":
                 from compression import zstd  # Python 3.14, no extra dependency.
                 with tarfile.open(fileobj=io.BytesIO(zstd.decompress(z.read("gamescope.tzst")))) as tar:
                     content = tar.extractfile("usr/local/bin/gamescope").read()
                 relative = "usr/local/bin/gamescope"
+            else:
+                for name in z.namelist():
+                    if name.startswith("lib/") and name.endswith(".so"):
+                        destination = ROOT / "app/src/main/jniLibs/arm64-v8a" / Path(name).name
+                        destination.write_bytes(z.read(name))
+                (ROOT / "app/src/main/assets/pulseaudio.tzst").write_bytes(z.read("pulseaudio-complete.tzst"))
+                continue
             destination = ROOT / "app/src/main/assets/linuxfs" / relative
             destination.parent.mkdir(parents=True, exist_ok=True)
             if not destination.exists() or destination.read_bytes() != content:
@@ -98,12 +112,21 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--serial", help="Install the built debug APK on this explicitly selected device")
     args = parser.parse_args()
-    stage()
     sdk = Path(os.environ.get("ANDROID_HOME") or os.environ.get("ANDROID_SDK_ROOT") or
                str(Path.home() / "AppData/Local/Android/Sdk"))
     env = dict(os.environ, ANDROID_HOME=str(sdk), ANDROID_SDK_ROOT=str(sdk))
+    # Record source state before temporarily injecting the verified sink bundle.
+    status = subprocess.run(["git", "status", "--porcelain"], cwd=ROOT, capture_output=True, check=True)
+    env.setdefault("DROIDDECK_BUILD_TREE_STATE", "dirty" if status.stdout else "clean")
     gradle = str(ROOT / ("gradlew.bat" if os.name == "nt" else "gradlew"))
-    subprocess.run([gradle, ":app:assembleDebug", "--console=plain"], cwd=ROOT, env=env, check=True)
+    # The normal Linux build injects sinks into this base asset too; preserve its input contract.
+    audio_asset = ROOT / "app/src/main/assets/pulseaudio.tzst"
+    base_audio = audio_asset.read_bytes()
+    try:
+        stage()
+        subprocess.run([gradle, ":app:assembleDebug", "--console=plain"], cwd=ROOT, env=env, check=True)
+    finally:
+        audio_asset.write_bytes(base_audio)
     apk = ROOT / "app/build/outputs/apk/debug/app-debug.apk"
     print("APK:", apk, flush=True)
     if args.serial:
