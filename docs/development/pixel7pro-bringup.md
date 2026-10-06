@@ -328,8 +328,26 @@ Direct3D initialization blocker. The installed DXVK build
 `Device does not support required feature 'geometryShader'`. The current PanVK
 driver's Vulkan version does not establish support for every feature DXVK needs.
 The Windows vkQuake result above bypasses DXVK, so it remains valid; Direct3D
-through this DXVK build is not working. A real D3D9 game through WineD3D/Zink is
-the next fallback to verify, not an established result.
+through this DXVK build is not working.
+
+### Direct3D 9 fallback check
+
+The official [FTE Windows x64 build at c781d13](https://github.com/fte-team/fteqw/releases/tag/2025-09-27)
+ran the same LibreQuake demo using its Direct3D 9 backend through Proton,
+WineD3D and hardware Zink. Its release ZIP SHA-256 is
+`7da75f5f6a64ee8f988507bccb0081d58e119947b3132d583273840c19cc3fa9`.
+The game log reports `Direct3D9 renderer initialized`; Wine reports
+`GL_RENDERER "zink Vulkan 1.4(Mali-G710 MC7 (MESA_PANVK))"`. Wine's emulated
+`NVIDIA GeForce 8800 GTX` adapter name is not the physical GPU.
+Separate phone captures show the demo advancing from the arena to a corridor,
+at about 30 display FPS. FTE's `-noupdates` option avoids its first-run update
+source prompt. This verifies one D3D9 game, not general D3D11/12 compatibility.
+
+The test set `PROTON_USE_WINED3D=1`, restored
+`MESA_LOADER_DRIVER_OVERRIDE=zink`, `GALLIUM_DRIVER=zink` and
+`LIBGL_KOPPER_DRI2=true`, and removed `LIBGL_ALWAYS_SOFTWARE` and the Linux-only
+`SDL_VIDEODRIVER` override. Steam's client still needs software OpenGL; the game
+can use the accelerated Zink context instead.
 
 ## Remaining steps
 

@@ -566,10 +566,11 @@ class SessionService : Service() {
         val linuxDriverId = SessionPrefs.linuxDriver(this)
         if (LinuxVulkanDriverManager(this).isPanvk(linuxDriverId)) {
             // kbase has no DRM render node. PanVK presents through Vulkan WSI instead.
+            guest.add("BL_PANVK=1")
             guest.add("BL_GAMESCOPE_BACKEND=sdl")
             guest.add("PANVK_KBASE_DVFS=none")
             // ponytail: software OpenGL until PanVK/Zink creates Steam's windowed GL context.
-            // Vulkan (gamescope and Vulkan games) still uses the selected PanVK ICD.
+            // droiddeck-game-env restores hardware Zink for games; the client stays software.
             guest.add("MESA_LOADER_DRIVER_OVERRIDE=swrast")
             guest.add("GALLIUM_DRIVER=llvmpipe")
             guest.add("LIBGL_ALWAYS_SOFTWARE=1")
