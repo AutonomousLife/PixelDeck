@@ -10,7 +10,9 @@ rendered its Big Picture sign-in screen on the phone using software OpenGL after
 fixing Gamescope's copied XRGB alpha handling. The x64 Windows vkQuake build also
 shows a moving Vulkan demo through ARM64 Proton with built-in DXGI for display
 discovery. A Windows Direct3D 9 demo also advances through its 3D level using
-WineD3D and hardware Zink. Steam login and general game compatibility remain
+WineD3D and hardware Zink. Its Direct3D 11 backend also renders a moving demo
+at feature level 10_1; this does not establish feature level 11_0 or D3D12 support.
+Steam login and general game compatibility remain
 untested. The upstream requirements below do not yet
 describe Pixel support. See [bring-up results](docs/development/pixel7pro-bringup.md).
 Reused copied buffers now refresh each frame, and the Vulkan game demo visibly
@@ -35,8 +37,9 @@ Linux CI build; this helper rebuilds Android native/Java/Kotlin code and scripts
 PanVK remains an explicit experimental driver import. When selected, it uses
 Gamescope's SDL backend and software OpenGL for Steam's client. Proton game
 launches automatically select WineD3D and hardware Zink; explicit game profiles
-can override those defaults. Vulkan remains on the Mali GPU. One D3D9 game has
-passed; general D3D11/12 compatibility has not been established. The helper
+can override those defaults. Vulkan remains on the Mali GPU. One game's D3D9
+and D3D11 (feature level 10_1) renderers have passed; general D3D11/12 compatibility
+has not been established. The helper
 refuses changed Pixel native sources until their CI artifacts and pins are rebuilt. Other Linux native components
 still come from the pinned upstream APK.
 

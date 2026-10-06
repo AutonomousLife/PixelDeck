@@ -1,7 +1,8 @@
 # Pixel 7 Pro: first checks, 2026-10-06
 
 Current status: **Steam's sign-in screen, native Vulkan game rendering, Windows
-Vulkan and one Windows Direct3D 9 game are verified on the Pixel 7 Pro**. The
+Vulkan and one game's Direct3D 9 / Direct3D 11 (feature level 10_1) renderers
+are verified on the Pixel 7 Pro**. The
 device-tested `19a5ac8` build automatically selects the tested WineD3D/Zink fallback
 for PanVK game launches. Steam login, player input, audible quality and general
 D3D11/12 compatibility still need verification. The sections below record the
@@ -366,6 +367,23 @@ graphics overrides. Only PanVK game launches receive these defaults; Steam's
 client/probes and other drivers keep their existing settings, and explicit
 shared or per-game profiles override the defaults. Targeted launch/profile
 checks and the incremental APK build/install passed.
+
+### Direct3D 11 API check at feature level 10_1
+
+On the installed `486b06e` APK, the same official FTE x64 executable launched
+with `vid_renderer d3d11` through the default PanVK game environment and a fresh
+numeric prefix. The game log reports `Direct3D11 renderer initialized` and
+`D3D11 Feature level: 10_1`; Proton logs show WineD3D, `d3d11.dll` and the Mali
+Zink renderer. Two phone captures show different arena/corridor scenes. Steady
+10-second compositor samples were 39.1 and 38.6 display FPS at 1280×720.
+No scripted graphics overrides were supplied.
+
+The pinned [FTE renderer source](https://github.com/fte-team/fteqw/blob/c781d13/engine/d3d/vid_d3d11.c)
+requests several feature levels and accepts the level returned by device
+creation. [Direct3D feature levels](https://learn.microsoft.com/en-us/windows/win32/direct3d11/overviews-direct3d-11-devices-downlevel-intro)
+are distinct from the API version. This verifies a D3D11 API game using feature
+level 10_1, not games requiring feature level 11_0 or Direct3D 12. Wine's NVIDIA
+adapter name remains an emulated identity; its actual renderer is Mali-G710.
 
 ### Steam hardware UI follow-up
 
