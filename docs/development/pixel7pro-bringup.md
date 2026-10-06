@@ -443,6 +443,20 @@ as a sufficient fix; it does not establish the remaining texture/presentation
 failure's root cause. The preload and debug environment were removed, and the
 original Steam wrapper was verified byte for byte after the trial.
 
+A corrected temporary SDL3 diagnostic subsequently forwarded calls through the
+actual loaded SDL3 library rather than `RTLD_NEXT`. It read the configured
+context attributes immediately before calling the real `SDL_GL_CreateContext`:
+OpenGL **4.3**, core profile, no shared context. The real call returned null with
+`EGL_BAD_MATCH`. SDL's [attribute implementation](https://github.com/libsdl-org/SDL/blob/release-3.2.28/src/video/SDL_video.c)
+reads the requested major/minor/profile from its configuration for these queries.
+An independent `glxinfo -B` session on the same installed Mali/Zink setup reports
+maximum core and compatibility profiles of **3.3**, with hardware acceleration.
+The driver cannot satisfy Steam's requested 4.3 context. This establishes a real
+capability mismatch; the EGL switch alone cannot solve it. Temporary diagnostic
+libraries and environment overrides were removed. Raw request logs are under
+`build/panvk/steam-ui-sdl-request/`; capability logs are under
+`build/panvk/linux-gl-capabilities/`.
+
 ### Windows game audio signal check
 
 A subsequent FTE D3D11 session on `486b06e` supplied a playback stream to the
