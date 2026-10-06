@@ -153,6 +153,30 @@ The normal driver importer now accepts glibc PanVK packages, uses the generic
 Its PanVK import and legacy-storage regression tests passed. The experimental
 PanVK driver was selected only in the private PixelDeck debug app.
 
+### Standalone Linux OpenGL defaults
+
+The Steam software-OpenGL workaround originally applied to every PanVK session,
+including standalone Linux programs. On `486b06e`, a normal app-launched
+`glxgears -info` session reported llvmpipe. Build `eb8c118` confines the workaround
+to Steam/desktop sessions, where Steam can run; standalone programs retain the
+existing hardware Zink defaults. The rebuilt APK was installed, and the same
+command then reported `zink Vulkan 1.4(Mali-G710 MC7 (MESA_PANVK))`, OpenGL 3.3.
+Two phone captures show different gear rotations. These checks establish driver
+selection and presentation, not a general performance gain or OpenGL 4.x support.
+The six portable PanVK launcher checks and the APK build passed. Linux-only
+shell tests require a Linux host; they do not run in the Windows development
+environment. Local before/after logs are in `build/panvk/linux-gl-before/` and
+`build/panvk/linux-gl-after/`.
+
+Repeat the standalone check, without graphics environment overrides:
+
+```powershell
+python tools/droiddeckctl --package dev.pixeldeck.launcher --serial DEVICE_SERIAL run /usr/bin/timeout -- 45 /usr/bin/glxgears -info
+python tools/droiddeckctl --package dev.pixeldeck.launcher --serial DEVICE_SERIAL logs latest ./linux-gl-check
+```
+
+Inspect the renderer in `session.log` and verify rotating output on the phone.
+
 ### Direct Wayland test
 
 With gamescope bypassed, `vkcube --wsi wayland --c 600` selected Mali-G710 MC7,
