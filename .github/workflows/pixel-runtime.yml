@@ -1,0 +1,37 @@
+name: Pixel runtime shim
+on:
+  push:
+    branches: [codex/pixel-gpu-probe]
+    paths: [.github/workflows/pixel-runtime.yml, 'tools/linuxfs/preload/**']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  preload:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check forwarding to a locally loaded libdrm
+        run: |
+          mkdir -p build/drm-local
+          gcc -shared -fPIC -O2 -DDRM_TEST_LIBRARY tools/linuxfs/preload/tests/drm-local.c -o build/drm-local/libdrm.so.2
+          gcc -shared -fPIC -O2 -Wall -pthread tools/linuxfs/preload/drm.c -ldl -o build/drm-local/shim.so
+          gcc -O2 -Wall tools/linuxfs/preload/tests/drm-local.c -ldl -o build/drm-local/check
+          LD_LIBRARY_PATH="$PWD/build/drm-local" LD_PRELOAD="$PWD/build/drm-local/shim.so" build/drm-local/check
+      - name: Build the ARM64 runtime preload
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq gcc-aarch64-linux-gnu
+          aarch64-linux-gnu-gcc -shared -fPIC -O2 -Wall -pthread tools/linuxfs/preload/*.c -ldl -o build/libblsession.so
+          aarch64-linux-gnu-strip --strip-unneeded build/libblsession.so
+          cd build
+          sha256sum libblsession.so > SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pixel-runtime-aarch64
+          path: |
+            build/libblsession.so
+            build/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 14
