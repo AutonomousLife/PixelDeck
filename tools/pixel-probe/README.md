@@ -65,7 +65,9 @@ python tools/pixel-probe/probe.py --compositor --serial YOUR_AUTHORIZED_DEVICE_S
 
 This packages the locally built compositor into the isolated probe, verifies a
 cyan SHM image against all 4096 GPU-readback pixels, presents it to the Android
-surface, queries the actual ARGB8888 modifiers, and tests importing a system-heap
+surface, then uploads magenta into the same image and verifies presentation and
+all pixels again. This checks visibility of repeated uploads, not just the first
+frame. It queries the actual ARGB8888 modifiers and tests importing a system-heap
 dma-buf. Import success alone does not verify rendering into the imported buffer.
 Results use the `compositor-` prefix under `build/pixel-probe/`.
 

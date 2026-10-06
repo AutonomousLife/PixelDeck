@@ -299,6 +299,16 @@ Java_dev_pixeldeck_probe_NativeProbeActivity_nativeCompositorTest(JNIEnv *env, j
     if (matched) for (size_t i = 0; i < 64 * 64; i++) if (pixels[i] != readback[i]) { matched = 0; break; }
     LINE("compositor_readback=%s\n", matched ? "pass" : "fail");
     LINE("compositor_center_bgra=0x%08x\n", r == 0 ? readback[32 * 64 + 32] : 0);
+    /* Reuse the same mapped image: a one-frame test cannot catch stale uploads. */
+    for (size_t i = 0; i < 64 * 64; i++) pixels[i] = 0xffff00ff; /* magenta */
+    vkp_image_upload_shm(image, pixels, 64 * 4);
+    r = vkp_render(64, 64, &d, 1);
+    LINE("compositor_reupload_present=%s\n", r == 0 ? "pass" : "fail");
+    r = vkp_image_readback(image, readback, 64 * 64);
+    matched = r == 0;
+    if (matched) for (size_t i = 0; i < 64 * 64; i++) if (pixels[i] != readback[i]) { matched = 0; break; }
+    LINE("compositor_reupload_readback=%s\n", matched ? "pass" : "fail");
+    LINE("compositor_reupload_center_bgra=0x%08x\n", r == 0 ? readback[32 * 64 + 32] : 0);
     vkp_image_destroy(image);
     uint32_t fourcc = 0x34325241; /* DRM_FORMAT_ARGB8888 */
     uint64_t mods[32];
