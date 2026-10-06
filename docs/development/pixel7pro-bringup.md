@@ -401,6 +401,21 @@ is insufficient. All temporary graphics overrides and diagnostic preloads were
 removed, and the working software-OpenGL client setup was restored. No hardware
 UI defaults were promoted from these failed trials.
 
+### Windows game audio signal check
+
+A subsequent FTE D3D11 session on `486b06e` supplied a playback stream to the
+classic AAudio sink. A 12-second capture from the explicitly selected
+`AAudioSink.monitor` contained 2,108,232 bytes: 11.951 seconds of signed 16-bit
+stereo PCM at 44.1 kHz. Both channels contained nonzero audio; neither reached
+the signed 16-bit clipping limits. This captured only the playback mix, with no
+microphone source. Android's app-UID logs independently report a successful
+MMAP AAudio stream open and start (`AAUDIO_OK`, low-latency mode), followed by
+the started state. The game stream negotiated approximately 30 ms with
+PulseAudio. That is a negotiated buffer value, not measured end-to-end latency.
+The local recording and analysis are under `build/panvk/windows-audio/`.
+This proves audio data reaches the playback sink; actual speaker volume,
+distortion, synchronization and controller interaction still need human checks.
+
 ## Remaining steps
 
 On the `19a5ac8` build, Steam's own `controller.txt` log identifies the
