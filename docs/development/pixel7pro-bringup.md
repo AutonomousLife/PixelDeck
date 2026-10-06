@@ -367,6 +367,22 @@ client/probes and other drivers keep their existing settings, and explicit
 shared or per-game profiles override the defaults. Targeted launch/profile
 checks and the incremental APK build/install passed.
 
+### Steam hardware UI follow-up
+
+The installed `486b06e` build was retested after the copied-frame fixes. Hardware
+Zink alone still failed to present a first Steam frame. With SDL3's documented
+[`SDL_VIDEO_FORCE_EGL=1`](https://wiki.libsdl.org/SDL3/SDL_HINT_VIDEO_FORCE_EGL)
+switch, the session reached `READY`, and Chromium's fresh GPU report identified
+ANGLE OpenGL on Zink / Mali-G710 rather than llvmpipe. Chromium's own screenshot
+showed the sign-in page, but the phone remained black at effectively zero display
+FPS. Steam's native `CCompositorGLThread` still reported failure to acquire a GL
+context for its transparent window and fell back to its system composer.
+Disabling the Gamescope WSI layer did not repair that output. This separates
+successful browser rendering from successful phone presentation; `READY` alone
+is insufficient. All temporary graphics overrides and diagnostic preloads were
+removed, and the working software-OpenGL client setup was restored. No hardware
+UI defaults were promoted from these failed trials.
+
 ## Remaining steps
 
 On the `19a5ac8` build, Steam's own `controller.txt` log identifies the
