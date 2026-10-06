@@ -569,11 +569,13 @@ class SessionService : Service() {
             guest.add("BL_PANVK=1")
             guest.add("BL_GAMESCOPE_BACKEND=sdl")
             guest.add("PANVK_KBASE_DVFS=none")
-            // ponytail: software OpenGL until PanVK/Zink creates Steam's windowed GL context.
-            // droiddeck-game-env restores hardware Zink for games; the client stays software.
-            guest.add("MESA_LOADER_DRIVER_OVERRIDE=swrast")
-            guest.add("GALLIUM_DRIVER=llvmpipe")
-            guest.add("LIBGL_ALWAYS_SOFTWARE=1")
+            if (steamHere) {
+                // ponytail: software OpenGL until PanVK/Zink creates Steam's windowed GL context.
+                // Proton games restore Zink separately; standalone Linux programs keep it above.
+                guest.add("MESA_LOADER_DRIVER_OVERRIDE=swrast")
+                guest.add("GALLIUM_DRIVER=llvmpipe")
+                guest.add("LIBGL_ALWAYS_SOFTWARE=1")
+            }
         }
         LinuxVulkanDriver.resolveIcdPath(this, linuxDriverId)
             ?.let { guest.add(LinuxVulkanDriver.ENV + "=" + it) }
