@@ -1,0 +1,85 @@
+name: Pixel vkQuake game experiment
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  vkquake:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build pinned ARM64 engine and stage free game data
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm -i -v "$PWD:/work" -w /work menci/archlinuxarm:base-devel bash -s <<'BUILD'
+          set -euo pipefail
+          # Same runner/container setup already verified by the Gamescope build.
+          grep -q '^DisableSandbox' /etc/pacman.conf || sed -i 's/^\[options\]/[options]\nDisableSandbox/' /etc/pacman.conf
+          { for m in https://ca.us.mirror.archlinuxarm.org https://fl.us.mirror.archlinuxarm.org https://de3.mirror.archlinuxarm.org https://nl.mirror.archlinuxarm.org; do echo "Server = $m/\$arch/\$repo"; done; cat /etc/pacman.d/mirrorlist; } > /etc/pacman.d/mirrorlist.new
+          mv /etc/pacman.d/mirrorlist.new /etc/pacman.d/mirrorlist
+          pacman -Syu --noconfirm --needed git meson ninja sdl2-compat vulkan-headers vulkan-icd-loader glslang spirv-tools curl
+          source_commit=1b948e29a6e3e412df2e1814615d71fb8040bce5
+          data_url=https://github.com/lavenderdotpet/LibreQuake/releases/download/v0.09-beta/lite.zip
+          data_sha=428e736b2f01d953e09a08c60bee975bdc4a0ac2219e97fa095c8af41754da83
+          git init vkquake-source
+          git -C vkquake-source remote add origin https://github.com/Novum/vkQuake.git
+          git -C vkquake-source fetch --depth=1 origin "$source_commit"
+          git -C vkquake-source checkout --detach FETCH_HEAD
+          test "$(git -C vkquake-source rev-parse HEAD)" = "$source_commit"
+          # WAV game sounds remain enabled; external soundtrack codecs are unnecessary here.
+          meson setup vkquake-build vkquake-source --buildtype=release \
+            -Duse_sdl3=disabled -Duse_codec_mp3=disabled -Duse_codec_flac=disabled \
+            -Duse_codec_vorbis=disabled -Duse_codec_opus=disabled
+          meson compile -C vkquake-build -j "$(nproc)"
+          mkdir pixel-vkquake
+          cp vkquake-build/vkquake pixel-vkquake/
+          strip --strip-unneeded pixel-vkquake/vkquake
+          readelf -h pixel-vkquake/vkquake | grep -q 'Machine:.*AArch64'
+          # Match the existing runtime's SONAME inventory, as the Gamescope build does.
+          readelf -d pixel-vkquake/vkquake | sed -n 's/.*NEEDED.*\[\(.*\)\]/\1/p' > pixel-vkquake/NEEDED.txt
+          while IFS= read -r lib; do
+            grep -qx "$lib" tools/gamescope/runtime-sonames.txt || { echo "Not in runtime: $lib"; exit 3; }
+          done < pixel-vkquake/NEEDED.txt
+          # This runtime has glibc 2.42; fail if a rolling build adds a newer symbol requirement.
+          readelf --version-info pixel-vkquake/vkquake > pixel-vkquake/SYMBOL_VERSIONS.txt
+          max_glibc=$(grep -o 'GLIBC_[0-9.]*' pixel-vkquake/SYMBOL_VERSIONS.txt | sed 's/GLIBC_//' | sort -Vu | tail -1)
+          test "$(printf '%s\n' "$max_glibc" 2.42 | sort -V | tail -1)" = 2.42
+          ldd pixel-vkquake/vkquake | tee pixel-vkquake/BUILD_LDD.txt
+          ! grep -q 'not found' pixel-vkquake/BUILD_LDD.txt
+          # vkQuake embeds its generated SPIR-V and engine pak in this binary.
+          cp vkquake-source/LICENSE.txt pixel-vkquake/VKQUAKE-LICENSE.txt
+          git -C vkquake-source archive --format=tar.gz HEAD > pixel-vkquake/vkquake-source.tar.gz
+          printf '%s\n' "$source_commit" > pixel-vkquake/SOURCE_COMMIT
+          pacman -Q > pixel-vkquake/BUILD_PACKAGES.txt
+          curl --fail --location --retry 3 "$data_url" -o pixel-vkquake/lite.zip
+          printf '%s  %s\n' "$data_sha" pixel-vkquake/lite.zip | sha256sum -c -
+          cat > pixel-vkquake/README.txt <<'README'
+          PixelDeck validation artifact only. Nothing is bundled into the APK.
+          Engine: https://github.com/Novum/vkQuake
+          vkQuake 1.36.0 commit 1b948e29a6e3e412df2e1814615d71fb8040bce5, unmodified.
+          Generated SPIR-V and engine pak are embedded in vkquake. Full engine source is included.
+          Data: https://github.com/lavenderdotpet/LibreQuake/releases/tag/v0.09-beta
+          lite.zip SHA256 428e736b2f01d953e09a08c60bee975bdc4a0ac2219e97fa095c8af41754da83
+          LibreQuake licenses/credits are inside lite/id1/docs; preserve that directory.
+
+          After checking SHA256SUMS, extract lite.zip, then move lite/id1 beside vkquake.
+          In the existing PixelDeck Linux runtime, start through the usual run session:
+            /root/pixel-vkquake/vkquake -basedir /root/pixel-vkquake -width 1280 -height 720 -window +vid_fsaa 1 +vid_vsync 0 +timedemo demo1
+          Run through Gamescope with the selected PanVK ICD. This demo needs no sign-in or input.
+          A timedemo prints engine FPS; also inspect the Android compositor and screenshot.
+          This is a native Linux Vulkan game test, not a Proton/Windows compatibility test.
+          External MP3/FLAC/Vorbis/Opus music codecs are disabled; WAV effects remain enabled.
+          Runtime SONAME and glibc symbol checks establish loader compatibility only;
+          the real device test must still verify Vulkan rendering and presentation.
+          README
+          (cd pixel-vkquake && sha256sum vkquake lite.zip vkquake-source.tar.gz > SHA256SUMS)
+          BUILD
+          sudo chown -R "$(id -u):$(id -g)" pixel-vkquake
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pixel-vkquake-aarch64
+          path: pixel-vkquake/
+          if-no-files-found: error
+          retention-days: 14
