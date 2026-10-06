@@ -1952,6 +1952,8 @@ class SessionActivity : ComponentActivity(), SurfaceHolder.Callback {
         releaseDrawerDirection()
         // A button held when the app goes away would stay held in the ring for the whole session.
         onScreenControls?.releaseAll()
+        padBridge?.releaseAll()
+        guestKeysDown.toList().forEach { sendGuestKey(it, false) }
         resumed = false
         updatePointerCapture()
         updatePadMotion()
