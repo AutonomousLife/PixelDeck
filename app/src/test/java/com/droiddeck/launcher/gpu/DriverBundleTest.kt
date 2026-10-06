@@ -93,6 +93,7 @@ class DriverBundleTest {
             "lib/libvulkan_panfrost_kbase.so" to library("libc.so.6"),
         )), "Pixel PanVK")
         assertTrue(manager.isInstalled(id))
+        assertTrue(manager.isPanvk(id))
         val dir = manager.getDriverDir(id)
         val icd = JSONObject(File(dir, LinuxVulkanDriverManager.ICD_NAME).readText()).getJSONObject("ICD")
         assertEquals(File(dir, LinuxVulkanDriverManager.LIB_NAME).absolutePath, icd.getString("library_path"))
@@ -102,6 +103,7 @@ class DriverBundleTest {
         File(legacy, "libvulkan_freedreno.so").writeBytes(library("libc.so.6"))
         File(legacy, LinuxVulkanDriverManager.ICD_NAME).writeText("{}")
         assertTrue(manager.isInstalled("legacy-turnip"))
+        assertFalse(manager.isPanvk("legacy-turnip"))
     }
 
     @Test fun installsBothHalvesAndPicksAndDeletesThemTogether() {

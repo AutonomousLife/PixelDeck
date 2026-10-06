@@ -35,7 +35,8 @@ def build(sdk, compositor=False):
     if not clang.is_file():
         raise RuntimeError("Need Android NDK 27.3.13750724 (Windows: run bootstrap_sdk.py)")
     common = [clang, "--target=aarch64-linux-android26", "-shared", "-fPIC", "-O2", "-Wall",
-              "-Wextra", "-Wno-unused-parameter", "-Wl,-z,max-page-size=16384"]
+              "-Wextra", "-Wno-unused-parameter", "-Wl,-z,max-page-size=16384",
+              "-Wl,-z,common-page-size=16384"]
     run(*common, ROOT / "app/src/main/cpp/deviceinfo/vkinfo.c", "-o", BUILD / "libdeviceinfo.so", "-ldl")
     run(*common, SOURCE / "native_probe.c", "-o", BUILD / "libpixelprobe.so", "-lvulkan", "-landroid")
     classes = BUILD / "classes"

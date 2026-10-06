@@ -115,7 +115,7 @@ def confirm_start(adb: str, serial: str, request: dict, previous: dict) -> dict:
         state = get_state(adb, serial)
         session = state.get("session", {})
         phase = session.get("phase")
-        if session.get("mode") == expected_mode and session.get("id") != previous.get("id"):
+        if session.get("mode") == expected_mode and session.get("id") and session.get("id") != previous.get("id"):
             return state
         remaining = deadline - time.monotonic()
         if remaining <= 0:

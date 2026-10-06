@@ -3,11 +3,13 @@
 PixelDeck is a Tensor-device port of [DroidDeck](https://github.com/Droid-Deck/DroidDeck).
 On a locked Pixel 7 Pro running Android 17, stock GLES and Vulkan hardware-buffer
 import/render/readback/presentation have passed. Linux PanVK GPU readback and
-a 600-frame direct Wayland cube test have also passed. Gamescope, Steam and
-games are still under development; the upstream requirements below do not yet
+a 600-frame cube test inside patched Gamescope have also passed. Steam has
+rendered its Big Picture sign-in screen using software OpenGL; games are
+untested. The upstream requirements below do not yet
 describe Pixel support. See [bring-up results](docs/development/pixel7pro-bringup.md).
 
-For the Windows development loop, install JDK 21, Python, Android SDK platform 34
+For the Windows development loop, install JDK 21, Python 3.14+, GitHub CLI,
+Android SDK platform 34
 and build-tools 35.0.0, then run:
 
 ```powershell
@@ -16,10 +18,16 @@ python tools/pixel-build.py --serial YOUR_DEVICE_SERIAL
 python tools/droiddeckctl --package dev.pixeldeck.launcher --serial YOUR_DEVICE_SERIAL state
 ```
 
-The full-app helper stages checked upstream CI prebuilts for Linux once, then uses
-incremental Gradle/NDK builds. Keep `build/pixel-probe/upstream-ci.zip`: upstream
-Actions artifacts expire. Changed Linux native components need their own Linux
-build; this shortcut rebuilds Android native/Java/Kotlin code and session scripts.
+The full-app helper stages checksum-pinned upstream Linux prebuilts and the fixed
+Pixel runtime/Gamescope components, then uses incremental Gradle/NDK builds.
+Keep `build/pixel-probe/upstream-ci.zip` and `build/pixel-components/*.zip`:
+Actions artifacts expire. Changed Linux native components need their matching
+Linux CI build; this helper rebuilds Android native/Java/Kotlin code and scripts.
+PanVK remains an explicit experimental driver import. When selected, it uses
+Gamescope's SDL backend and software OpenGL, including OpenGL games;
+Vulkan remains on the Mali GPU. The helper refuses changed Pixel native sources
+until their CI artifacts and pins are rebuilt. Other Linux native components
+still come from the pinned upstream APK.
 
 The original DroidDeck README follows, with its upstream credits and instructions.
 

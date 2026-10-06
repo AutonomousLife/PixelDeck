@@ -113,6 +113,11 @@ public class LinuxVulkanDriverManager {
         return m != null ? m.optString("driverVersion", "") : "";
     }
 
+    public boolean isPanvk(String id) {
+        JSONObject m = readMeta(id);
+        return m != null && m.optString("sourceLibraryName", "").startsWith("libvulkan_panfrost");
+    }
+
     /** The glibc the driver asks for, as its zip recorded it ("" when the zip did not say). */
     public String getMinGlibc(String id) {
         JSONObject m = readMeta(id);

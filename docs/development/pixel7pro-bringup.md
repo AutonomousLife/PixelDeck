@@ -98,6 +98,8 @@ that particular trigger less applicable to this device/run path; it does not
 establish that all experimental PanVK ioctls are safe. The stock module hash is
 unreadable without additional privilege. No kernel patch, flashing, reboot,
 bootloader unlock, or device-wide permission/verification change was performed.
+For one Steam test only, `activity_manager/max_phantom_processes` was raised
+from its unset default to 64, then deleted to restore the original value.
 
 ## Linux PanVK experiment
 
@@ -155,14 +157,56 @@ dialog, so visible cube verification remains pending user dismissal.
 Gamescope's direct Wayland backend rejects kbase because it has no DRM primary
 or render node. Patch `0114-vulkan-swapchain-without-drm-node.patch` permits
 the Vulkan WSI backend to operate without a render node; the original DRM path
-remains in use when one is available. The patched binary still needs device
-validation with the SDL backend.
+remains in use when one is available. The patched SDL backend then successfully
+ran `vkcube --c 600` with PanVK. A 10-second compositor sample reported 346
+frames (34.6 FPS) at 1280×720. This is a cube-test measurement on the current
+CPU-copy transport, not a game-performance estimate. Gamescope binary SHA-256:
+`569e396794334b2f51da1c69446b252df07b5097e162f88e3a7cece845b92b98`.
+
+### Steam sign-in screen
+
+The native ARM64 Steam client downloaded and installed. With PanVK selected,
+the initial Zink OpenGL path repeatedly failed to create Steam's UI context.
+Software OpenGL (`MESA_LOADER_DRIVER_OVERRIDE=swrast`,
+`GALLIUM_DRIVER=llvmpipe`, `LIBGL_ALWAYS_SOFTWARE=1`) let the client reach
+`READY` and render the Big Picture sign-in screen. A read-only Chromium
+capture verified the actual rendered sign-in window behind Android's dialog.
+No credentials were entered and no account or Steam game has been tested.
+
+The first failed session was also killed by Android's phantom-process monitor
+while updating Steam. Raising the cap temporarily separated that failure from
+the graphics issue. After restoring the original unset cap, a fresh Big Picture
+session reached `READY` again, but Android subsequently killed its proot tracer
+while trimming phantom processes. The default process cap is therefore not a
+stable Steam setup. It has been restored; no process-monitor bypass is left on.
+The app now applies the tested SDL/PanVK/software-OpenGL defaults when an
+explicit PanVK import is selected; private environment overrides are unnecessary.
+These defaults apply to all OpenGL child applications, including OpenGL games
+and WineD3D. Vulkan applications still use PanVK. This is an experimental
+working fallback, not hardware-accelerated OpenGL support for Steam.
+
+In the live Gamescope Xwayland display, a separate Zink `glxinfo -B` reported
+accelerated Mali-G710 OpenGL 3.3 core/compatibility and GLES 3.1. Windowed
+`glxgears` rendered 374 frames in 5 seconds. Thus windowed Zink works for this
+test; the narrower Steam UI context failure still needs investigation.
+
+### Android compatibility warning
+
+The six bundled PulseAudio/dependency prebuilts have 4 KB LOAD alignment:
+`libpulse`, `libpulseaudio`, `libpulsecommon-13.0`, `libpulsecore-13.0`,
+`libsndfile` and `libltdl`. They need a proper rebuild, along with the matching
+audio modules, to remove Android's debug-app 16 KB compatibility warning.
+The newly compiled Wayland/device-info/main-hook/termux libraries already have
+16 KB LOAD alignment; Android's extra “Unknown error” entries are misleading.
+Both `max-page-size` and `common-page-size` linker flags now specify 16384
+for native Android builds. This does not realign prebuilt libraries.
 
 ## Remaining steps
 
 1. Verify the cube visibly after the Android compatibility dialog is dismissed.
-2. Validate patched gamescope on PanVK, then Steam and a game.
-3. Improve the current SHM presentation to dma-buf sharing and measure performance.
+2. Run a real Vulkan game; Steam login and Proton/Windows games remain untested.
+3. Fix Steam's Zink UI context and rebuild the audio prebuilts with 16 KB alignment.
+4. Improve the current SHM presentation to dma-buf sharing and measure performance.
 
 Repeat the current baseline with
 `python tools/pixel-probe/probe.py --no-build --no-install --native --serial DEVICE_SERIAL` while the

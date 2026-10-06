@@ -564,6 +564,16 @@ class SessionService : Service() {
         // import falls back to. One driver for every session: the driver's shader cache is keyed on
         // its build, and with one per mode every emulator compiled its shaders twice.
         val linuxDriverId = SessionPrefs.linuxDriver(this)
+        if (LinuxVulkanDriverManager(this).isPanvk(linuxDriverId)) {
+            // kbase has no DRM render node. PanVK presents through Vulkan WSI instead.
+            guest.add("BL_GAMESCOPE_BACKEND=sdl")
+            guest.add("PANVK_KBASE_DVFS=none")
+            // ponytail: software OpenGL until PanVK/Zink creates Steam's windowed GL context.
+            // Vulkan (gamescope and Vulkan games) still uses the selected PanVK ICD.
+            guest.add("MESA_LOADER_DRIVER_OVERRIDE=swrast")
+            guest.add("GALLIUM_DRIVER=llvmpipe")
+            guest.add("LIBGL_ALWAYS_SOFTWARE=1")
+        }
         LinuxVulkanDriver.resolveIcdPath(this, linuxDriverId)
             ?.let { guest.add(LinuxVulkanDriver.ENV + "=" + it) }
         // Turnip's own debug switches, for the runtime's driver and everything on it. The file in
