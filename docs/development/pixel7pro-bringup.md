@@ -326,10 +326,19 @@ The initial Windows launch failed in SDL display enumeration after DXVK failed
 to initialize. The successful test used per-process `WINEDLLOVERRIDES=dxgi=b`
 and unset the Linux-only `SDL_VIDEODRIVER=x11` override. Built-in DXGI supplies
 display discovery while vkQuake renders with Vulkan directly; this does not
-establish working Direct3D translation. These overrides were confined to the
-test script, and are not global defaults. To repeat a script check without
+establish working Direct3D translation. At that stage, these overrides were
+confined to the test script. To repeat a script check without
 scanning its enclosing game tree for FEX binaries, launch its ARM64 interpreter:
 `droiddeckctl ... run /bin/bash -- /root/your-check.sh`.
+
+The installed `486b06e` build was subsequently checked through the normal
+`waitforexitandrun` game route with a fresh numeric prefix. This supplied no
+`WINEDLLOVERRIDES`, `PROTON_USE_WINED3D`, or graphics-driver overrides. The app's
+PanVK defaults selected WineD3D, and Windows vkQuake initialized on Mali-G710,
+rendering its 3D scene at 1280×720. Steady compositor samples after startup were
+**33.3–35.2 display FPS**. Game and Proton logs are saved locally under
+`build/panvk/vulkan-default/`. This verifies that this Windows Vulkan game also
+works with the installed launcher defaults; it is not a Steam library launch.
 
 An app-launched follow-up with `DXVK_LOG_LEVEL=debug` identified the default
 Direct3D initialization blocker. The installed DXVK build
@@ -400,6 +409,15 @@ successful browser rendering from successful phone presentation; `READY` alone
 is insufficient. All temporary graphics overrides and diagnostic preloads were
 removed, and the working software-OpenGL client setup was restored. No hardware
 UI defaults were promoted from these failed trials.
+
+A later temporary preload enabled Zink only in Chromium's GPU/zygote children,
+leaving the web helper's native compositor on software OpenGL. The fresh browser
+GPU report identified Mali-G710, and the native compositor successfully reported
+`Loaded GL 4.6` and an OpenGL output window. The phone still displayed black at
+effectively zero display FPS. This rules out simply splitting the two renderers
+as a sufficient fix; it does not establish the remaining texture/presentation
+failure's root cause. The preload and debug environment were removed, and the
+original Steam wrapper was verified byte for byte after the trial.
 
 ### Windows game audio signal check
 
