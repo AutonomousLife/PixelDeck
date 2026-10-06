@@ -164,8 +164,13 @@ command then reported `zink Vulkan 1.4(Mali-G710 MC7 (MESA_PANVK))`, OpenGL 3.3.
 Two phone captures show different gear rotations. These checks establish driver
 selection and presentation, not a general performance gain or OpenGL 4.x support.
 The six portable PanVK launcher checks and the APK build passed. Linux-only
-shell tests require a Linux host; they do not run in the Windows development
-environment. Local before/after logs are in `build/panvk/linux-gl-before/` and
+shell tests do not run in the Windows development environment. The complete
+`test_game_environment.py` suite was subsequently staged with its exact launcher
+sources in a separate guest test directory and run inside the Pixel's Linux
+runtime: **35 tests passed**, including generated Proton wrappers, profile
+precedence, literal argument handling, tool-selection migration, PanVK defaults
+and audio-prefix setup. These tests use temporary fixtures and do not establish
+a signed-in Steam game launch. Local before/after logs are in `build/panvk/linux-gl-before/` and
 `build/panvk/linux-gl-after/`.
 
 Repeat the standalone check, without graphics environment overrides:
