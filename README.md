@@ -6,7 +6,9 @@ import/render/readback/presentation have passed. Linux PanVK GPU readback and
 a 600-frame cube test inside patched Gamescope have also passed. Native ARM64
 vkQuake with free LibreQuake data completed a Vulkan benchmark at 42.1 engine FPS
 at 1280×720; the current copied display path showed about 32–34 FPS. Steam has
-rendered its Big Picture sign-in screen using software OpenGL. Steam login and
+rendered its Big Picture sign-in screen in a guest Chromium capture using software
+OpenGL, but its phone display path still shows black outside Android's dialog.
+Steam login and
 Proton/Windows games remain untested. The upstream requirements below do not yet
 describe Pixel support. See [bring-up results](docs/development/pixel7pro-bringup.md).
 

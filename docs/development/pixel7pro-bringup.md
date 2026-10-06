@@ -173,6 +173,15 @@ Software OpenGL (`MESA_LOADER_DRIVER_OVERRIDE=swrast`,
 capture verified the actual rendered sign-in window behind Android's dialog.
 No credentials were entered and no account or Steam game has been tested.
 
+The final installed build sustained a Steam session for over two minutes with
+child-process restrictions off. However, the exposed phone area remained black
+while the guest Chromium capture showed sign-in. Steam logged
+`AcquirePixmap: failed to create glx pixmap` / `GLXBadPixmap`. Disabling DRI3
+did not fix it. A separate `-cef-disable-gpu` test removed those errors but still
+showed black in both Big Picture and desktop Steam modes. Both temporary
+experiments were reverted. Steam's **phone display path is not usable yet**;
+`READY` and the guest screenshot do not establish successful phone presentation.
+
 The first failed session was also killed by Android's phantom-process monitor
 while updating Steam. Raising the cap temporarily separated that failure from
 the graphics issue. After restoring the original unset cap, a fresh Big Picture
@@ -238,7 +247,7 @@ are separate outstanding checks.
 ## Remaining steps
 
 1. Verify phone presentation and input after the compatibility dialog is dismissed.
-2. Sign in to Steam and test Proton/Windows games.
+2. Fix Steam's black phone output, then sign in and test Proton/Windows games.
 3. Fix Steam's Zink UI context and rebuild the audio prebuilts with 16 KB alignment.
 4. Improve the current SHM presentation to dma-buf sharing and measure performance.
 
