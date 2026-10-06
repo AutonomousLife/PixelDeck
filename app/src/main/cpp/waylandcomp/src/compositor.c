@@ -754,6 +754,7 @@ static int64_t g_hud_last_ns;
 static int g_hud_fresh;
 extern void droiddeck_on_game_surface(const char *window, const char *gpu); /* window NULL = gone */
 extern void droiddeck_on_game_frame(void);
+extern void droiddeck_on_display_frame(void);
 /* The program behind that window: its Linux pid (the Wayland client's credentials) and executable name
  * ("" when /proc gave none) - the app arms its CPU affinity on it (X11 does that from window events). */
 extern void droiddeck_on_game_program(int pid, const char *program);
@@ -2192,6 +2193,8 @@ static void render_scene(void) {
     if (rendered) {
         int64_t t = now_ns();
         g_stat_frames++;
+        /* Keep copied display frames separate from game timing and frame generation. */
+        if (!g_hud_surface) droiddeck_on_display_frame();
         /* A surface outside the scene (role-less, not placed yet, a hidden helper window such
          * as wined3d's device window) was not shown, so its feedback is discarded rather than
          * left pending: a FIFO present waits on it, and a client blocked there never commits

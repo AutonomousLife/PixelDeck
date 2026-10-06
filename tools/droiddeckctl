@@ -5,11 +5,14 @@ from __future__ import annotations
 
 import argparse
 import base64
+import io
 import json
 import os
 import shutil
+import shlex
 import subprocess
 import sys
+import tarfile
 import time
 from pathlib import Path
 
@@ -254,6 +257,19 @@ def execute(args: argparse.Namespace, adb: str, serial: str) -> dict:
             raise ControlError("No session artifact directory is available", "NO_SESSION_LOGS")
         destination = Path(args.destination or session["id"]).expanduser().resolve()
         result = run_adb(adb, serial, "pull", remote_dir, str(destination), timeout=120)
+        if result.returncode != 0 and remote_dir.startswith((
+            f"/data/user/0/{PACKAGE}/files/logs/", f"/data/data/{PACKAGE}/files/logs/"
+        )):
+            # Debug builds keep session artifacts private; adb pull cannot read them.
+            result = run_adb(adb, serial, "exec-out",
+                f"run-as {shlex.quote(PACKAGE)} tar -C {shlex.quote(remote_dir)} -cf - .", timeout=120)
+            if result.returncode == 0:
+                try:
+                    destination.mkdir(parents=True, exist_ok=True)
+                    with tarfile.open(fileobj=io.BytesIO(result.stdout)) as archive:
+                        archive.extractall(destination, filter="data")
+                except (OSError, tarfile.TarError) as exc:
+                    raise ControlError(str(exc), "LOG_PULL_FAILED") from exc
         if result.returncode != 0:
             detail = (result.stderr or result.stdout).decode(errors="replace").strip()
             raise ControlError(detail or "adb pull failed", "LOG_PULL_FAILED")

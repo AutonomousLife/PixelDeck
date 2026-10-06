@@ -228,7 +228,7 @@ public final class TurnipDriver {
         }
         String id = uniqueId(LinuxVulkanDriverManager.sanitizeId(name));
         File dir = new File(contentDir, id);
-        if (!tmpDir.renameTo(dir)) throw new IOException("cannot move into " + dir);
+        FileUtils.moveDirectory(tmpDir, dir);
         Log.i(TAG, "imported AdrenoTools driver " + id + " (" + (meta != null ? meta.optString("libraryName", "") : "?") + ") -> " + dir);
         return id;
     }

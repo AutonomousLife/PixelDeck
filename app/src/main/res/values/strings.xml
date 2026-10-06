@@ -560,6 +560,8 @@
     <string name="setup_system_check">System check</string>
     <string name="setup_gpu_supported">Device supported</string>
     <string name="setup_gpu_untested">Untested GPU</string>
+    <string name="setup_gpu_experimental">Experimental GPU</string>
+    <string name="hud_display_fps">Display %1$.0f fps</string>
     <string name="setup_gpu_unsupported">GPU not supported</string>
     <string name="setup_gpu_detail">%1$s · %2$s</string>
     <string name="setup_gpu_untested_detail">%1$s: %2$s</string>

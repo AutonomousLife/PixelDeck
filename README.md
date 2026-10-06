@@ -3,9 +3,11 @@
 PixelDeck is a Tensor-device port of [DroidDeck](https://github.com/Droid-Deck/DroidDeck).
 On a locked Pixel 7 Pro running Android 17, stock GLES and Vulkan hardware-buffer
 import/render/readback/presentation have passed. Linux PanVK GPU readback and
-a 600-frame cube test inside patched Gamescope have also passed. Steam has
-rendered its Big Picture sign-in screen using software OpenGL; games are
-untested. The upstream requirements below do not yet
+a 600-frame cube test inside patched Gamescope have also passed. Native ARM64
+vkQuake with free LibreQuake data completed a Vulkan benchmark at 42.1 engine FPS
+at 1280×720; the current copied display path showed about 32–34 FPS. Steam has
+rendered its Big Picture sign-in screen using software OpenGL. Steam login and
+Proton/Windows games remain untested. The upstream requirements below do not yet
 describe Pixel support. See [bring-up results](docs/development/pixel7pro-bringup.md).
 
 For the Windows development loop, install JDK 21, Python 3.14+, GitHub CLI,
@@ -28,6 +30,12 @@ Gamescope's SDL backend and software OpenGL, including OpenGL games;
 Vulkan remains on the Mali GPU. The helper refuses changed Pixel native sources
 until their CI artifacts and pins are rebuilt. Other Linux native components
 still come from the pinned upstream APK.
+
+Steam requires Developer options → **Restrict child processes** to be off.
+The connected test phone uses `settings_enable_monitor_phantom_procs=false`;
+the default process monitor killed Steam sessions. Six bundled audio libraries
+still need a 16 KB alignment rebuild, so Android displays a compatibility dialog
+that must be dismissed on the phone. This is an experimental debug build.
 
 The original DroidDeck README follows, with its upstream credits and instructions.
 

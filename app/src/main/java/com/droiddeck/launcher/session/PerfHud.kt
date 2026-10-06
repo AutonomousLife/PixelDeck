@@ -32,6 +32,7 @@ class PerfHud(context: Context) {
 
     private val context = context.applicationContext
     private val frames = AtomicInteger()
+    private val displayFrames = AtomicInteger()
     private var lastTick = 0L
     private var running = false
     private val handler = Handler(Looper.getMainLooper())
@@ -55,6 +56,7 @@ class PerfHud(context: Context) {
             }
         }
         override fun onGameFrame() { frames.incrementAndGet() }
+        override fun onDisplayFrame() { displayFrames.incrementAndGet() }
     }
 
     private val tick = object : Runnable {
@@ -63,7 +65,11 @@ class PerfHud(context: Context) {
             val now = SystemClock.elapsedRealtime()
             val dt = (now - lastTick).coerceAtLeast(1L) / 1000f
             lastTick = now
-            text = line(frames.getAndSet(0) / dt)
+            val gameCount = frames.getAndSet(0)
+            val displayCount = displayFrames.getAndSet(0)
+            text = if (gameCount == 0 && FrameGen.mode(context).engine == FrameGen.ENGINE_OFF)
+                context.getString(R.string.hud_display_fps, displayCount / dt)
+            else line(gameCount / dt)
             handler.postDelayed(this, 1000)
         }
     }
@@ -78,6 +84,7 @@ class PerfHud(context: Context) {
         running = true
         lastTick = SystemClock.elapsedRealtime()
         frames.set(0)
+        displayFrames.set(0)
         WaylandCompositor.setGameListener(listener)
         handler.post(tick)
     }

@@ -178,7 +178,14 @@ while updating Steam. Raising the cap temporarily separated that failure from
 the graphics issue. After restoring the original unset cap, a fresh Big Picture
 session reached `READY` again, but Android subsequently killed its proot tracer
 while trimming phantom processes. The default process cap is therefore not a
-stable Steam setup. It has been restored; no process-monitor bypass is left on.
+stable Steam setup. The temporary cap was restored. To make normal Play work,
+the project's existing Developer options prerequisite was then applied:
+`adb shell settings put global settings_enable_monitor_phantom_procs false`.
+This disables **Restrict child processes** and remains enabled for this working
+test setup. Its original value was unset; restore that with
+`adb shell settings delete global settings_enable_monitor_phantom_procs`.
+The original cap remains unset. This change affects child-process monitoring
+across the device, not just PixelDeck.
 The app now applies the tested SDL/PanVK/software-OpenGL defaults when an
 explicit PanVK import is selected; private environment overrides are unnecessary.
 These defaults apply to all OpenGL child applications, including OpenGL games
@@ -201,10 +208,32 @@ The newly compiled Wayland/device-info/main-hook/termux libraries already have
 Both `max-page-size` and `common-page-size` linker flags now specify 16384
 for native Android builds. This does not realign prebuilt libraries.
 
+### Real Vulkan game
+
+The pinned native ARM64 vkQuake 1.35.0 build with LibreQuake v0.09-beta lite data
+ran through the same patched Gamescope/PanVK path at 1280×720. Its `demo1`
+timedemo completed **4,527 frames in 107.5 seconds, 42.1 engine FPS**. Compositor
+samples during the demo showed about **32–34 display FPS**. A GPU-readback PNG
+verified a correctly textured 3D level and characters. The current transport
+still copies GPU-rendered frames through SHM. The HUD now labels that counter
+**Display fps**, keeping it separate from game timing and frame generation.
+
+The engine selected PulseAudio, and the Android AAudio sink accepted its stereo
+44.1 kHz stream. This verifies audio setup; audible quality still needs a human
+check. Android's compatibility dialog obscures part of the phone presentation.
+The phone must dismiss it before interaction can be checked.
+
+The engine was built with optimization and debug shaders on Debian 13; this is
+an early benchmark, not a final performance result. The reproducible build and
+source/licenses are in `.github/workflows/pixel-vkquake.yml` and
+[the successful game build](https://github.com/AutonomousLife/PixelDeck/actions/runs/37469820829).
+This proves a native Vulkan game; Steam login and Proton/Windows compatibility
+are separate outstanding checks.
+
 ## Remaining steps
 
-1. Verify the cube visibly after the Android compatibility dialog is dismissed.
-2. Run a real Vulkan game; Steam login and Proton/Windows games remain untested.
+1. Verify phone presentation and input after the compatibility dialog is dismissed.
+2. Sign in to Steam and test Proton/Windows games.
 3. Fix Steam's Zink UI context and rebuild the audio prebuilts with 16 KB alignment.
 4. Improve the current SHM presentation to dma-buf sharing and measure performance.
 

@@ -243,7 +243,7 @@ public class LinuxVulkanDriverManager {
             meta.put("importedAt", System.currentTimeMillis());
             if (!FileUtils.writeString(new File(tmpDir, META_NAME), meta.toString(2))) throw new IOException("cannot write meta.json");
 
-            if (!tmpDir.renameTo(dir)) throw new IOException("cannot move into " + dir);
+            FileUtils.moveDirectory(tmpDir, dir);
             Log.i(TAG, "imported Linux Vulkan driver " + id + " (" + soName + ", minGlibc=" + minGlibc + ") -> " + dir);
             return id;
         } catch (org.json.JSONException e) {

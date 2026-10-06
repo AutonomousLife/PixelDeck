@@ -32,6 +32,10 @@ class DriverPairsTest {
         assertEquals(GpuInfo.Support.UNTESTED, gpu(610).support)
         assertEquals(GpuInfo.Support.UNTESTED, gpu(720).support)
         assertEquals(GpuInfo.Support.UNSUPPORTED, gpu(0, adreno = false).support)
+        val pixel = gpu(0, adreno = false).copy(experimentalPixel7Pro = true)
+        assertEquals(GpuInfo.Support.UNTESTED, pixel.support)
+        assertTrue(pixel.supportText.contains("PanVK"))
+        assertNull(DriverPairs.recommendedKey(pixel, emptyList()))
     }
 
     @Test
