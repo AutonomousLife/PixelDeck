@@ -759,5 +759,16 @@ session 21 also retained its content while idle. Source review found a separate
 Gamescope ownership bug: destroying an older protocol swapchain can erase a
 newer swapchain's content override when both share a Wayland surface. Patch 0117
 checks ownership before clearing the dying resource's pointers. The exact pinned
-3.16.29 source applies without fuzz and the lifecycle regression check passes;
-native build and phone validation are pending.
+3.16.29 source applies without fuzz and the lifecycle regression check passes.
+The initial native build caught private-member access; the revised public API
+returns ownership before clearing matching pointers. Actual changed C++ bodies
+now compile in the regression check, which also rejects the original invalid
+private access. Native CI 37611054218 / artifact 11478007257 passed.
+
+The combined APK was built, its session scripts verified, and installed. The
+selected driver was upgraded to the byte-identical tested cached library with
+the prior library and metadata backed up. The diagnostic environment override
+was removed. Session 22 confirmed the selected ICD and automatic cached-readback
+flag, rendered correct Steam pixels, and measured 45.8 displayed FPS, p95 41.6 ms,
+max 50.0 ms. This is a successful deployment and smoke check; stable 60 FPS and
+the ownership bug's causal link to session 19's black output remain unproven.
