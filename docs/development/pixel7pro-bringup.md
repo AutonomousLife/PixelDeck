@@ -591,3 +591,10 @@ GPU fatal/timeout log. Driver import unit tests and APK build passed.
 With the address fix installed, the kernel cache-sync override measured 33.5 FPS
 (p95 50.1 ms); it did not improve the normal path and was removed. Android
 thermal status and CPU/GPU cooling-device throttle levels were zero.
+
+A 15-second Chromium trace on the fixed driver recorded 491 GPU buffer swaps:
+`NativeViewGLSurfaceEGL:RealSwapBuffers` averaged 19.29 ms (max 69.56 ms);
+renderer BeginMainFrame averaged 12.71 ms. Nested tracing totals overlap and
+are not additive. A recognized `vblank_mode=0` override measured 34.7 displayed
+FPS (p95 50.1 ms), so changing that swap-interval setting did not improve
+performance; the override was removed. Stable 60 FPS remains unverified.
