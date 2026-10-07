@@ -14,7 +14,7 @@ jobs:
     env:
       BUILD_DIR: build-pixel
       LIBDIR: lib
-      MESA_COMMIT: 10acbfc4d9780c38d3896c95df2693ca88d8b28f
+      MESA_COMMIT: 5aa0bc44652a6a0d597c7ce63bb6b3aca2de8b45
     steps:
       - uses: actions/checkout@v4
       - name: Install build dependencies
@@ -25,7 +25,9 @@ jobs:
             --no-install-recommends \
             bison \
             build-essential \
+            bindgen \
             ca-certificates \
+            cargo \
             cmake \
             dpkg-dev \
             flex \
@@ -59,6 +61,7 @@ jobs:
             python3-pip \
             python3-setuptools \
             python3-yaml \
+            rustc \
             spirv-tools \
             zlib1g-dev
           LLVM_MAJOR="$(llvm-config --version | cut -d. -f1)"
@@ -111,6 +114,7 @@ jobs:
             -Dmesa-clc=enabled \
             -Dopengl=false \
             -Dpanfrost-kmds=kbase,panthor \
+            -Dpanfrost-rust=true \
             -Dplatforms=x11,wayland \
             -Dprecomp-compiler=enabled \
             -Dshared-glapi=disabled \
