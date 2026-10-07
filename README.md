@@ -12,7 +12,7 @@ shows a moving Vulkan demo through ARM64 Proton with built-in DXGI for display
 discovery. A Windows Direct3D 9 demo also advances through its 3D level using
 WineD3D and hardware Zink. Its Direct3D 11 backend also renders a moving demo
 at feature level 10_1; this does not establish feature level 11_0 or D3D12 support.
-Steam login and general game compatibility remain
+Steam login has succeeded; Steam game launches and general game compatibility remain
 untested. The upstream requirements below do not yet
 describe Pixel support. See [bring-up results](docs/development/pixel7pro-bringup.md).
 Reused copied buffers now refresh each frame, and the Vulkan game demo visibly

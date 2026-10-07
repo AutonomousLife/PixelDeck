@@ -4,7 +4,7 @@ Current status: **Steam's sign-in screen, native Vulkan game rendering, Windows
 Vulkan and one game's Direct3D 9 / Direct3D 11 (feature level 10_1) renderers
 are verified on the Pixel 7 Pro**. The
 device-tested `19a5ac8` build automatically selects the tested WineD3D/Zink fallback
-for PanVK game launches. Steam login, player input, audible quality and general
+for PanVK game launches. Steam login has succeeded. Steam game launches, player input, audible quality and general
 D3D11/12 compatibility still need verification. The sections below record the
 bring-up sequence, including earlier failures and the fixes that supersede them.
 
@@ -201,6 +201,13 @@ CPU-copy transport, not a game-performance estimate. Gamescope binary SHA-256:
 `569e396794334b2f51da1c69446b252df07b5097e162f88e3a7cece845b92b98`.
 
 ### Steam sign-in screen
+
+On the installed `eb8c118` build, the user subsequently signed in directly on
+the phone. Steam's connection log records a successful `OK` logon response and
+completed processing at 19:55 on 2026-10-06. A phone capture shows the Steam
+welcome overlay with library artwork. Account identifiers and login details are
+not included here. The installed-game manifest check finds only the Proton
+runtime, so an actual Steam game installation and launch remain unverified.
 
 The native ARM64 Steam client downloaded and installed. With PanVK selected,
 the initial Zink OpenGL path repeatedly failed to create Steam's UI context.
@@ -495,7 +502,7 @@ the held-input/background/resume behavior still needs a physical-input check.
    Wayland cube visibly rotates at 60 display FPS; vkQuake now shows its 3D demo
    through Gamescope. Disabling the Gamescope WSI layer or using kernel cache
    synchronization did not fix the old memoization bug; those overrides were reverted.
-2. Sign in to the now-visible Steam client and test Steam game launches and
+2. With Steam now signed in, install a library game and test Steam game launches and
    Direct3D translation. One standalone Windows Vulkan demo is verified above.
 3. Fix Steam's Zink UI context and verify audible quality of the rebuilt audio stack.
 4. Improve the current SHM presentation to dma-buf sharing and measure performance.
