@@ -190,6 +190,7 @@ jobs:
             -o "$D/libfakeinput.so" app/src/main/cpp/fakeinput_steam.cpp -ldl
           aarch64-linux-gnu-strip --strip-unneeded "$D/libfakeinput.so"
           aarch64-linux-gnu-gcc -shared -fPIC -O2 -Wall -pthread \
+            -Wl,--version-script=tools/linuxfs/preload/session.map \
             -o "$D/libblsession.so" tools/linuxfs/preload/*.c -ldl
           aarch64-linux-gnu-strip --strip-unneeded "$D/libblsession.so"
           aarch64-linux-gnu-gcc -shared -fPIC -O2 -Wall -pthread \

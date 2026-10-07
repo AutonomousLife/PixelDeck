@@ -94,6 +94,12 @@ class DriverBundleTest {
         )), "Pixel PanVK")
         assertTrue(manager.isInstalled(id))
         assertTrue(manager.isPanvk(id))
+        assertFalse(manager.supportsSteamGl(id))
+        val fixed = manager.installDriver(zip(mapOf(
+            "libvulkan_panfrost_kbase.so" to library("libc.so.6"),
+            "meta.json" to "{\"pixelSteamGl33\":true}".toByteArray(),
+        )), "Pixel PanVK fixed")
+        assertTrue(manager.supportsSteamGl(fixed))
         SessionPrefs.setLinuxDriver(context, id)
         assertFalse(SessionPrefs.mangoapp(context))
         SessionPrefs.setMangoapp(context, true)

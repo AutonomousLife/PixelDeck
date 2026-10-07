@@ -8,6 +8,7 @@ for arch in x86_64 i386; do
   esac
   mkdir -p "$out/$arch"
   gcc $bits -shared -fPIC -O2 -Wall -pthread \
+    -Wl,--version-script=tools/linuxfs/preload/session.map \
     -o "$out/$arch/libblsession.so" tools/linuxfs/preload/*.c -ldl
   g++ $bits -shared -fPIC -O2 -Wall -Wno-attributes -Wno-nonnull-compare \
     -pthread -std=c++17 -static-libstdc++ -static-libgcc -Wl,--exclude-libs,ALL \

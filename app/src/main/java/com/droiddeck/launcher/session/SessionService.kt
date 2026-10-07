@@ -569,9 +569,11 @@ class SessionService : Service() {
             guest.add("BL_PANVK=1")
             guest.add("BL_GAMESCOPE_BACKEND=sdl")
             guest.add("PANVK_KBASE_DVFS=none")
-            if (steamHere) {
-                // ponytail: software OpenGL until PanVK/Zink creates Steam's windowed GL context.
-                // Proton games restore Zink separately; standalone Linux programs keep it above.
+            if (steamHere && LinuxVulkanDriverManager(this).supportsSteamGl(linuxDriverId)) {
+                guest.add("BL_PANVK_STEAM_GL=1")
+                guest.add("LIBGL_ALWAYS_SOFTWARE=0")
+            } else if (steamHere) {
+                // Older PanVK imports still fault on Steam's CSF helper CALL.
                 guest.add("MESA_LOADER_DRIVER_OVERRIDE=swrast")
                 guest.add("GALLIUM_DRIVER=llvmpipe")
                 guest.add("LIBGL_ALWAYS_SOFTWARE=1")

@@ -35,7 +35,7 @@ def source_digest(component):
         if not path.is_file():
             continue
         if component == "runtime":
-            selected = path.suffix in (".c", ".h") and "tests" not in path.parts
+            selected = path.suffix in (".c", ".h", ".map") and "tests" not in path.parts
         elif component == "audio":
             selected = path.suffix in (".c", ".h", ".sh", ".py")
         else:
