@@ -734,3 +734,30 @@ does not support host-memory import, so its CPU X11 path uses xcb_put_image
 socket payloads instead. An opt-in staging-to-SysV-SHM copy can avoid those
 payloads without claiming host-memory import or removing GPU completion/cache
 waits; it requires a server reply after the SHM request before reusing pixels.
+
+### X11 SHM transport and swapchain ownership (October 7)
+
+Native CI 37606951483 / artifact 11474664576 compiled the default-off
+`PANVK_KBASE_SHM_COPY=1` path. Checked attach, padded-stride limits, GPU fence /
+invalidate ordering, and a geometry reply after ShmPutImage gate image reuse.
+The candidate rendered correct Steam pixels. Scrolling measured 45.5 displayed
+FPS enabled, then 42.1 and 43.0 disabled on the same binary with cached readback
+retained. The result does not establish a substantial SHM transport improvement.
+The phone reported thermal status zero during these comparisons.
+
+Importantly, Gamescope's `flip: true` surfaces use Mesa Wayland WSI. The observed
+new X11 SHM allocations were only 32x32 fallback surfaces, so X11 socket payloads
+are not established as the main-frame bottleneck. The common cached-readback
+patch also covers Wayland's CPU staging and remains the proven improvement.
+New PanVK bundle metadata `pixelCachedWsi` lets the app enable it for Steam
+without a diagnostic environment file; older bundles and Turnip remain opt-out.
+Eight driver import/compatibility tests passed.
+
+Session 19's black content screenshot invalidates its otherwise 42.3 FPS scroll
+sample. Fresh sessions 20 and 21 showed correct pixels before and after scrolling;
+session 21 also retained its content while idle. Source review found a separate
+Gamescope ownership bug: destroying an older protocol swapchain can erase a
+newer swapchain's content override when both share a Wayland surface. Patch 0117
+checks ownership before clearing the dying resource's pointers. The exact pinned
+3.16.29 source applies without fuzz and the lifecycle regression check passes;
+native build and phone validation are pending.

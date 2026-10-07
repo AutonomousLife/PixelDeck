@@ -124,6 +124,12 @@ public class LinuxVulkanDriverManager {
         return isPanvk(id) && m != null && m.optBoolean("pixelSteamGl33", false);
     }
 
+    /** Opt-in for builds with fence-ordered cached CPU WSI readback. */
+    public boolean supportsCachedWsi(String id) {
+        JSONObject m = readMeta(id);
+        return isPanvk(id) && m != null && m.optBoolean("pixelCachedWsi", false);
+    }
+
     /** The glibc the driver asks for, as its zip recorded it ("" when the zip did not say). */
     public String getMinGlibc(String id) {
         JSONObject m = readMeta(id);
@@ -248,6 +254,8 @@ public class LinuxVulkanDriverManager {
             meta.put("sourceLibraryName", soName);
             meta.put("pixelSteamGl33", soName.startsWith("libvulkan_panfrost")
                     && zipMeta != null && zipMeta.optBoolean("pixelSteamGl33", false));
+            meta.put("pixelCachedWsi", soName.startsWith("libvulkan_panfrost")
+                    && zipMeta != null && zipMeta.optBoolean("pixelCachedWsi", false));
             meta.put("importedAt", System.currentTimeMillis());
             if (!FileUtils.writeString(new File(tmpDir, META_NAME), meta.toString(2))) throw new IOException("cannot write meta.json");
 

@@ -578,6 +578,9 @@ class SessionService : Service() {
                 guest.add("GALLIUM_DRIVER=llvmpipe")
                 guest.add("LIBGL_ALWAYS_SOFTWARE=1")
             }
+            if (steamHere && LinuxVulkanDriverManager(this).supportsCachedWsi(linuxDriverId)) {
+                guest.add("PANVK_KBASE_CACHED_WSI=1")
+            }
         }
         LinuxVulkanDriver.resolveIcdPath(this, linuxDriverId)
             ?.let { guest.add(LinuxVulkanDriver.ENV + "=" + it) }
