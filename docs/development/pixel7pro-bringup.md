@@ -697,3 +697,40 @@ loss was found in the inspected helper log. Disabling the flag on the same
 binary measured 33.2 FPS, p95 50.0 ms, max 100.0 ms. This controlled comparison
 supports a real gain. The enabled diagnostic is restored for further work;
 production driver selection remains unchanged. Smooth high FPS remains unproven.
+
+### Actual Android cadence and remaining X11 transport (October 7)
+
+The cached-driver trace reduced Chromium's real EGL swap duration from about
+19.3 to 13.8 ms average; renderer BeginMainFrame remained about 11.8 ms.
+Combining cached readback with Gamescope-only DMA output measured 43.7 FPS,
+with 432 native DMA frames and zero SHM redraws in one interval. It provided
+no additional gain, so the DMA preload was removed.
+
+SurfaceFlinger showed an actual 60 Hz app override and active display mode,
+despite the session reporting its requested 120 Hz. CompositorHost voted
+on its optional display layers but never on the output Surface itself.
+The new API-guarded Surface.setFrameRate request covers initial attachment
+and reattachment, preserves the user's frame cap, and was accepted: the
+app override, render rate, and active mode all became 120 Hz. APK compilation
+and an independent API/lifetime review passed. Scrolling measured 45.6 FPS
+then 40.1 FPS, versus a fresh 40.6 FPS baseline; p95 gaps were about 41.7 ms.
+This fixes the missing cadence request but does not establish smooth 60 FPS.
+
+Direct ANGLE Vulkan combined with cached readback and the cadence fix measured
+39.3 FPS. SystemInfo confirmed ANGLE_VULKAN; it was reverted. Mailbox mode on
+the restored OpenGL path measured 42.1 FPS and provided no clear improvement.
+
+A rootful Xwayland 24.1.13 experiment removed Gamescope's extra rendering stage.
+It started through the native compositor's xdg_shell support, but Steam remained
+black: its own window compositor requested GLSL 4.30 on the real GL 3.3 driver.
+Captured vertex and fragment shaders used only basic GLSL 3.30-compatible
+operations. A temporary shader compilation diagnostic passed that first hurdle,
+but Steam then lost its X11 connection and exited. No displayed-FPS result from
+that experiment is valid. The launcher and diagnostic preload were removed.
+
+Further source inspection corrects an earlier transport assumption: Mesa's
+X11 Vulkan WSI enables MIT-SHM only with EXT_external_memory_host. This PanVK
+does not support host-memory import, so its CPU X11 path uses xcb_put_image
+socket payloads instead. An opt-in staging-to-SysV-SHM copy can avoid those
+payloads without claiming host-memory import or removing GPU completion/cache
+waits; it requires a server reply after the SHM request before reusing pixels.
