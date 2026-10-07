@@ -1,0 +1,205 @@
+--- a/meson.build
++++ b/meson.build
+@@ -6,7 +6,7 @@
+   default_options: [
+     'cpp_std=c++20',
+     'warning_level=2',
+-    'force_fallback_for=libliftoff,vkroots',
++    'force_fallback_for=libliftoff,vkroots,wlroots',
+   ],
+ )
+ 
+--- a/src/wlserver.cpp
++++ b/src/wlserver.cpp
+@@ -9,6 +9,7 @@
+ #include <poll.h>
+ #include <fcntl.h>
+ #include <xf86drm.h>
++#include <drm_fourcc.h>
+ #include <sys/eventfd.h>
+ 
+ #include <linux/input-event-codes.h>
+@@ -39,6 +40,7 @@
+ #include <wlr/types/wlr_seat.h>
+ #include <wlr/types/wlr_touch.h>
+ #include <wlr/types/wlr_drm.h>
++#include <wlr/types/wlr_linux_dmabuf_v1.h>
+ #include <wlr/util/log.h>
+ #include <wlr/xwayland/server.h>
+ #include <wlr/types/wlr_xdg_shell.h>
+@@ -57,6 +59,7 @@
+ #include "presentation-time-protocol.h"
+ 
+ #include "wlserver.hpp"
++#include "rendervulkan.hpp"
+ #include "hdmi.h"
+ #include "main.hpp"
+ #include "steamcompmgr.hpp"
+@@ -2164,6 +2167,90 @@
+ 	cv_xkb_layout = std::string{ pszLayout };
+ }
+ 
++static bool kbase_dmabuf_importable_format( uint32_t drm_format )
++{
++	const VkFormat formats[] = { DRMFormatToVulkan( drm_format, false ), DRMFormatToVulkan( drm_format, true ) };
++	VkImageFormatListCreateInfo format_list = {
++		.sType = VK_STRUCTURE_TYPE_IMAGE_FORMAT_LIST_CREATE_INFO,
++		.viewFormatCount = 2,
++		.pViewFormats = formats,
++	};
++	VkPhysicalDeviceImageDrmFormatModifierInfoEXT modifier = {
++		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_DRM_FORMAT_MODIFIER_INFO_EXT,
++		.pNext = formats[0] != formats[1] ? &format_list : nullptr,
++		.drmFormatModifier = DRM_FORMAT_MOD_LINEAR,
++		.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
++	};
++	VkPhysicalDeviceExternalImageFormatInfo external = {
++		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_IMAGE_FORMAT_INFO,
++		.pNext = &modifier,
++		.handleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF_BIT_EXT,
++	};
++	VkPhysicalDeviceImageFormatInfo2 info = {
++		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_FORMAT_INFO_2,
++		.pNext = &external,
++		.format = formats[0],
++		.type = VK_IMAGE_TYPE_2D,
++		.tiling = VK_IMAGE_TILING_DRM_FORMAT_MODIFIER_EXT,
++		.usage = VK_IMAGE_USAGE_SAMPLED_BIT,
++		.flags = formats[0] != formats[1] ? VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT : 0u,
++	};
++	VkExternalImageFormatProperties external_props = { .sType = VK_STRUCTURE_TYPE_EXTERNAL_IMAGE_FORMAT_PROPERTIES };
++	VkImageFormatProperties2 props = { .sType = VK_STRUCTURE_TYPE_IMAGE_FORMAT_PROPERTIES_2, .pNext = &external_props };
++	return g_device.vk.GetPhysicalDeviceImageFormatProperties2( g_device.physDev(), &info, &props ) == VK_SUCCESS &&
++		( external_props.externalMemoryProperties.externalMemoryFeatures & VK_EXTERNAL_MEMORY_FEATURE_IMPORTABLE_BIT );
++}
++
++static bool kbase_check_dmabuf( struct wlr_dmabuf_attributes *attribs, void * )
++{
++	if ( attribs->n_planes != 1 || attribs->modifier != DRM_FORMAT_MOD_LINEAR )
++		return false;
++	// Validate the actual fd, dimensions and stride with the same importer used on commit.
++	return bool( vulkan_create_texture_from_dmabuf( attribs, nullptr ) );
++}
++
++static void wlserver_init_kbase_dmabuf( void )
++{
++	const char *option = getenv( "PANVK_KBASE_WAYLAND_DMABUF" );
++	if ( !option || strcmp( option, "1" ) || g_device.drmRenderFd() >= 0 || !g_device.supportsModifiers() )
++		return;
++	VkPhysicalDeviceDriverProperties driver = { .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES };
++	VkPhysicalDeviceProperties2 props = { .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2, .pNext = &driver };
++	g_device.vk.GetPhysicalDeviceProperties2( g_device.physDev(), &props );
++	if ( driver.driverID != VK_DRIVER_ID_MESA_PANVK )
++		return;
++
++	const auto *sampled = wlr_renderer_get_texture_formats( wlserver.wlr.renderer, WLR_BUFFER_CAP_DMABUF );
++	if ( !sampled )
++		return;
++	struct wlr_linux_dmabuf_feedback_v1 feedback = {};
++	auto *tranche = wlr_linux_dmabuf_feedback_add_tranche( &feedback );
++	if ( !tranche )
++		return;
++	constexpr uint32_t rgb_formats[] = { DRM_FORMAT_ARGB8888, DRM_FORMAT_XRGB8888, DRM_FORMAT_ABGR8888, DRM_FORMAT_XBGR8888 };
++	bool valid = true;
++	for ( uint32_t format : rgb_formats )
++	{
++		if ( wlr_drm_format_set_has( sampled, format, DRM_FORMAT_MOD_LINEAR ) && kbase_dmabuf_importable_format( format ) &&
++			 !wlr_drm_format_set_add( &tranche->formats, format, DRM_FORMAT_MOD_LINEAR ) )
++		{
++			valid = false;
++			break;
++		}
++	}
++	// Version 3 has format/modifier events and no DRM-device feedback requests.
++	// Keep device ids zero: kbase is not a DRM device.
++	auto *dmabuf = valid && tranche->formats.len ? wlr_linux_dmabuf_v1_create( wlserver.display, 3, &feedback ) : nullptr;
++	wlr_linux_dmabuf_feedback_v1_finish( &feedback );
++	if ( dmabuf )
++	{
++		wlr_linux_dmabuf_v1_set_check_dmabuf_callback( dmabuf, kbase_check_dmabuf, nullptr );
++		wl_log.infof( "kbase: linux-dmabuf v3 enabled for importable linear RGB formats" );
++	}
++	else
++		wl_log.warnf( "kbase: no usable linux-dmabuf v3 formats; retaining SHM" );
++}
++
+ bool wlserver_init( void ) {
+ 	assert( wlserver.display != nullptr );
+ 
+@@ -2208,6 +2295,7 @@
+ 	wlserver.wlr.renderer = vulkan_renderer_create();
+ 
+ 	wlr_renderer_init_wl_display(wlserver.wlr.renderer, wlserver.display);
++	wlserver_init_kbase_dmabuf();
+ 
+ 	wlserver.wlr.compositor = wlr_compositor_create(wlserver.display, 5, wlserver.wlr.renderer);
+ 
+--- a/subprojects/wlroots/types/wlr_linux_dmabuf_v1.c
++++ b/subprojects/wlroots/types/wlr_linux_dmabuf_v1.c
+@@ -2,6 +2,7 @@
+ #include <drm_fourcc.h>
+ #include <fcntl.h>
+ #include <stdlib.h>
++#include <string.h>
+ #include <sys/mman.h>
+ #include <unistd.h>
+ #include <wlr/backend.h>
+@@ -891,29 +892,38 @@
+ 		return false;
+ 	}
+ 
+-	drmDevice *device = NULL;
+-	if (drmGetDeviceFromDevId(feedback->main_device, 0, &device) != 0) {
+-		wlr_log_errno(WLR_ERROR, "drmGetDeviceFromDevId failed");
+-		goto error_compiled;
+-	}
+-
++	const char *option = getenv("PANVK_KBASE_WAYLAND_DMABUF");
++	const bool no_drm_v3 = wl_global_get_version(linux_dmabuf->global) == 3 &&
++		feedback->main_device == 0 && option && strcmp(option, "1") == 0;
+ 	int main_device_fd = -1;
+-	if (device->available_nodes & (1 << DRM_NODE_RENDER)) {
+-		const char *name = device->nodes[DRM_NODE_RENDER];
+-		main_device_fd = open(name, O_RDWR | O_CLOEXEC);
+-		drmFreeDevice(&device);
+-		if (main_device_fd < 0) {
+-			wlr_log_errno(WLR_ERROR, "Failed to open DRM device %s", name);
++	/* kbase v3 sends formats/modifiers only. Never expose a fake DRM device in
++	 * v4 feedback, or skip DRM checks for ordinary compositors/devices.
++	 */
++	if (!no_drm_v3) {
++		drmDevice *device = NULL;
++		if (drmGetDeviceFromDevId(feedback->main_device, 0, &device) != 0) {
++			wlr_log_errno(WLR_ERROR, "drmGetDeviceFromDevId failed");
+ 			goto error_compiled;
+ 		}
+-	} else {
+-		// Likely a split display/render setup. Unfortunately we have no way to
+-		// get back the proper render node used by the renderer under-the-hood.
+-		// TODO: drop once mesa!24825 is widespread
+-		assert(device->available_nodes & (1 << DRM_NODE_PRIMARY));
+-		wlr_log(WLR_DEBUG, "DRM device %s has no render node, "
+-			"skipping DMA-BUF import checks", device->nodes[DRM_NODE_PRIMARY]);
+-		drmFreeDevice(&device);
++
++		if (device->available_nodes & (1 << DRM_NODE_RENDER)) {
++			const char *name = device->nodes[DRM_NODE_RENDER];
++			main_device_fd = open(name, O_RDWR | O_CLOEXEC);
++			drmFreeDevice(&device);
++			if (main_device_fd < 0) {
++				wlr_log_errno(WLR_ERROR, "Failed to open DRM device %s", name);
++				goto error_compiled;
++			}
++		} else {
++			// Likely a split display/render setup. Unfortunately we have no way to
++			// get back the proper render node used by the renderer under-the-hood.
++			// TODO: drop once mesa!24825 is widespread
++			assert(device->available_nodes & (1 << DRM_NODE_PRIMARY));
++			wlr_log(WLR_DEBUG, "DRM device %s has no render node, "
++				"skipping DMA-BUF import checks", device->nodes[DRM_NODE_PRIMARY]);
++			drmFreeDevice(&device);
++		}
++
+ 	}
+ 
+ 	size_t tranches_len =

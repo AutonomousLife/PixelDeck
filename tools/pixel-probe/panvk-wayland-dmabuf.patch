@@ -1,0 +1,124 @@
+--- a/src/vulkan/wsi/wsi_common.h
++++ b/src/vulkan/wsi/wsi_common.h
+@@ -192,6 +192,8 @@
+    struct {
+       /* Don't use the commit-timing protocol for pacing */
+       bool disable_timestamps;
++      /* Driver opt-in: native Wayland DMA-BUF with CPU X11 fallback. */
++      bool use_dmabuf;
+    } wayland;
+ 
+    /*
+--- a/src/vulkan/wsi/wsi_common_wayland.c
++++ b/src/vulkan/wsi/wsi_common_wayland.c
+@@ -136,6 +136,7 @@
+    struct u_vector colorspaces;
+ 
+    bool sw;
++   uint32_t deferred_shm_name;
+ 
+    dev_t main_device;
+    bool same_gpu;
+@@ -1489,10 +1490,16 @@
+ 
+    if (display->sw) {
+       if (strcmp(interface, wl_shm_interface.name) == 0) {
+-         display->wl_shm = wl_registry_bind(registry, name, &wl_shm_interface, 1);
+-         wl_shm_add_listener(display->wl_shm, &shm_listener, display);
+-      }
+-   } else {
++         if (display->wsi_wl->wsi->wayland.use_dmabuf) {
++            /* Decide after all globals: never mix SHM and native format lists. */
++            display->deferred_shm_name = name;
++         } else {
++            display->wl_shm = wl_registry_bind(registry, name, &wl_shm_interface, 1);
++            wl_shm_add_listener(display->wl_shm, &shm_listener, display);
++         }
++      }
++   }
++   if (!display->sw || display->wsi_wl->wsi->wayland.use_dmabuf) {
+       if (strcmp(interface, zwp_linux_dmabuf_v1_interface.name) == 0 && version >= 3) {
+          display->wl_dmabuf =
+             wl_registry_bind(registry, name, &zwp_linux_dmabuf_v1_interface,
+@@ -1645,6 +1652,15 @@
+ 
+    /* Round-trip to get wl_shm and zwp_linux_dmabuf_v1 globals */
+    wl_display_roundtrip_queue(display->wl_display, display->queue);
++   if (sw && wsi_wl->wsi->wayland.use_dmabuf) {
++      if (display->wl_dmabuf) {
++         display->sw = false;
++      } else if (display->deferred_shm_name) {
++         display->wl_shm = wl_registry_bind(registry, display->deferred_shm_name,
++                                           &wl_shm_interface, 1);
++         wl_shm_add_listener(display->wl_shm, &shm_listener, display);
++      }
++   }
+    if (!display->wl_dmabuf && !display->wl_shm) {
+       result = VK_ERROR_SURFACE_LOST_KHR;
+       goto fail_registry;
+@@ -3822,7 +3838,7 @@
+    struct wsi_drm_image_params drm_image_params;
+    uint32_t num_drm_modifiers = 0;
+    const uint64_t *drm_modifiers = NULL;
+-   if (wsi_device->sw) {
++   if (wsi_wl_surface->display->sw) {
+       cpu_image_params = (struct wsi_cpu_image_params) {
+          .base.image_type = WSI_IMAGE_TYPE_CPU,
+       };
+@@ -3904,6 +3920,9 @@
+    chain->extent = pCreateInfo->imageExtent;
+    chain->vk_format = pCreateInfo->imageFormat;
+    chain->buffer_type = buffer_type;
++   if (wsi_device->wayland.use_dmabuf)
++      mesa_logi("Wayland WSI: kbase %s transport (CPU X11 fallback retained)",
++                buffer_type == WSI_WL_BUFFER_NATIVE ? "DMA-BUF" : "SHM fallback");
+    if (buffer_type == WSI_WL_BUFFER_NATIVE) {
+       chain->drm_format = wl_drm_format_for_vk_format(wsi_device,
+                                                       chain->vk_format, alpha);
+--- a/src/panfrost/vulkan/panvk_wsi.c
++++ b/src/panfrost/vulkan/panvk_wsi.c
+@@ -74,6 +74,14 @@
+ #else
+       false;
+ #endif
++   const char *wayland_option = getenv("PANVK_KBASE_WAYLAND_DMABUF");
++   const bool kbase_wayland_dmabuf =
++#if defined(HAVE_PAN_KMOD_KBASE)
++      uses_kbase && wayland_option && !strcmp(wayland_option, "1") &&
++      kbase_kmod_supports_dmabuf(physical_device->kmod.dev);
++#else
++      false;
++#endif
+    VkResult result;
+ 
+    result = wsi_device_init(&physical_device->wsi_device,
+@@ -95,6 +103,19 @@
+     */
+    physical_device->wsi_device.disable_unordered_submits = uses_kbase;
+ 
++   /* Keep wsi.sw and its completion waits: X11 remains CPU presentation and
++    * kbase has no DRM implicit fence export. Only Wayland may use DMA-BUF.
++    */
++   physical_device->wsi_device.wayland.use_dmabuf =
++      kbase_wayland_dmabuf && physical_device->wsi_device.sw;
++   if (physical_device->wsi_device.wayland.use_dmabuf) {
++      physical_device->wsi_device.GetMemoryFdKHR =
++         (PFN_vkGetMemoryFdKHR)panvk_wsi_proc_addr(
++            panvk_physical_device_to_handle(physical_device), "vkGetMemoryFdKHR");
++      if (!physical_device->wsi_device.GetMemoryFdKHR)
++         physical_device->wsi_device.wayland.use_dmabuf = false;
++   }
++
+    const char *cached_wsi = getenv("PANVK_KBASE_CACHED_WSI");
+    physical_device->wsi_device.cached_cpu_readback =
+       uses_kbase && physical_device->wsi_device.sw &&
+@@ -114,7 +135,8 @@
+     * Termux:X11/Winlator private raw-FD modifier instead of DRM modifiers.
+     */
+    physical_device->wsi_device.supports_modifiers =
+-      !uses_kbase || (kbase_dmabuf && !kbase_raw_dri3);
++      !uses_kbase || kbase_wayland_dmabuf ||
++      (kbase_dmabuf && !kbase_raw_dri3);
+    physical_device->wsi_device.can_present_on_device =
+       panvk_can_present_on_device;
+ 

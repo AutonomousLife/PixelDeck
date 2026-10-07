@@ -14,7 +14,12 @@ grep -q '^DisableSandbox' /etc/pacman.conf || sed -i 's/^\[options\]/[options]\n
 # concrete mirrors ahead of it so pacman has somewhere to fall over to.
 { for m in https://ca.us.mirror.archlinuxarm.org https://fl.us.mirror.archlinuxarm.org https://de3.mirror.archlinuxarm.org https://nl.mirror.archlinuxarm.org; do echo "Server = $m/\$arch/\$repo"; done; cat /etc/pacman.d/mirrorlist; } > /etc/pacman.d/mirrorlist.new
 mv /etc/pacman.d/mirrorlist.new /etc/pacman.d/mirrorlist
-pacman -Syu --noconfirm --needed git sudo zstd binutils
+pacman -Syu --noconfirm --needed git sudo zstd binutils curl
+if [ -f tools/gamescope/patches/0118-kbase-wayland-dmabuf-v3.patch ]; then
+  # Pin the patched wlroots source instead of using an unpatched system library.
+  curl -fsSL --retry 3 https://deb.debian.org/debian/pool/main/w/wlroots/wlroots_0.20.2.orig.tar.bz2 -o wlroots-0.20.2.tar.bz2
+  echo '20c37b521dc3054b6e9627b79bdd45fc716db9ebc58bdf97e57e84d04b04610f  wlroots-0.20.2.tar.bz2' | sha256sum -c -
+fi
 # makepkg refuses root; a builder user with passwordless sudo installs the dependencies.
 id builder >/dev/null 2>&1 || useradd -m builder
 echo 'builder ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/builder
@@ -39,6 +44,10 @@ cat >> PKGBUILD <<'PREP'
 _droiddeck_prepare() {
   # Arch's own prepare() leaves the shell inside the checkout; start from a known place.
   cd \"\$srcdir/gamescope\"
+  if [ -f \"\$srcdir/0118-kbase-wayland-dmabuf-v3.patch\" ]; then
+    mkdir -p subprojects/wlroots
+    tar -xjf /work/wlroots-0.20.2.tar.bz2 --strip-components=1 -C subprojects/wlroots
+  fi
   for p in \$(ls \"\$srcdir\"/*.patch | sort); do
     echo \"applying \$(basename \"\$p\")\"
     patch -p1 --no-backup-if-mismatch < \"\$p\"
