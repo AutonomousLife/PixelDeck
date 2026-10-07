@@ -484,6 +484,36 @@ The local recording and analysis are under `build/panvk/windows-audio/`.
 This proves audio data reaches the playback sink; actual speaker volume,
 distortion, synchronization and controller interaction still need human checks.
 
+### Steam UI performance investigation
+
+A repeatable 15-second library-scroll diagnostic, measured from Android
+SurfaceFlinger presentation timestamps rather than JavaScript callbacks,
+confirmed severe UI stutter: one software-rendered run averaged 17.9 displayed
+FPS with a 133 ms 95th-percentile frame interval. Pinning the client to cores
+4–7 and limiting llvmpipe to four workers did not improve subsequent runs;
+both temporary overrides were removed. These sequential diagnostics are not a
+controlled thermal benchmark or proof of stable performance. Steam's own
+library low-performance and reduced-motion preferences were enabled and read
+back successfully.
+
+The next accelerated diagnostic lowered only Steam webhelper's exact SDL3
+4.3 core-context request to a real 3.3 context. It did not override the reported
+GL version, extensions, or feature support. EGL created the context, but the
+webhelper repeatedly restarted. Using GLX and enabling Kopper in the helper
+also created the context and reached Zink/PanVK, but the GPU queue timed out
+and Zink reported `VK_ERROR_DEVICE_LOST`; the actual Steam output was black.
+The experimental preload and environment file were removed and the software
+renderer restored. Local evidence is under
+`build/panvk/steam-context33-glx-logs/` and the scroll measurement JSON files.
+Stable 60 displayed FPS in Steam remains unverified. The accelerated failure
+now supplies a concrete GPU queue/synchronization case for driver work.
+Repeating the GLX diagnostic with `PANVK_KBASE_USER_CACHE_SYNC=0` briefly
+displayed Steam content, then reported CSF group fatal errors with exception
+`0xc1` and another `VK_ERROR_DEVICE_LOST`. The scroll diagnostic's CDP call
+timed out; its partial timestamp sample is not a valid completed benchmark.
+This override was also removed. Its logs are saved separately under
+`build/panvk/steam-context33-kernel-cache-logs/`.
+
 ## Remaining steps
 
 On the `19a5ac8` build, Steam's own `controller.txt` log identifies the
