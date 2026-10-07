@@ -564,3 +564,26 @@ then stops its test activity. The installed diagnostic app remains available.
 
 Local raw results are under `build/pixel-probe/` and are intentionally not
 committed; keep device serials and screenshots out of the public repository.
+
+
+### CSF command address fix (2026-10-06)
+
+The Steam GPU fault was traced to `uint32_t fn_addr` in
+`csf/panvk_vX_cmd_draw.c`: the helper BO address is 64-bit, but a CALL
+received only its low 32 bits. The patch preserves the full address with
+`uint64_t`. The fault address `0xfffef000` matched that truncation.
+
+Fixed driver build 37562778779 passed GPU clear/readback on the Pixel 7 Pro.
+Steam hardware scrolling then measured 39.6, 34.1, and 32.0 displayed FPS
+across separate 15-second runs, with no CSF fatal/timeout in the inspected
+helper log. A paused session was excluded from measurements. These results
+prove improvement, **not stable 60 FPS**.
+
+The installed production APK at d1093b6 uses a driver metadata opt-in
+(`pixelSteamGl33`) so older PanVK imports retain software fallback. The
+native preload clears Steam's Kopper disable flag and changes only its
+exact SDL3 4.3 core context request to real 3.3, scoped to steamwebhelper.
+Driver `pixel-panvk-csf64` is selected separately from the original import.
+Temporary SDL diagnostic preload/env overrides were removed. A normal
+launch measured 34.5 displayed FPS (p95 50.1 ms, max 83.4 ms) with no
+GPU fatal/timeout log. Driver import unit tests and APK build passed.
