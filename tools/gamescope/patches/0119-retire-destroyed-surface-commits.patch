@@ -1,0 +1,329 @@
+--- a/src/wlserver.cpp
++++ b/src/wlserver.cpp
+@@ -132,6 +132,30 @@
+ 
+ gamescope::ConVar<bool> cv_drm_debug_syncobj_force_wait_on_commit( "drm_debug_syncobj_force_wait_on_commit", false, "Force a wait on DRM sync objects before committing buffers" );
+ 
++// All access is serialized by wlserver_lock. A dead pointer is only a map key;
++// it is never dereferenced, including when a later surface reuses its address.
++struct SurfaceLifetime
++{
++	uint64_t serial;
++	std::set<struct wl_resource *> presentation_feedbacks;
++};
++static std::unordered_map<struct wlr_surface *, SurfaceLifetime> g_LiveSurfaces;
++
++uint64_t wlserver_surface_serial( struct wlr_surface *surface )
++{
++	assert( wlserver_is_lock_held() );
++	auto iter = g_LiveSurfaces.find( surface );
++	assert( iter != g_LiveSurfaces.end() && iter->second.serial );
++	return iter->second.serial;
++}
++
++bool wlserver_surface_is_alive( struct wlr_surface *surface, uint64_t serial )
++{
++	assert( wlserver_is_lock_held() );
++	auto iter = g_LiveSurfaces.find( surface );
++	return serial && iter != g_LiveSurfaces.end() && iter->second.serial == serial;
++}
++
+ ResListEntry_t PrepareCommit( struct wlr_surface *surf, struct wlr_buffer *buf )
+ {
+ 	auto wl_surf = get_wl_surface_info( surf );
+@@ -164,7 +188,8 @@
+ 		wl_surf->present_id,
+ 		wl_surf->desired_present_time,
+ 		std::move( pAcquirePoint ),
+-		std::move( pReleasePoint )
++		std::move( pReleasePoint ),
++		wlserver_surface_serial( surf )
+ 	};
+ 	wl_surf->present_id = std::nullopt;
+ 	wl_surf->desired_present_time = 0;
+@@ -626,6 +651,19 @@
+ static void handle_wl_surface_destroy( struct wl_listener *l, void *data )
+ {
+ 	wlserver_wl_surface_info *surf = wl_container_of( l, surf, destroy );
++	assert( wlserver_is_lock_held() );
++	auto lifetime = g_LiveSurfaces.find( surf->wlr );
++	assert( lifetime != g_LiveSurfaces.end() );
++	lifetime->second.serial = 0;
++	// Include feedback already moved to queued/held commits. Resource destruction
++	// removes itself from this set, so client teardown cannot leave a stale owner.
++	while ( !lifetime->second.presentation_feedbacks.empty() )
++	{
++		auto *feedback = *lifetime->second.presentation_feedbacks.begin();
++		wp_presentation_feedback_send_discarded( feedback );
++		wl_resource_destroy( feedback );
++	}
++	g_LiveSurfaces.erase( lifetime );
+ 	if (surf->x11_surface)
+ 	{
+ 		wlserver_x11_surface_info *x11_surface = surf->x11_surface;
+@@ -671,11 +709,6 @@
+ 		}
+ 	}
+ 
+-	for (auto& feedback : surf->pending_presentation_feedbacks)
+-	{
+-		wp_presentation_feedback_send_discarded(feedback);
+-		wl_resource_destroy(feedback);
+-	}
+ 	surf->pending_presentation_feedbacks.clear();
+ 
+ 	if ( surf->pSyncobjSurface )
+@@ -704,6 +737,9 @@
+ 
+ 	wlserver_wl_surface_info *wl_surface_info = new wlserver_wl_surface_info;
+ 	wl_surface_info->wlr = wlr_surf;
++	assert( wlserver_is_lock_held() );
++	static uint64_t next_surface_serial = 0;
++	g_LiveSurfaces.emplace( wlr_surf, SurfaceLifetime{ ++next_surface_serial, {} } );
+ 
+ 	wl_surface_info->destroy.notify = handle_wl_surface_destroy;
+ 	wl_signal_add( &wlr_surf->events.destroy, &wl_surface_info->destroy );
+@@ -1562,7 +1598,21 @@
+ 
+ 	struct wl_resource *presentation_feedback_resource
+ 		= wl_resource_create( client, &wp_presentation_feedback_interface, wl_resource_get_version( resource ), id );
+-	wl_resource_set_implementation( presentation_feedback_resource, NULL, wl_surface_info, NULL );
++	if ( !presentation_feedback_resource )
++	{
++		wl_resource_post_no_memory( resource );
++		return;
++	}
++	g_LiveSurfaces.at( surface ).presentation_feedbacks.insert( presentation_feedback_resource );
++	wl_resource_set_implementation( presentation_feedback_resource, NULL, surface,
++		[]( struct wl_resource *feedback )
++	{
++		assert( wlserver_is_lock_held() );
++		auto *surface = static_cast<struct wlr_surface *>( wl_resource_get_user_data( feedback ) );
++		auto iter = g_LiveSurfaces.find( surface );
++		if ( iter != g_LiveSurfaces.end() )
++			iter->second.presentation_feedbacks.erase( feedback );
++	});
+ 
+ 	wl_surface_info->pending_presentation_feedbacks.emplace_back(presentation_feedback_resource);
+ }
+@@ -1586,8 +1636,13 @@
+ 	wl_global_create( wlserver.display, &wp_presentation_interface, version, NULL, presentation_time_bind );
+ }
+ 
+-void wlserver_presentation_feedback_presented( struct wlr_surface *surface, std::vector<struct wl_resource*>& presentation_feedbacks, uint64_t last_refresh_nsec, uint64_t refresh_cycle )
+-{
++void wlserver_presentation_feedback_presented( struct wlr_surface *surface, uint64_t surface_serial, std::vector<struct wl_resource*>& presentation_feedbacks, uint64_t last_refresh_nsec, uint64_t refresh_cycle )
++{
++	if ( !wlserver_surface_is_alive( surface, surface_serial ) )
++	{
++		presentation_feedbacks.clear();
++		return;
++	}
+ 	wlserver_wl_surface_info *wl_surface_info = get_wl_surface_info(surface);
+ 
+ 	if ( !wl_surface_info )
+@@ -1633,8 +1688,13 @@
+ 	presentation_feedbacks.clear();
+ }
+ 
+-void wlserver_presentation_feedback_discard( struct wlr_surface *surface, std::vector<struct wl_resource*>& presentation_feedbacks )
+-{
++void wlserver_presentation_feedback_discard( struct wlr_surface *surface, uint64_t surface_serial, std::vector<struct wl_resource*>& presentation_feedbacks )
++{
++	if ( !wlserver_surface_is_alive( surface, surface_serial ) )
++	{
++		presentation_feedbacks.clear();
++		return;
++	}
+ 	wlserver_wl_surface_info *wl_surface_info = get_wl_surface_info(surface);
+ 
+ 	if ( !wl_surface_info )
+@@ -1653,8 +1713,10 @@
+ ///////////////////////
+ 
+ 
+-void wlserver_past_present_timing( struct wlr_surface *surface, uint32_t present_id, uint64_t desired_present_time, uint64_t actual_present_time, uint64_t earliest_present_time, uint64_t present_margin )
+-{
++void wlserver_past_present_timing( struct wlr_surface *surface, uint64_t surface_serial, uint32_t present_id, uint64_t desired_present_time, uint64_t actual_present_time, uint64_t earliest_present_time, uint64_t present_margin )
++{
++	if ( !wlserver_surface_is_alive( surface, surface_serial ) )
++		return;
+ 	wlserver_wl_surface_info *wl_info = get_wl_surface_info( surface );
+ 	if ( !wl_info )
+ 		return;
+--- a/src/wlserver.hpp
++++ b/src/wlserver.hpp
+@@ -38,6 +38,10 @@
+ 	int32_t nEventFd = -1;
+ 	bool bKnownReady = false;
+ };
++
++// Delayed commits identify a surface generation, not just a recyclable address.
++uint64_t wlserver_surface_serial( struct wlr_surface *surface );
++bool wlserver_surface_is_alive( struct wlr_surface *surface, uint64_t serial );
+ 
+ struct ResListEntry_t {
+ 	struct wlr_surface *surf;
+@@ -50,6 +54,7 @@
+ 	uint64_t desired_present_time;
+ 	std::shared_ptr<gamescope::CAcquireTimelinePoint> pAcquirePoint;
+ 	std::shared_ptr<gamescope::CReleaseTimelinePoint> pReleasePoint;
++	uint64_t surface_serial = 0;
+ };
+ 
+ struct wlserver_content_override;
+@@ -312,10 +317,10 @@
+ uint32_t wlserver_make_new_xwayland_server();
+ void wlserver_destroy_xwayland_server(gamescope_xwayland_server_t *server);
+ 
+-void wlserver_presentation_feedback_presented( struct wlr_surface *surface, std::vector<struct wl_resource*>& presentation_feedbacks, uint64_t last_refresh_nsec, uint64_t refresh_cycle );
+-void wlserver_presentation_feedback_discard( struct wlr_surface *surface, std::vector<struct wl_resource*>& presentation_feedbacks );
+-
+-void wlserver_past_present_timing( struct wlr_surface *surface, uint32_t present_id, uint64_t desired_present_time, uint64_t actual_present_time, uint64_t earliest_present_time, uint64_t present_margin );
++void wlserver_presentation_feedback_presented( struct wlr_surface *surface, uint64_t surface_serial, std::vector<struct wl_resource*>& presentation_feedbacks, uint64_t last_refresh_nsec, uint64_t refresh_cycle );
++void wlserver_presentation_feedback_discard( struct wlr_surface *surface, uint64_t surface_serial, std::vector<struct wl_resource*>& presentation_feedbacks );
++
++void wlserver_past_present_timing( struct wlr_surface *surface, uint64_t surface_serial, uint32_t present_id, uint64_t desired_present_time, uint64_t actual_present_time, uint64_t earliest_present_time, uint64_t present_margin );
+ void wlserver_refresh_cycle( struct wlr_surface *surface, uint64_t refresh_cycle );
+ 
+ void wlserver_app_presented( uint32_t app_id, uint64_t frametime_ns );
+--- a/src/steamcompmgr.cpp
++++ b/src/steamcompmgr.cpp
+@@ -1826,12 +1826,14 @@
+ 	std::vector<struct wl_resource*> presentation_feedbacks,
+ 	std::optional<uint32_t> present_id,
+ 	uint64_t desired_present_time,
+-	bool fifo )
++	bool fifo,
++	uint64_t surface_serial )
+ {
+ 	gamescope::Rc<commit_t> commit = new commit_t;
+ 
+ 	commit->win_seq = w->seq;
+ 	commit->surf = surf;
++	commit->surface_serial = surface_serial;
+ 	commit->buf = buf;
+ 	commit->async = async;
+ 	commit->fifo = fifo;
+@@ -8139,6 +8141,7 @@
+ 			{
+ 				wlserver_presentation_feedback_presented(
+ 					lastCommit->surf,
++					lastCommit->surface_serial,
+ 					lastCommit->presentation_feedbacks,
+ 					next_refresh_time,
+ 					refresh_cycle);
+@@ -8148,6 +8151,7 @@
+ 			{
+ 				wlserver_past_present_timing(
+ 					lastCommit->surf,
++					lastCommit->surface_serial,
+ 					*lastCommit->present_id,
+ 					lastCommit->desired_present_time,
+ 					next_refresh_time,
+@@ -8263,23 +8267,29 @@
+ {
+ 	struct wlr_buffer *buf = reslistentry.buf;
+ 
+-	if ( w == nullptr )
+-	{
+-		wlserver_lock();
++	wlserver_lock();
++	if ( !wlserver_surface_is_alive( reslistentry.surf, reslistentry.surface_serial ) )
++	{
++		// Surface destruction already discarded its feedback. We still own the
++		// queued buffer lock, even if a new surface now occupies the same address.
++		reslistentry.presentation_feedbacks.clear();
+ 		wlr_buffer_unlock( buf );
+ 		wlserver_unlock();
+-
+-		// Make sure to send the discarded event if we hit this
+-		// to ensure forward progress.
+-		if (!reslistentry.presentation_feedbacks.empty())
+-		{
+-			wlserver_presentation_feedback_discard( reslistentry.surf, reslistentry.presentation_feedbacks );
+-			// presentation_feedbacks cleared by wlserver_presentation_feedback_discard
+-		}
+-
++		return;
++	}
++	if ( w == nullptr )
++	{
++		wlserver_presentation_feedback_discard( reslistentry.surf, reslistentry.surface_serial, reslistentry.presentation_feedbacks );
++		wlr_buffer_unlock( buf );
++		wlserver_unlock();
+ 		xwm_log.errorf( "waylandres but no win" );
+ 		return;
+ 	}
++	// Snapshot the live surface's state under the same lock as its lifetime check.
++	bool bHasDamage = ( reslistentry.surf->buffer_damage.extents.x2 - reslistentry.surf->buffer_damage.extents.x1 ) > 2 &&
++					  ( reslistentry.surf->buffer_damage.extents.y2 - reslistentry.surf->buffer_damage.extents.y1 ) > 2;
++	bool for_current_surface = !w->override_surface() || w->current_surface() == reslistentry.surf;
++	wlserver_unlock();
+ 
+ 	// If we ever use HDR on the surface, only ever accept flip commits from the WSI layer.
+ 	if ( reslistentry.feedback && reslistentry.feedback->vk_colorspace != VK_COLOR_SPACE_SRGB_NONLINEAR_KHR )
+@@ -8292,14 +8302,9 @@
+ 	bool bPossiblyBogus = reslistentry.buf->width <= 2 || reslistentry.buf->height <= 2;
+ 
+ 	// If the buffer has no damage, always prefer our override surface.
+-	bool bHasDamage = ( reslistentry.surf->buffer_damage.extents.x2 - reslistentry.surf->buffer_damage.extents.x1 ) > 2 &&
+-					  ( reslistentry.surf->buffer_damage.extents.y2 - reslistentry.surf->buffer_damage.extents.y1 ) > 2;
+-
+ 	// If we have an override surface, make sure this commit is for the current surface
+ 	// or if the commit is probably bogus.
+ 	bool bOnlyCurrentSurface = w->bHasHadNonSRGBColorSpace || bPossiblyBogus || !bHasDamage || cv_surface_update_force_only_current_surface;
+-
+-	bool for_current_surface = !w->override_surface() || w->current_surface() == reslistentry.surf;
+ 
+ 	if ( !for_current_surface )
+ 	{
+@@ -8345,7 +8350,8 @@
+ 		std::move(reslistentry.presentation_feedbacks),
+ 		reslistentry.present_id,
+ 		reslistentry.desired_present_time,
+-		reslistentry.fifo );
++		reslistentry.fifo,
++		reslistentry.surface_serial );
+ 
+ 
+ 	if ( newCommit == nullptr )
+@@ -8541,14 +8547,16 @@
+ 	std::vector<ResListEntry_t> tmp_queue = wlserver_xdg_commit_queue();
+ 	for ( uint32_t i = 0; i < tmp_queue.size(); i++ )
+ 	{
++		steamcompmgr_win_t *matched = nullptr;
+ 		for ( const auto& xdg_win : g_steamcompmgr_xdg_wins )
+ 		{
+ 			if ( xdg_win->xdg().surface.main_surface == tmp_queue[ i ].surf )
+ 			{
+-				update_wayland_res( &g_steamcompmgr_xdg_done_commits, xdg_win.get(), tmp_queue[ i ] );
++				matched = xdg_win.get();
+ 				break;
+ 			}
+ 		}
++		update_wayland_res( &g_steamcompmgr_xdg_done_commits, matched, tmp_queue[ i ] );
+ 	}
+ }
+ 
+--- a/src/commit.cpp
++++ b/src/commit.cpp
+@@ -25,7 +25,7 @@
+     wlserver_lock();
+     if (!presentation_feedbacks.empty())
+     {
+-        wlserver_presentation_feedback_discard(surf, presentation_feedbacks);
++        wlserver_presentation_feedback_discard(surf, surface_serial, presentation_feedbacks);
+         // presentation_feedbacks cleared by wlserver_presentation_feedback_discard
+     }
+     wlr_buffer_unlock( buf );
+--- a/src/commit.h
++++ b/src/commit.h
+@@ -68,6 +68,7 @@
+ 
+ 	uint64_t win_seq = 0;
+ 	struct wlr_surface *surf = nullptr;
++	uint64_t surface_serial = 0;
+ 	std::vector<struct wl_resource*> presentation_feedbacks;
+ 
+ 	std::optional<uint32_t> present_id = std::nullopt;

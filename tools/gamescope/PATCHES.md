@@ -55,3 +55,11 @@ app's Wayland-hosted gamescope never reaches, or need a newer gamescope than the
   before clearing resource pointers; current-owner destruction still removes its own binding.
   Run `python tools/gamescope/check-swapchain-override.py --source-dir PATH_TO_3.16.29_CHECKOUT`
   to check exact-source applicability and the old/new swapchain lifetime regression.
+
+- `0119-retire-destroyed-surface-commits.patch` - queued and held commits carry a surface
+  generation, checked with the Wayland lock before dereferencing it. Surface destruction
+  discards outstanding presentation feedback, including feedback already moved into a
+  commit; dead queued buffers still release their lock once. This fixes a source lifetime
+  bug; it has not been established as the cause of the observed heap-corruption exit.
+  Run `python tools/gamescope/check-surface-lifetime.py --source-dir PATH_TO_3.16.29_CHECKOUT`
+  for exact-source patch checks and the actual-function AddressSanitizer regression.
