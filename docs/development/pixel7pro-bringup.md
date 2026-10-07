@@ -825,3 +825,10 @@ run included a 1,083.2 ms presentation gap. This establishes no improvement.
 The patch and extra layer shipping changes were removed. The original r9 layer
 was restored byte-for-byte, and the diagnostic flag was removed. Native GPU
 sharing and automatic driver metadata remain enabled.
+
+Final session 28 with the restored original layer and no diagnostic environment
+file rendered correct pixels before/after scrolling and measured 54.1 displayed
+FPS, p95 33.3 ms, max 50.0 ms. Its inspected logs contained no GPU translation
+fault, device loss or failed import. The selected driver retained the tested
+DMA-BUF library and automatic metadata. This is another successful short sample,
+not proof of stable 60 FPS or absence of later stutters.
