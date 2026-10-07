@@ -1,0 +1,110 @@
+From: PixelDeck contributors
+Subject: [PATCH] panvk: opt in to cached kbase CPU WSI readback
+
+PANVK_KBASE_CACHED_WSI=1 selects host-cached staging for kbase CPU WSI
+without imported host memory. Explicitly invalidate the mapped readback
+allocation after the existing present fence completes and before any
+window-system CPU copy/reacquire. Other drivers, DMA output, imported-host
+WSI and normal Vulkan allocations are unchanged. Default remains off.
+
+--- a/src/vulkan/wsi/wsi_common.h
++++ b/src/vulkan/wsi/wsi_common.h
+@@ -171,6 +171,11 @@
+ 
+ 
+    bool sw;
++
++   /* Opt-in cached CPU readback with explicit invalidate after GPU completion.
++    * Never used with imported host memory (the window system reads that itself).
++    */
++   bool cached_cpu_readback;
+ 
+    /* Set to true if the implementation is ok with linear WSI images. */
+    bool wants_linear;
+@@ -261,6 +266,7 @@
+    WSI_CB(SetDebugUtilsObjectNameEXT);
+    WSI_CB(WaitForFences);
+    WSI_CB(MapMemory);
++   WSI_CB(InvalidateMappedMemoryRanges);
+    WSI_CB(UnmapMemory);
+    WSI_CB(WaitSemaphores);
+ #undef WSI_CB
+--- a/src/vulkan/wsi/wsi_common.c
++++ b/src/vulkan/wsi/wsi_common.c
+@@ -238,6 +238,7 @@
+    WSI_GET_CB(SetDebugUtilsObjectNameEXT);
+    WSI_GET_CB(WaitForFences);
+    WSI_GET_CB(MapMemory);
++   WSI_GET_CB(InvalidateMappedMemoryRanges);
+    WSI_GET_CB(UnmapMemory);
+    if (wsi->has_present_wait)
+       WSI_GET_CB(WaitSemaphores);
+@@ -2431,6 +2432,26 @@
+ {
+    assert(info->fence_count < ARRAY_SIZE(info->fences));
+    info->fences[info->fence_count++] = fence;
++}
++
++/* Called only after the present fence completes, before the window-system
++ * backend copies CPU pixels or returns the image to the acquire queue.
++ */
++static VkResult
++wsi_invalidate_cpu_image(const struct wsi_swapchain *chain,
++                         const struct wsi_image *image)
++{
++   if (!chain->wsi->cached_cpu_readback || !image->cpu_map)
++      return VK_SUCCESS;
++
++   const VkMappedMemoryRange range = {
++      .sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
++      .memory = chain->blit.type == WSI_SWAPCHAIN_BUFFER_BLIT
++                   ? image->blit.memory : image->memory,
++      .offset = 0,
++      .size = VK_WHOLE_SIZE,
++   };
++   return chain->wsi->InvalidateMappedMemoryRanges(chain->device, 1, &range);
+ }
+ 
+ VkResult
+@@ -2891,6 +2912,10 @@
+             continue;
+       }
+ 
++      results[i] = wsi_invalidate_cpu_image(swapchain, image);
++      if (results[i] != VK_SUCCESS)
++         continue;
++
+       const VkPresentRegionKHR *region = NULL;
+       if (regions && regions->pRegions)
+          region = &regions->pRegions[i];
+@@ -3082,6 +3107,15 @@
+ wsi_select_host_memory_type(const struct wsi_device *wsi,
+                             uint32_t type_bits)
+ {
++   if (wsi->cached_cpu_readback) {
++      const VkMemoryPropertyFlags cached = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
++                                          VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
++      u_foreach_bit(t, type_bits) {
++         if ((wsi->memory_props.memoryTypes[t].propertyFlags & cached) == cached)
++            return t;
++      }
++   }
++
+    VkMemoryPropertyFlags req_props = VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+ 
+    if (wsi->sw)
+--- a/src/panfrost/vulkan/panvk_wsi.c
++++ b/src/panfrost/vulkan/panvk_wsi.c
+@@ -95,6 +95,12 @@
+     */
+    physical_device->wsi_device.disable_unordered_submits = uses_kbase;
+ 
++   const char *cached_wsi = getenv("PANVK_KBASE_CACHED_WSI");
++   physical_device->wsi_device.cached_cpu_readback =
++      uses_kbase && physical_device->wsi_device.sw &&
++      !physical_device->wsi_device.has_import_memory_host &&
++      cached_wsi && !strcmp(cached_wsi, "1");
++
+    /* kbase is not a DRM fd.  The default CPU WSI path presents through
+     * MIT-SHM.  Android dma-heaps can also provide shareable
+     * allocations, but some Android X servers advertise DRI3 while rejecting

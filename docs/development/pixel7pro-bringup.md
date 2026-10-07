@@ -671,3 +671,11 @@ rendered correctly on the installed candidate, but actual scrolling was
 comparison. An earlier measurement before the library loaded was invalid.
 The candidate was removed from the default source/build pins and the prior
 APK restored. Stable high-FPS Steam remains unachieved.
+
+Helper affinity diagnostics confirmed the original 0x7c mask changed to
+0xf0 or 0xff within steamwebhelper itself. Four middle/fast cores measured
+35.6 displayed FPS; all eight cores measured 34.7 FPS, both with p95 about
+50 ms. Neither improved the normal fixed-driver path. The temporary preload
+and environment file were removed; the standard session restarted READY.
+An external taskset attempt was denied before any affinity mutation. Its
+concurrent benchmark overlapped a later stop and is excluded.
