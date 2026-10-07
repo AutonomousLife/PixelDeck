@@ -661,3 +661,13 @@ For native profiling, `security.perf_harden` was temporarily set to zero in a
 try/finally diagnostic and restored to its original value of one. Both
 `cpu-clock` and `cpu-cycles` were unsupported by the SDK profiler, so no CPU
 profile was collected. The restored property was verified after cleanup.
+
+A Gamescope upload-ring candidate (native CI 37574863869, source efa1059)
+reused its persistent transfer buffer, inserted a transfer-write barrier,
+and submitted SHM uploads asynchronously. Exact upstream source patch and
+capacity/fallback checks passed; native build and APK build passed. Steam
+rendered correctly on the installed candidate, but actual scrolling was
+36.6 FPS (p95 50.0 ms, max 83.3 ms), essentially unchanged from the 36.8 FPS
+comparison. An earlier measurement before the library loaded was invalid.
+The candidate was removed from the default source/build pins and the prior
+APK restored. Stable high-FPS Steam remains unachieved.
