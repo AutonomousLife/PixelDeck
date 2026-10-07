@@ -618,3 +618,24 @@ Editing Valve's helper wrapper triggered its integrity repair; repair was
 allowed to finish. No updater-managed helper modification is retained.
 Native simpleperf could not profile with the current perf_harden setting;
 no device security property was changed.
+
+### Presentation diagnostics and resolution comparison
+
+A temporary locally scoped XCB timing preload measured 13,500 replies at
+1,592 ms cumulative time, about 0.118 ms per reply; scrolling with it measured
+34.0 FPS. Its initial RTLD_NEXT-only lookup failed and that startup was
+excluded; resolving the actual libxcb handle fixed the timer.
+
+An additional ppoll timer saw 78,800 calls requesting 20 ms, only 10 timing
+out, and 26,972 ms cumulative wait time. Most wake early, so the driver is
+not simply sleeping 20 ms at every completion. These cumulative counters
+include startup and idle work and are not per-frame costs.
+
+GPU clock samples during scrolling ranged 251–572 MHz in standard game mode.
+Android's supported performance mode measured 33.2 FPS with a similar clock
+range; standard mode was restored. No GPU sysfs value was written.
+
+A clean 960x540 session measured 35.4 displayed FPS (p95 50.0 ms, max 83.3 ms),
+compared with approximately 34.5 FPS at 1280x720. The smaller resolution was
+not retained. All timing preload overrides were removed. The requested
+smooth high-FPS Steam experience remains unachieved.
