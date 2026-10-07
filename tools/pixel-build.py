@@ -17,11 +17,11 @@ CACHE = ROOT / "build/pixel-probe/upstream-ci.zip"
 
 # Keep these cached: Actions artifacts expire. Source builds live in the matching workflows.
 PIXEL_COMPONENTS = [
-    # Runtime 87fea13, Gamescope c09236c, audio bcc3cd1; digests detect stale native sources.
+    # Runtime 87fea13, Gamescope f2fa3a0, audio bcc3cd1; digests detect stale native sources.
     ("runtime", 11460097865, "49872c3c23709f81e2a2da6e073f31558311f17112d1550b34e643708ba19a97",
      "f0bdabfdb092e393264fd892eb4fccb037c52785f9b5d3e47c86278154a9ea08"),
-    ("gamescope", 11478149893, "189cd07ec58280c9b4314347e478b28c12ddefa3bf12712ad4cfb559a8433130",
-     "071e3be319ac884f3056aebc242d52fd892a720458f79a830211607b559259f7"),
+    ("gamescope", 11518696743, "b71278529812fcb445be3abd9940ba038e384c24a0c09eaccc7e8792a08f5ec5",
+     "448b234a7d7424401fdb8e9a9f30dc83cbcd41d92d7f2b70e9783384fab3f0e2"),
     ("audio", 11421664765, "11e6fd13e7dbb538f19149b1d8081576087ff0c418382df2605030cc86478bcf",
      "4925c6fc41bbf10f3b4c6bd6467cac57f79b237671c003e09fcb1ad50b820374"),
 ]

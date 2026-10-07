@@ -21,8 +21,14 @@ __attribute__((constructor)) static void steam_gl_init(void)
    executable[length] = '\0';
    const char *name = strrchr(executable, '/');
    steam_gl = name && !strcmp(name + 1, "steamwebhelper");
-   if (steam_gl)
+   if (steam_gl) {
       unsetenv("LIBGL_KOPPER_DISABLE");
+      /* Native Gamescope presents bypass Xwayland's MSC, which stays stale.
+       * Withdraw that timing capability so CEF uses the real RandR refresh. */
+      const char *dmabuf = getenv("PANVK_KBASE_WAYLAND_DMABUF");
+      if (dmabuf && !strcmp(dmabuf, "1"))
+         setenv("glx_extension_override", "-GLX_OML_sync_control", 0);
+   }
 }
 
 void *pixel_steam_SDL_GL_CreateContext(void *window)

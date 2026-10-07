@@ -12,6 +12,11 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+      - name: Check Steam timing scope and user overrides
+        run: |
+          mkdir -p build/steam-timing
+          gcc -O2 -Wall -Wextra -Werror -Wl,--version-script=tools/linuxfs/preload/session.map tools/linuxfs/preload/tests/steam-timing.c -ldl -o build/steam-timing/check
+          build/steam-timing/check
       - name: Check forwarding to a locally loaded libdrm
         run: |
           mkdir -p build/drm-local
