@@ -17,11 +17,11 @@ CACHE = ROOT / "build/pixel-probe/upstream-ci.zip"
 
 # Keep these cached: Actions artifacts expire. Source builds live in the matching workflows.
 PIXEL_COMPONENTS = [
-    # Runtime 87fea13, Gamescope f3ca021, audio bcc3cd1; digests detect stale native sources.
+    # Runtime 87fea13, Gamescope c09236c, audio bcc3cd1; digests detect stale native sources.
     ("runtime", 11460097865, "49872c3c23709f81e2a2da6e073f31558311f17112d1550b34e643708ba19a97",
      "f0bdabfdb092e393264fd892eb4fccb037c52785f9b5d3e47c86278154a9ea08"),
-    ("gamescope", 11478007257, "8c75b90e36d648ecde56cef5096e397d5eb1bcce61134eb8f06f47524f3a9c55",
-     "b48f9173386786b176d7f710c54aadb3f4af5d111d227600672e43ce285369ce"),
+    ("gamescope", 11478149893, "189cd07ec58280c9b4314347e478b28c12ddefa3bf12712ad4cfb559a8433130",
+     "071e3be319ac884f3056aebc242d52fd892a720458f79a830211607b559259f7"),
     ("audio", 11421664765, "11e6fd13e7dbb538f19149b1d8081576087ff0c418382df2605030cc86478bcf",
      "4925c6fc41bbf10f3b4c6bd6467cac57f79b237671c003e09fcb1ad50b820374"),
 ]
@@ -94,6 +94,10 @@ def stage():
                 from compression import zstd  # Python 3.14, no extra dependency.
                 with tarfile.open(fileobj=io.BytesIO(zstd.decompress(z.read("gamescope.tzst")))) as tar:
                     content = tar.extractfile("usr/local/bin/gamescope").read()
+                    layer = "usr/lib/libVkLayer_FROG_gamescope_wsi_aarch64.so"
+                    layer_destination = ROOT / "app/src/main/assets/linuxfs" / layer
+                    layer_destination.parent.mkdir(parents=True, exist_ok=True)
+                    layer_destination.write_bytes(tar.extractfile(layer).read())
                 relative = "usr/local/bin/gamescope"
             else:
                 for name in z.namelist():

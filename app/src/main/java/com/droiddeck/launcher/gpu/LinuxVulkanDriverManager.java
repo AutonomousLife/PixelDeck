@@ -130,6 +130,12 @@ public class LinuxVulkanDriverManager {
         return isPanvk(id) && m != null && m.optBoolean("pixelCachedWsi", false);
     }
 
+    /** Opt-in for native Wayland DMA-BUF; uses SHM when no DMA-BUF global exists. */
+    public boolean supportsWaylandDmabuf(String id) {
+        JSONObject m = readMeta(id);
+        return isPanvk(id) && m != null && m.optBoolean("pixelWaylandDmabuf", false);
+    }
+
     /** The glibc the driver asks for, as its zip recorded it ("" when the zip did not say). */
     public String getMinGlibc(String id) {
         JSONObject m = readMeta(id);
@@ -256,6 +262,8 @@ public class LinuxVulkanDriverManager {
                     && zipMeta != null && zipMeta.optBoolean("pixelSteamGl33", false));
             meta.put("pixelCachedWsi", soName.startsWith("libvulkan_panfrost")
                     && zipMeta != null && zipMeta.optBoolean("pixelCachedWsi", false));
+            meta.put("pixelWaylandDmabuf", soName.startsWith("libvulkan_panfrost")
+                    && zipMeta != null && zipMeta.optBoolean("pixelWaylandDmabuf", false));
             meta.put("importedAt", System.currentTimeMillis());
             if (!FileUtils.writeString(new File(tmpDir, META_NAME), meta.toString(2))) throw new IOException("cannot write meta.json");
 

@@ -581,6 +581,9 @@ class SessionService : Service() {
             if (steamHere && LinuxVulkanDriverManager(this).supportsCachedWsi(linuxDriverId)) {
                 guest.add("PANVK_KBASE_CACHED_WSI=1")
             }
+            if (SessionState.mode == MODE_STEAM && LinuxVulkanDriverManager(this).supportsWaylandDmabuf(linuxDriverId)) {
+                guest.add("PANVK_KBASE_WAYLAND_DMABUF=1")
+            }
         }
         LinuxVulkanDriver.resolveIcdPath(this, linuxDriverId)
             ?.let { guest.add(LinuxVulkanDriver.ENV + "=" + it) }

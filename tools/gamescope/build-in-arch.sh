@@ -1,8 +1,8 @@
 #!/usr/bin/bash
 # Runs INSIDE an Arch Linux ARM container (menci/archlinuxarm:base-devel) on an arm64 runner.
 # Builds Arch's own gamescope package of the runtime's version with the patches in ./patches
-# added, then keeps only the gamescope binary, checks its library needs against the runtime's
-# list, and packs it as gamescope.tzst (usr/local/bin/gamescope) for the apk to stage.
+# added, then keeps gamescope and its WSI layer, checks their runtime dependencies,
+# and packs them as gamescope.tzst for the apk to stage.
 set -euxo pipefail
 VERSION=${GAMESCOPE_VERSION:-3.16.29}
 WORK=/work
@@ -64,18 +64,32 @@ makepkg -A -s --noconfirm --skipchecksums --skippgpcheck  # -A: the PKGBUILD lis
 ls -l *.pkg.tar.*
 "
 cd "$WORK"
-rm -rf out && mkdir -p out/usr/local/bin
+rm -rf out && mkdir -p out/usr/local/bin out/usr/lib
 PKG=$(ls pkg/arch/gamescope-*.pkg.tar.* | grep -v -- '-debug-' | head -1)
 tar --use-compress-program=unzstd -xf "$PKG" -C out --strip-components=2 usr/bin/gamescope
 mv out/gamescope out/usr/local/bin/gamescope
 chmod 755 out/usr/local/bin/gamescope
 strip --strip-unneeded out/usr/local/bin/gamescope || true
+LAYER=usr/lib/libVkLayer_FROG_gamescope_wsi_aarch64.so
+tar --use-compress-program=unzstd -xf "$PKG" -C out "$LAYER"
+strip --strip-unneeded "out/$LAYER"
 # Every NEEDED library must be one the runtime ships, or the binary would not load there.
-NEEDED=$(readelf -d out/usr/local/bin/gamescope | sed -n 's/.*NEEDED.*\[\(.*\)\]/\1/p')
+NEEDED=$(readelf -d out/usr/local/bin/gamescope "out/$LAYER" | sed -n 's/.*NEEDED.*\[\(.*\)\]/\1/p')
 echo "NEEDED: $NEEDED"
 MISSING=""
 for lib in $NEEDED; do grep -qx "$lib" tools/gamescope/runtime-sonames.txt || MISSING="$MISSING $lib"; done
 if [ -n "$MISSING" ]; then echo "ERROR: not in the runtime:$MISSING"; exit 3; fi
+# Symbol ceilings from the tested r9 runtime, in addition to SONAME availability.
+for binary in out/usr/local/bin/gamescope "out/$LAYER"; do
+  for rule in 'GLIBC 2.43' 'GLIBCXX 3.4.35' 'CXXABI 1.3.17'; do
+    read -r family ceiling <<< "$rule"
+    required=$(readelf --version-info "$binary" | sed -n "s/.*Name: ${family}_\\([0-9.]*\\).*/\\1/p" | sort -V | tail -1)
+    echo "$binary requires ${family}_${required:-none}; runtime ceiling $ceiling"
+    if [ -n "$required" ] && [ "$(printf '%s\n' "$required" "$ceiling" | sort -V | tail -1)" != "$ceiling" ]; then
+      echo "ERROR: $binary needs newer $family symbols than the runtime"; exit 3
+    fi
+  done
+done
 (cd out && tar --use-compress-program='zstd -19' -cf ../gamescope.tzst usr)
 sha256sum gamescope.tzst | tee gamescope.tzst.sha256
 ls -l gamescope.tzst out/usr/local/bin/gamescope

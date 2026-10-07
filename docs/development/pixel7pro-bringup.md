@@ -772,3 +772,40 @@ was removed. Session 22 confirmed the selected ICD and automatic cached-readback
 flag, rendered correct Steam pixels, and measured 45.8 displayed FPS, p95 41.6 ms,
 max 50.0 ms. This is a successful deployment and smoke check; stable 60 FPS and
 the ownership bug's causal link to session 19's black output remain unproven.
+
+### Native Wayland GPU buffer sharing (October 7)
+
+The main Steam frame path previously used Wayland SHM through Gamescope's WSI
+layer. Gamescope withheld its inner DMA-BUF global because kbase has no DRM
+render node. The coordinated, default-off `PANVK_KBASE_WAYLAND_DMABUF=1` patches
+advertise DMA-BUF v3 using real importable LINEAR RGB formats and select native
+Wayland images in PanVK. X11 retains CPU WSI. Producer fence completion and the
+SDL backend's composition completion remain in place before buffer reuse.
+
+Gamescope CI 37612621554 / artifact 11478149893 passed and statically linked the
+patched, checksum-pinned wlroots 0.20.2. PanVK CI 37612621186 / artifact
+11478430840 passed; its library SHA256 is
+`dd9773aa81272769bb89d3537978b840aca7c7ff0554b28bf9cb57a4c9b91b8c`.
+Independent format, allocation, protocol and buffer-lifetime reviews passed.
+
+Session 23 rendered correct Steam content and measured 53.0 and 50.9 displayed
+FPS, with p95 frame gaps 33.3 ms. Session 24 disabled sharing on the same binary
+with cached readback retained and measured 42.3 and 42.5 FPS, p95 41.7 ms.
+Physical captures before/after scrolling were correct in both configurations.
+Logs confirmed the inner DMA-BUF global, native producer chains and native GPU
+frames at the Android compositor. Thermal status was zero during the comparison.
+
+The tested library replaced the selected driver's bytes with a separate backup
+of the previous cached driver. Bundle metadata `pixelWaylandDmabuf` enables the
+flag automatically only for Steam and selected PanVK; old bundles and Turnip
+remain opt-out. All eight driver-import tests passed. The APK and its session
+assets were verified and installed; the diagnostic environment file was removed.
+Session 25 used this automatic configuration, rendered correct pixels and
+measured 51.4 FPS. It survived background suspension and Activity/Surface
+recreation, then measured 50.2 FPS with correct pixels. Long frame gaps remain
+(up to 266.5 ms in the resume sample); stable 60 FPS is not established.
+
+This transport uses SHM when no suitable DMA-BUF global exists. An import failure
+after DMA-BUF advertisement does not retry through SHM; the controlled Gamescope
+global validates the actual import before accepting the buffer. The experiment
+is scoped to the tested Pixel 7 Pro and SDL backend, not general Tensor support.

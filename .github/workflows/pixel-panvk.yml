@@ -145,7 +145,7 @@ jobs:
           cp mesa/docs/panvk-kbase.md pixel-panvk/UPSTREAM.md
           cp mesa/$BUILD_DIR/src/panfrost/vulkan/panfrost_icd.aarch64.json pixel-panvk/icd.json
           printf '%s\n' "$MESA_COMMIT" > pixel-panvk/SOURCE_COMMIT
-          printf '%s\n' '{"schemaVersion":1,"kind":"linux-vulkan-icd","name":"Pixel PanVK CSF64","driverVersion":"5aa0bc4-csf64-cached","minGlibc":"2.41","pixelSteamGl33":true,"pixelCachedWsi":true}' > pixel-panvk/meta.json
+          printf '%s\n' '{"schemaVersion":1,"kind":"linux-vulkan-icd","name":"Pixel PanVK CSF64","driverVersion":"5aa0bc4-csf64-cached-dmabuf","minGlibc":"2.41","pixelSteamGl33":true,"pixelCachedWsi":true,"pixelWaylandDmabuf":true}' > pixel-panvk/meta.json
           git -C mesa diff > pixel-panvk/pixel-heap.patch
           cd pixel-panvk
           sha256sum libvulkan_panfrost_kbase.so linux-clear > SHA256SUMS
