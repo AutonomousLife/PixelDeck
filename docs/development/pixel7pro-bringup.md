@@ -679,3 +679,21 @@ Helper affinity diagnostics confirmed the original 0x7c mask changed to
 and environment file were removed; the standard session restarted READY.
 An external taskset attempt was denied before any affinity mutation. Its
 concurrent benchmark overlapped a later stop and is excluded.
+
+### Cached readback candidate (October 7)
+
+Driver source `d763b96`, native CI 37579564536 / artifact 11464700044,
+keeps the CSF address fix and adds default-off `PANVK_KBASE_CACHED_WSI=1`.
+The kbase CPU WSI path lacks a cached/coherent type, so the normal WSI selector
+falls back to uncached/coherent readback. The opt-in selects cached staging
+and invalidates its full mapped allocation after the existing GPU completion
+fence, before backend CPU copying. Imported-host and DMA paths are excluded.
+Source scope/order checks and native compilation passed.
+
+A separately staged candidate rendered correct Steam pixels. The session log
+confirmed its ICD path. Two enabled 15-second scrolling runs measured 43.8
+and 42.2 displayed FPS, with p95 frame gaps 33.4 ms. No fatal/translation/device
+loss was found in the inspected helper log. Disabling the flag on the same
+binary measured 33.2 FPS, p95 50.0 ms, max 100.0 ms. This controlled comparison
+supports a real gain. The enabled diagnostic is restored for further work;
+production driver selection remains unchanged. Smooth high FPS remains unproven.
