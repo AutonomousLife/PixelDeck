@@ -598,3 +598,23 @@ renderer BeginMainFrame averaged 12.71 ms. Nested tracing totals overlap and
 are not additive. A recognized `vblank_mode=0` override measured 34.7 displayed
 FPS (p95 50.1 ms), so changing that swap-interval setting did not improve
 performance; the override was removed. Stable 60 FPS remains unverified.
+
+### Direct Chromium Vulkan comparison
+
+Research confirmed ANGLE's Vulkan backend and the installed Steam client's
+`-cef-use-vulkan` switch. The older launcher arguments `-cef-use-angle=vulkan`
+did not select it: Chromium SystemInfo reported ANGLE_OPENGL. Temporary edits
+to the guest launcher are replaced by SessionFiles at startup, so session 96
+was excluded as a Vulkan comparison. A rebuilt launcher in session 97 did
+report ANGLE_VULKAN and enabled Vulkan, rendering correctly on Mali-G710.
+
+Actual displayed scrolling remained 34.6 FPS (p95 50.0 ms, max 116.7 ms).
+The Vulkan trace measured Skia SwapBuffers at 20.8 ms average, while renderer
+BeginMainFrame improved to 9.39 ms. One initial VK_ERROR_OUT_OF_DATE_KHR
+triggered a GPU helper restart. With no frame-rate gain, the launcher change
+was reverted and the tested OpenGL launcher APK reinstalled.
+
+Editing Valve's helper wrapper triggered its integrity repair; repair was
+allowed to finish. No updater-managed helper modification is retained.
+Native simpleperf could not profile with the current perf_harden setting;
+no device security property was changed.
