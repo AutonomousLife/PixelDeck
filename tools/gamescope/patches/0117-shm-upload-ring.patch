@@ -1,0 +1,170 @@
+From: PixelDeck contributors
+Subject: [PATCH] vulkan: reuse the upload ring for asynchronous SHM copies
+
+Keep fresh SHM snapshots, but reuse the persistent coherent transfer buffer
+for frames that fit its 1080p capacity. The copy command retains the texture
+until GPU completion and publishes transfer writes before later composition
+on the same queue. Ring wrap waits for pending work; larger/padded frames
+keep the original dedicated allocation and completion wait. Destination
+textures and both SHM transports are unchanged.
+
+--- a/src/rendervulkan.cpp
++++ b/src/rendervulkan.cpp
+@@ -4750,61 +4750,76 @@
+ 	uint32_t width = buf->width;
+ 	uint32_t height = buf->height;
+ 
+-	VkBufferCreateInfo bufferCreateInfo = {
+-		.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+-		.size = stride * height,
+-		.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+-	};
+-	VkBuffer buffer;
+-	result = g_device.vk.CreateBuffer( g_device.device(), &bufferCreateInfo, nullptr, &buffer );
+-	if ( result != VK_SUCCESS )
+-	{
+-		wlr_buffer_end_data_ptr_access( buf );
+-		return nullptr;
+-	}
+-
+-	VkMemoryRequirements memRequirements;
+-	g_device.vk.GetBufferMemoryRequirements(g_device.device(), buffer, &memRequirements);
+-
+-	uint32_t memTypeIndex =  g_device.findMemoryType(VK_MEMORY_PROPERTY_HOST_COHERENT_BIT|VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, memRequirements.memoryTypeBits );
+-	if ( memTypeIndex == ~0u )
+-	{
+-		wlr_buffer_end_data_ptr_access( buf );
+-		return nullptr;
+-	}
+-
+-	VkMemoryAllocateInfo allocInfo = {
+-		.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+-		.allocationSize = memRequirements.size,
+-		.memoryTypeIndex = memTypeIndex,
+-	};
+-
+-	VkDeviceMemory bufferMemory;
+-	result = g_device.vk.AllocateMemory( g_device.device(), &allocInfo, nullptr, &bufferMemory);
+-	if ( result != VK_SUCCESS )
+-	{
+-		wlr_buffer_end_data_ptr_access( buf );
+-		return nullptr;
+-	}
+-
+-	result = g_device.vk.BindBufferMemory( g_device.device(), buffer, bufferMemory, 0 );
+-	if ( result != VK_SUCCESS )
+-	{
+-		wlr_buffer_end_data_ptr_access( buf );
+-		return nullptr;
+-	}
+-
++	// Reuse the persistent transfer ring for normal frames. Large/padded frames
++	// keep the dedicated allocation path: uploadBufferData asserts its size bound.
++	const size_t uploadSize = stride * height;
++	const bool useUploadRing = uploadSize <= CVulkanDevice::upload_buffer_size;
++	VkBuffer buffer = g_device.uploadBuffer();
++	VkDeviceMemory bufferMemory = VK_NULL_HANDLE;
++	uint32_t bufferOffset = 0;
+ 	void *dst;
+-	result = g_device.vk.MapMemory( g_device.device(), bufferMemory, 0, VK_WHOLE_SIZE, 0, &dst );
+-	if ( result != VK_SUCCESS )
+-	{
+-		wlr_buffer_end_data_ptr_access( buf );
+-		return nullptr;
+-	}
+-
+-	memcpy( dst, src, stride * height );
+-
+-	g_device.vk.UnmapMemory( g_device.device(), bufferMemory );
++	if ( useUploadRing )
++	{
++		auto upload = g_device.uploadBufferData( static_cast<uint32_t>(uploadSize) );
++		dst = upload.first;
++		bufferOffset = upload.second;
++	}
++	else
++	{
++		VkBufferCreateInfo bufferCreateInfo = {
++			.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
++			.size = stride * height,
++			.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
++		};
++		result = g_device.vk.CreateBuffer( g_device.device(), &bufferCreateInfo, nullptr, &buffer );
++		if ( result != VK_SUCCESS )
++		{
++			wlr_buffer_end_data_ptr_access( buf );
++			return nullptr;
++		}
++
++		VkMemoryRequirements memRequirements;
++		g_device.vk.GetBufferMemoryRequirements(g_device.device(), buffer, &memRequirements);
++
++		uint32_t memTypeIndex =  g_device.findMemoryType(VK_MEMORY_PROPERTY_HOST_COHERENT_BIT|VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, memRequirements.memoryTypeBits );
++		if ( memTypeIndex == ~0u )
++		{
++			wlr_buffer_end_data_ptr_access( buf );
++			return nullptr;
++		}
++
++		VkMemoryAllocateInfo allocInfo = {
++			.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
++			.allocationSize = memRequirements.size,
++			.memoryTypeIndex = memTypeIndex,
++		};
++
++		result = g_device.vk.AllocateMemory( g_device.device(), &allocInfo, nullptr, &bufferMemory);
++		if ( result != VK_SUCCESS )
++		{
++			wlr_buffer_end_data_ptr_access( buf );
++			return nullptr;
++		}
++
++		result = g_device.vk.BindBufferMemory( g_device.device(), buffer, bufferMemory, 0 );
++		if ( result != VK_SUCCESS )
++		{
++			wlr_buffer_end_data_ptr_access( buf );
++			return nullptr;
++		}
++
++		result = g_device.vk.MapMemory( g_device.device(), bufferMemory, 0, VK_WHOLE_SIZE, 0, &dst );
++		if ( result != VK_SUCCESS )
++		{
++			wlr_buffer_end_data_ptr_access( buf );
++			return nullptr;
++		}
++
++	}
++
++	memcpy( dst, src, uploadSize );
++	if ( !useUploadRing )
++		g_device.vk.UnmapMemory( g_device.device(), bufferMemory );
+ 
+ 	wlr_buffer_end_data_ptr_access( buf );
+ 
+@@ -4818,15 +4833,20 @@
+ 
+ 	auto cmdBuffer = g_device.commandBuffer();
+ 
+-	cmdBuffer->copyBufferToImage( buffer, 0, stride / DRMFormatGetBPP(drmFormat), pTex);
+-	// TODO: Sync this copyBufferToImage
++	cmdBuffer->copyBufferToImage( buffer, bufferOffset, stride / DRMFormatGetBPP(drmFormat), pTex);
++	// Make transfer writes visible to later composition on the same queue.
++	cmdBuffer->insertBarrier();
+ 
+ 	uint64_t sequence = g_device.submit(std::move(cmdBuffer));
+ 
+-	g_device.wait(sequence);
+-
+-	g_device.vk.DestroyBuffer(g_device.device(), buffer, nullptr);
+-	g_device.vk.FreeMemory(g_device.device(), bufferMemory, nullptr);
++	// The submitted command retains pTex. Ring wrap/GC waits for completed
++	// submissions before reusing upload bytes; only a temporary buffer must wait here.
++	if ( !useUploadRing )
++	{
++		g_device.wait(sequence);
++		g_device.vk.DestroyBuffer(g_device.device(), buffer, nullptr);
++		g_device.vk.FreeMemory(g_device.device(), bufferMemory, nullptr);
++	}
+ 
+ 	return pTex;
+ }

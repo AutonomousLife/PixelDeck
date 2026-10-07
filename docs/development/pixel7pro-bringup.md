@@ -639,3 +639,25 @@ A clean 960x540 session measured 35.4 displayed FPS (p95 50.0 ms, max 83.3 ms),
 compared with approximately 34.5 FPS at 1280x720. The smaller resolution was
 not retained. All timing preload overrides were removed. The requested
 smooth high-FPS Steam experience remains unachieved.
+
+### DMA-buffer transport isolation (October 7)
+
+The global `PANVK_KBASE_DRI3=1` diagnostic made Steam's Zink swapchains fail
+(session 105). It was removed. A separate diagnostic constructor enabled it
+only in Gamescope, retaining Steam/Xwayland SHM. That path rendered correctly:
+native compositor counters reported 381 DMA-buffer frames and zero SHM redraws
+in one 10-second interval. Actual 15-second scrolling measured 36.1 FPS versus
+36.8 FPS in the restored normal session. No frame-rate improvement was shown,
+so that diagnostic preload and environment file were removed.
+
+The underlying transport limitation remains: stock Xwayland lacks its DRM/GBM
+presentation path on kbase. Gamescope can export Android heap DMA-buffers to the
+native Wayland compositor, but this does not make Steam's inner Xwayland
+swapchains support DRI3. GPU completion waits must remain without cross-process
+fences. Native compositor DMA-buffer import still copies/blits into Android's
+swapchain; these counters do not claim direct SurfaceControl presentation.
+
+For native profiling, `security.perf_harden` was temporarily set to zero in a
+try/finally diagnostic and restored to its original value of one. Both
+`cpu-clock` and `cpu-cycles` were unsupported by the SDK profiler, so no CPU
+profile was collected. The restored property was verified after cleanup.
