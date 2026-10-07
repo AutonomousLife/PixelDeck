@@ -49,3 +49,9 @@ library list, before anything is published.
 
 Sixteen more of Armada's patches are DRM/lease/HDR-on-KMS work for a native display, which this
 app's Wayland-hosted gamescope never reaches, or need a newer gamescope than the runtime has.
+
+- `0117-preserve-current-swapchain-override.patch` - preserve the current window binding when
+  an older protocol swapchain sharing its Wayland surface is destroyed. Snapshot ownership
+  before clearing resource pointers; current-owner destruction still removes its own binding.
+  Run `python tools/gamescope/check-swapchain-override.py --source-dir PATH_TO_3.16.29_CHECKOUT`
+  to check exact-source applicability and the old/new swapchain lifetime regression.
