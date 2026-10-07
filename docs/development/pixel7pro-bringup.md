@@ -587,3 +587,7 @@ Driver `pixel-panvk-csf64` is selected separately from the original import.
 Temporary SDL diagnostic preload/env overrides were removed. A normal
 launch measured 34.5 displayed FPS (p95 50.1 ms, max 83.4 ms) with no
 GPU fatal/timeout log. Driver import unit tests and APK build passed.
+
+With the address fix installed, the kernel cache-sync override measured 33.5 FPS
+(p95 50.1 ms); it did not improve the normal path and was removed. Android
+thermal status and CPU/GPU cooling-device throttle levels were zero.
