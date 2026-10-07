@@ -809,3 +809,19 @@ This transport uses SHM when no suitable DMA-BUF global exists. An import failur
 after DMA-BUF advertisement does not retry through SHM; the controlled Gamescope
 global validates the actual import before accepting the buffer. The experiment
 is scoped to the tested Pixel 7 Pro and SDL backend, not general Tensor support.
+
+### Repeated XCB-query experiment (October 7)
+
+The actual Steam helper mapped runtime r9's Gamescope WSI layer, SHA256
+`47f52dabf07441062065580e2801a8c29792c1dfe2f0dc035f8636b560af5434`.
+An opt-in patch reused current-frame geometry and cached an immutable X atom,
+removing three synchronous replies without changing presentation/fence waits.
+The native layer was built and staged from Gamescope CI 37615387781 / artifact
+11478674395, with library and version compatibility checks passing.
+
+Same-layer flag-off runs measured 47.2 and 50.5 displayed FPS; flag-on runs
+measured 46.3 and 48.8. Physical Steam content remained correct. The first enabled
+run included a 1,083.2 ms presentation gap. This establishes no improvement.
+The patch and extra layer shipping changes were removed. The original r9 layer
+was restored byte-for-byte, and the diagnostic flag was removed. Native GPU
+sharing and automatic driver metadata remain enabled.

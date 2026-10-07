@@ -94,10 +94,6 @@ def stage():
                 from compression import zstd  # Python 3.14, no extra dependency.
                 with tarfile.open(fileobj=io.BytesIO(zstd.decompress(z.read("gamescope.tzst")))) as tar:
                     content = tar.extractfile("usr/local/bin/gamescope").read()
-                    layer = "usr/lib/libVkLayer_FROG_gamescope_wsi_aarch64.so"
-                    layer_destination = ROOT / "app/src/main/assets/linuxfs" / layer
-                    layer_destination.parent.mkdir(parents=True, exist_ok=True)
-                    layer_destination.write_bytes(tar.extractfile(layer).read())
                 relative = "usr/local/bin/gamescope"
             else:
                 for name in z.namelist():
