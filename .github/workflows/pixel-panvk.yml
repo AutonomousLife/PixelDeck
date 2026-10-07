@@ -2,7 +2,7 @@ name: Pixel PanVK experiment
 on:
   push:
     branches: [codex/pixel-gpu-probe]
-    paths: [.github/workflows/pixel-panvk.yml, tools/pixel-probe/linux_clear.c]
+    paths: [.github/workflows/pixel-panvk.yml, tools/pixel-probe/linux_clear.c, tools/pixel-probe/panvk-kbase-diagnostics.patch]
   workflow_dispatch:
 permissions:
   contents: read
@@ -87,6 +87,7 @@ jobs:
           assert text.count(old) == 1
           p.write_text(text.replace(old, 'open(dma_heap, O_RDONLY | O_CLOEXEC)'))
           PY
+          git -C mesa apply ../tools/pixel-probe/panvk-kbase-diagnostics.patch
       - name: Configure Wayland and X11 driver
 
         working-directory: mesa

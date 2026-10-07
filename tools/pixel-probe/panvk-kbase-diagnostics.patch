@@ -1,0 +1,83 @@
+--- a/src/panfrost/vulkan/csf/panvk_cmd_buffer.h
++++ b/src/panfrost/vulkan/csf/panvk_cmd_buffer.h
+@@ -67,6 +67,10 @@
+    PANVK_KBASE_PROGRESS_FRAG_BEFORE_RUN = 0x330,
+    PANVK_KBASE_PROGRESS_FRAG_AFTER_RUN = 0x340,
+    PANVK_KBASE_PROGRESS_FRAG_AFTER_FINISH = 0x350,
++   PANVK_KBASE_PROGRESS_FRAG_AFTER_DESC_MOVE = 0x351,
++   PANVK_KBASE_PROGRESS_END_BEFORE_QUERIES = 0xd00,
++   PANVK_KBASE_PROGRESS_END_AFTER_QUERIES = 0xd10,
++   PANVK_KBASE_PROGRESS_END_AFTER_SYNC_POINTS = 0xe00,
+ 
+    PANVK_KBASE_PROGRESS_COMPUTE_ENTER = 0x400,
+    PANVK_KBASE_PROGRESS_COMPUTE_BEFORE_ITER = 0x410,
+--- a/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
++++ b/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c
+@@ -4331,6 +4331,10 @@
+                                       !tracing_ctx->enabled);
+    }
+ 
++   panvk_per_arch(kbase_mark_progress)(
++      cmdbuf, PANVK_SUBQUEUE_FRAGMENT,
++      PANVK_KBASE_PROGRESS_FRAG_AFTER_DESC_MOVE);
++
+    /* Update the frag seqno. */
+    ++cmdbuf->state.cs[PANVK_SUBQUEUE_FRAGMENT].relative_sync_point;
+ 
+--- a/src/panfrost/vulkan/csf/panvk_vX_cmd_buffer.c
++++ b/src/panfrost/vulkan/csf/panvk_vX_cmd_buffer.c
+@@ -285,6 +285,11 @@
+ {
+    VK_FROM_HANDLE(panvk_cmd_buffer, cmdbuf, commandBuffer);
+ 
++   for (uint32_t i = 0; i < PANVK_SUBQUEUE_COUNT; i++)
++      if (!cs_is_empty(&cmdbuf->state.cs[i].builder))
++         panvk_per_arch(kbase_mark_progress)(
++            cmdbuf, i, PANVK_KBASE_PROGRESS_END_BEFORE_QUERIES);
++
+    /* Finishing queries requires a barrier. We don't want to do that more
+     * often than necessary. At the end of a primary is usually enough.
+     * Additionally, simultaneous use secondaries also need to flush if they
+@@ -298,8 +303,18 @@
+        unlikely(sim_use_sec_with_ts))
+       finish_queries(cmdbuf);
+ 
++   for (uint32_t i = 0; i < PANVK_SUBQUEUE_COUNT; i++)
++      if (!cs_is_empty(&cmdbuf->state.cs[i].builder))
++         panvk_per_arch(kbase_mark_progress)(
++            cmdbuf, i, PANVK_KBASE_PROGRESS_END_AFTER_QUERIES);
++
+    emit_tls(cmdbuf);
+    flush_sync_points(cmdbuf);
++
++   for (uint32_t i = 0; i < PANVK_SUBQUEUE_COUNT; i++)
++      if (!cs_is_empty(&cmdbuf->state.cs[i].builder))
++         panvk_per_arch(kbase_mark_progress)(
++            cmdbuf, i, PANVK_KBASE_PROGRESS_END_AFTER_SYNC_POINTS);
+ 
+    for (uint32_t i = 0; i < ARRAY_SIZE(cmdbuf->state.cs); i++) {
+       struct cs_builder *b = &cmdbuf->state.cs[i].builder;
+--- a/src/panfrost/vulkan/csf/panvk_vX_gpu_queue.c
++++ b/src/panfrost/vulkan/csf/panvk_vX_gpu_queue.c
+@@ -366,6 +366,21 @@
+              subq->kbase.last_job_entry_size, subq->kbase.last_job_size,
+              subq->kbase.last_stream_addr, subq->kbase.last_stream_size,
+              subq->kbase.last_flush_id);
++
++   panvk_priv_mem_readback(subq->context, 0,
++                           struct panvk_cs_subqueue_context, ctx) {
++      mesa_loge("kbase: %s subqueue %u context 0x%" PRIx64
++                " desc base/ptr 0x%" PRIx64 "/0x%" PRIx64
++                " pos %u sync 0x%" PRIx64 " heap 0x%" PRIx64
++                " geom 0x%" PRIx64 " oom fbd 0x%" PRIx64
++                " last_error 0x%x",
++                reason, subqueue, panvk_priv_mem_dev_addr(subq->context),
++                queue->render_desc_ringbuf.addr.dev,
++                ctx->render.desc_ringbuf.ptr, ctx->render.desc_ringbuf.pos,
++                ctx->render.desc_ringbuf.syncobj, ctx->render.tiler_heap,
++                ctx->render.geom_buf, ctx->tiler_oom_ctx.layer_fbd_ptr,
++                ctx->last_error);
++   }
+ 
+    kbase_log_ring_line(subq, subqueue, "extract", extract);
+ 
