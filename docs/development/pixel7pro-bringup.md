@@ -514,6 +514,26 @@ timed out; its partial timestamp sample is not a valid completed benchmark.
 This override was also removed. Its logs are saved separately under
 `build/panvk/steam-context33-kernel-cache-logs/`.
 
+A separately staged candidate built from Mesa fork revision
+`5aa0bc44652a6a0d597c7ce63bb6b3aca2de8b45` passed GPU clear/readback and
+created a real Zink GL 3.3 context in Steam. It still produced black output,
+CEF restarts, CSF fatal exception `0xc1`, and device loss. Its uninstrumented
+failure occurred around 4,097 queue submissions; enabling `sync,kbase_diag`
+failed at submission 33 instead, so the evidence does not establish a 4,096
+counter-wrap defect. The latter run reached fragment progress marker `0x350`;
+that marker does not prove a FINISH_FRAGMENT instruction executed, because
+kbase skips that instruction. Candidate diagnostic markers are otherwise
+disabled by default. Logs are under `build/panvk/steam-candidate-default-logs/`
+and `build/panvk/steam-candidate-sync-logs/`.
+
+`PAN_USE_KRAID=all` aborted on the unsupported `load_pixel_coord` intrinsic.
+A separate `-cef-disable-gpu` launch stayed usable but measured approximately
+7.9 displayed FPS during the same scrolling diagnostic. It did not establish
+an improvement. All diagnostic overrides and the modified guest launcher
+were reverted; the candidate driver remains staged separately for further
+investigation. The original installed driver and working Steam path remain
+the baseline. No stable-60-FPS claim follows from these tests.
+
 ## Remaining steps
 
 On the `19a5ac8` build, Steam's own `controller.txt` log identifies the
