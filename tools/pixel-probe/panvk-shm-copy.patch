@@ -1,0 +1,214 @@
+From: PixelDeck contributors
+Subject: [PATCH] panvk: opt in to X11 MIT-SHM CPU copies without host import
+
+Apply after panvk-cached-wsi.patch. PANVK_KBASE_SHM_COPY=1 enables a
+separate SysV SHM copy for kbase CPU WSI without EXT_external_memory_host.
+GPU readback allocations, present fences and cache invalidation are unchanged.
+Use full-frame ShmPutImage, then a geometry reply before image reuse; socket
+PutImage remains the fallback if SHM allocation or checked attach fails.
+MESA_VK_WSI_DEBUG=noshm still disables this path. Default remains off.
+
+--- a/src/vulkan/wsi/wsi_common.h
++++ b/src/vulkan/wsi/wsi_common.h
+@@ -143,6 +143,9 @@
+        * dma-buf with modifier 1274 through PixmapFromBuffers.
+        */
+       bool use_raw_fd_modifier;
++
++      /* Copy CPU readback into separate MIT-SHM; no Vulkan host import. */
++      bool use_shm_copy;
+ 
+       /* Never report VK_SUBOPTIMAL_KHR. Used to workaround
+        * games that cannot handle SUBOPTIMAL correctly. */
+--- a/src/panfrost/vulkan/panvk_wsi.c
++++ b/src/panfrost/vulkan/panvk_wsi.c
+@@ -101,6 +101,12 @@
+       !physical_device->wsi_device.has_import_memory_host &&
+       cached_wsi && !strcmp(cached_wsi, "1");
+ 
++   const char *shm_copy = getenv("PANVK_KBASE_SHM_COPY");
++   physical_device->wsi_device.x11.use_shm_copy =
++      uses_kbase && physical_device->wsi_device.sw &&
++      !physical_device->wsi_device.has_import_memory_host &&
++      shm_copy && !strcmp(shm_copy, "1");
++
+    /* kbase is not a DRM fd.  The default CPU WSI path presents through
+     * MIT-SHM.  Android dma-heaps can also provide shareable
+     * allocations, but some Android X servers advertise DRI3 while rejecting
+--- a/src/vulkan/wsi/wsi_common_x11.c
++++ b/src/vulkan/wsi/wsi_common_x11.c
+@@ -40,6 +40,7 @@
+ #include <stdio.h>
+ #include <unistd.h>
+ #include <errno.h>
++#include <limits.h>
+ #include <string.h>
+ #include <fcntl.h>
+ #include "drm-uapi/drm_fourcc.h"
+@@ -94,6 +95,7 @@
+    bool is_proprietary_x11;
+    bool is_xwayland;
+    bool has_mit_shm;
++   bool has_shm_copy;
+    bool has_xfixes;
+ 
+    struct list_head screen_resources_list;
+@@ -244,7 +246,7 @@
+                                *amd_reply, *nv_reply, *shm_reply = NULL,
+                                *xfixes_reply, *xwl_reply;
+    bool wants_shm = wsi_dev->sw && !(WSI_DEBUG & WSI_DEBUG_NOSHM) &&
+-                    wsi_dev->has_import_memory_host;
++                    (wsi_dev->has_import_memory_host || wsi_dev->x11.use_shm_copy);
+    bool has_dri3_v1_2 = false;
+    bool has_present_v1_2 = false;
+    bool has_dri3_v1_4 = false;
+@@ -361,8 +363,14 @@
+       wsi_conn->is_proprietary_x11 = true;
+ 
+    wsi_conn->has_mit_shm = false;
++   wsi_conn->has_shm_copy = false;
++#ifdef HAVE_SYS_SHM_H
++   wsi_conn->has_shm_copy = wants_shm && wsi_dev->x11.use_shm_copy &&
++                            shm_reply && shm_reply->present;
++#endif
+ #if defined(HAVE_X11_DRM) && defined(HAVE_SYS_SHM_H)
+-   if (wsi_conn->has_dri3 && wsi_conn->has_present && wants_shm) {
++   if (wsi_conn->has_dri3 && wsi_conn->has_present && wants_shm &&
++       wsi_dev->has_import_memory_host) {
+       wsi_conn->has_mit_shm = x11_xcb_display_supports_xshm(conn, NULL);
+    }
+ #endif
+@@ -1210,6 +1218,7 @@
+    xcb_shm_seg_t                             shmseg;
+    int                                       shmid;
+    uint8_t *                                 shmaddr;
++   bool                                      shm_copy;
+    uint64_t                                  present_id;
+    VkPresentModeKHR                          present_mode;
+    xcb_rectangle_t                           rects[MAX_DAMAGE_RECTS];
+@@ -1243,6 +1252,7 @@
+ 
+    bool                                         has_dri3_modifiers;
+    bool                                         has_mit_shm;
++   bool                                         has_shm_copy;
+    bool                                         has_async_may_tear;
+    bool                                         msc_estimate_is_stable;
+ 
+@@ -1850,18 +1860,32 @@
+    assert(!chain->base.image_info.explicit_sync);
+    struct x11_image *image = &chain->images[image_index];
+ 
+-   /* Begin querying this before submitting the frame for improved async performance.
+-    * In this _sw() mode we're expecting network round-trip delay, not just UNIX socket delay. */
+-   xcb_get_geometry_cookie_t geom_cookie = xcb_get_geometry(chain->conn, chain->window);
+-
+-   xcb_void_cookie_t cookie;
++   /* Socket PutImage owns its copied bytes. MIT-SHM must instead query geometry
++    * AFTER the put, so its reply proves the server consumed the shared bytes.
++    */
++   xcb_get_geometry_cookie_t geom_cookie = {0};
++   if (!image->shm_copy)
++      geom_cookie = xcb_get_geometry(chain->conn, chain->window);
++
++   xcb_void_cookie_t cookie = {0};
+    void *myptr = image->base.cpu_map;
+    size_t hdr_len = sizeof(xcb_put_image_request_t);
+    int stride_b = image->base.row_pitches[0];
+    size_t size = (hdr_len + stride_b * chain->extent.height) >> 2;
+    uint64_t max_req_len = xcb_get_maximum_request_length(chain->conn);
+ 
+-   if (image->rectangle_count > 0) {
++   if (image->shm_copy) {
++      /* The common present fence and cache invalidate have already completed.
++       * Copy the complete padded image; only visible pixels are sent to X11.
++       */
++      memcpy(image->shmaddr, myptr, (size_t)stride_b * chain->extent.height);
++      cookie = xcb_shm_put_image_checked(chain->conn, chain->window, chain->gc,
++                                         stride_b / 4, chain->extent.height,
++                                         0, 0, chain->extent.width, chain->extent.height,
++                                         0, 0, chain->depth, XCB_IMAGE_FORMAT_Z_PIXMAP,
++                                         0, image->shmseg, 0);
++      geom_cookie = xcb_get_geometry(chain->conn, chain->window);
++   } else if (image->rectangle_count > 0) {
+       for (int i = 0; i < image->rectangle_count; i++) {
+          xcb_rectangle_t rect = chain->images[image_index].rects[i];
+          const uint8_t *data = (const uint8_t*)myptr + (rect.y * stride_b) + (rect.x * 4);
+@@ -1926,6 +1950,15 @@
+    }
+    free(err);
+    free(geom);
++
++   if (image->shm_copy) {
++      /* The later geometry reply also makes checking the put error nonblocking. */
++      err = xcb_request_check(chain->conn, cookie);
++      if (err) {
++         free(err);
++         result = VK_ERROR_SURFACE_LOST_KHR;
++      }
++   }
+ 
+    wsi_queue_push(&chain->acquire_queue, image_index);
+    return result;
+@@ -2628,8 +2661,42 @@
+       return result;
+ 
+    image->update_region = None;
+-   if (chain->base.wsi->sw && !chain->has_mit_shm)
++   image->shm_copy = false;
++   if (chain->base.wsi->sw && !chain->has_mit_shm) {
++#ifdef HAVE_SYS_SHM_H
++      const VkDeviceSize stride = image->base.row_pitches[0];
++      const VkDeviceSize size = stride * chain->extent.height;
++      if (chain->has_shm_copy &&
++          vk_format_get_blocksize(pCreateInfo->imageFormat) == 4 && stride % 4 == 0 &&
++          stride / 4 <= UINT16_MAX && chain->extent.height <= UINT16_MAX &&
++          chain->extent.width <= stride / 4 && size > 0 && size <= UINT_MAX) {
++         int shmid = shmget(IPC_PRIVATE, size, IPC_CREAT | 0600);
++         if (shmid >= 0) {
++            void *addr = shmat(shmid, NULL, 0);
++            if (addr != (void *)-1) {
++               xcb_shm_seg_t shmseg = xcb_generate_id(chain->conn);
++               xcb_generic_error_t *error = xcb_request_check(chain->conn,
++                  xcb_shm_attach_checked(chain->conn, shmseg, shmid, 1));
++               if (!error) {
++                  image->shmid = shmid;
++                  image->shmaddr = addr;
++                  image->shmseg = shmseg;
++                  image->shm_copy = true;
++                  mesa_logi("X11 WSI: MIT-SHM CPU copy %ux%u, stride %u",
++                            chain->extent.width, chain->extent.height, (unsigned)stride);
++               } else {
++                  free(error);
++                  shmdt(addr);
++               }
++            }
++            /* Mark for deletion only after the server had a chance to attach. */
++            shmctl(shmid, IPC_RMID, NULL);
++         }
++      }
++#endif
++      /* Allocation/attach failure retains the existing socket PutImage path. */
+       return VK_SUCCESS;
++   }
+ 
+ #ifdef HAVE_X11_DRM
+    xcb_void_cookie_t cookie;
+@@ -2836,6 +2903,10 @@
+ #endif
+    }
+ 
++   if (image->shm_copy) {
++      cookie = xcb_shm_detach(chain->conn, image->shmseg);
++      xcb_discard_reply(chain->conn, cookie.sequence);
++   }
+    wsi_destroy_image(&chain->base, &image->base);
+ #ifdef HAVE_SYS_SHM_H
+    if (image->shmaddr)
+@@ -3306,6 +3377,7 @@
+    chain->status = VK_SUCCESS;
+    chain->has_dri3_modifiers = wsi_conn->has_dri3_modifiers;
+    chain->has_mit_shm = wsi_conn->has_mit_shm;
++   chain->has_shm_copy = wsi_conn->has_shm_copy;
+    chain->has_async_may_tear = present_caps & XCB_PRESENT_CAPABILITY_ASYNC_MAY_TEAR;
+    chain->has_reliable_msc = !wsi_conn->is_xwayland;
+ 

@@ -2,7 +2,7 @@ name: Pixel PanVK experiment
 on:
   push:
     branches: [codex/pixel-gpu-probe]
-    paths: [.github/workflows/pixel-panvk.yml, tools/pixel-probe/linux_clear.c, tools/pixel-probe/panvk-kbase-diagnostics.patch, tools/pixel-probe/panvk-csf-address.patch, tools/pixel-probe/panvk-cached-wsi.patch]
+    paths: [.github/workflows/pixel-panvk.yml, tools/pixel-probe/linux_clear.c, tools/pixel-probe/panvk-kbase-diagnostics.patch, tools/pixel-probe/panvk-csf-address.patch, tools/pixel-probe/panvk-cached-wsi.patch, tools/pixel-probe/panvk-shm-copy.patch]
   workflow_dispatch:
 permissions:
   contents: read
@@ -90,6 +90,7 @@ jobs:
           git -C mesa apply ../tools/pixel-probe/panvk-kbase-diagnostics.patch
           git -C mesa apply ../tools/pixel-probe/panvk-csf-address.patch
           git -C mesa apply ../tools/pixel-probe/panvk-cached-wsi.patch
+          git -C mesa apply ../tools/pixel-probe/panvk-shm-copy.patch
       - name: Configure Wayland and X11 driver
 
         working-directory: mesa
