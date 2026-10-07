@@ -1,0 +1,31 @@
+--- a/src/wlserver.cpp
++++ b/src/wlserver.cpp
+@@ -957,14 +957,26 @@
+ #ifdef GAMESCOPE_SWAPCHAIN_DEBUG
+ 	wl_log.infof( "gamescope_swapchain_handle_resource_destroy swapchain: %p", resource );
+ #endif
++	wlserver_wl_surface_info *wl_surface_info = (wlserver_wl_surface_info *)wl_resource_get_user_data( resource );
++	bool owns_content_override = false;
++	if ( wl_surface_info && wl_surface_info->x11_surface )
++	{
++		auto *x11_surface = wl_surface_info->x11_surface;
++		auto &overrides = x11_surface->xwayland_server->content_overrides;
++		auto iter = overrides.find( x11_surface->x11_id );
++		owns_content_override = iter != overrides.end() && iter->second->gamescope_swapchain == resource;
++	}
++
++	// Old and new swapchains can share a wl_surface. Remember ownership before
++	// clearing resource pointers, so destroying the old one preserves the new binding.
+ 	gamescope_xwayland_server_t *server = NULL;
+ 	for (size_t i = 0; (server = wlserver_get_xwayland_server(i)); i++)
+ 		server->clear_content_override_swapchain( resource );
+ 
+-	wlserver_wl_surface_info *wl_surface_info = (wlserver_wl_surface_info *)wl_resource_get_user_data( resource );
+ 	if ( wl_surface_info )
+ 	{
+-		gamescope_swapchain_destroy_co( resource );
++		if ( owns_content_override )
++			gamescope_swapchain_destroy_co( resource );
+ 		std::erase(wl_surface_info->gamescope_swapchains, resource);
+ 	}
+ }
