@@ -55,3 +55,11 @@ item was checked, and what is still blocked. Status words mean:
 - `python -m unittest tools/tests/test_pixel_build.py tools/tests/test_release_manifest.py`: 7 tests pass.
 - Full Python suite: 153 tests run; 48 failures or errors, identical to a clean `HEAD` worktree. The failures are Linux-only or environment-specific (for example `fcntl` on Windows).
 - The old manifest fails `test_release_manifest.py`'s agent check, so the test does detect the problem it targets.
+
+## Build status (2026-10-08, later session)
+
+- **SDK:** installed under the AgentBox profile by `tools/pixel-probe/bootstrap_sdk.py` (NDK 27.3.13750724, CMake 3.22.1) and a checksum-verified install of platform 34 and build-tools 35.0.0. The owner's SDK folder is not readable from this account.
+- **Staging:** `tools/pixel-build.py` completes its staging step on this PC.
+- **Gradle `:app:assembleDebug`: blocked.** Every attempt fails in `:app:compileDebugJavaWithJavac` with `java.nio.file.AccessDeniedException` on `app/build/intermediates/compile_and_runtime_not_namespaced_r_class_jar/debug/processDebugResources/R.jar`. The stack trace shows it is raised when `jdk.zipfs` closes that jar. Attempts that did not clear it: a normal rerun, stopping the Gradle daemons this account had started, `--no-daemon` with `-Dorg.gradle.vfs.watch=false`, `:app:clean`, and a second JDK 21 build (Eclipse Adoptium). The file opens for reading and for exclusive write from PowerShell, so the lock is not a simple open handle.
+- **Consequence:** the APK byte-comparison proof for item 3 is not done yet. The Oct 7 APK predates `HostProcess` and `SessionPhase`, so it cannot be used to check the current source.
+- **Next actions:** try JDK 17, check whether Windows Defender or Controlled Folder Access is locking the file during the zip close, and find out whether the lock occurs on the owner's account. Do not change security settings to get past it.
