@@ -886,3 +886,13 @@ A recognized `vblank_mode=0` comparison on this installed DMA-BUF path measured
 second sample. Correct Steam pixels and the hardware renderer were verified.
 Real swap wall time still averaged 9.0 ms in its fresh trace. This does not
 establish that vsync causes the swap blocking, and the override was removed.
+
+The subsequent normal-configuration restore, session 2026-10-07-08-steam,
+measured 34.0 displayed FPS, p95 49.9 ms, max 125.0 ms, with correct pixels.
+Hardware rendering and the 8,343-microsecond scheduling interval remained
+active; Android reported thermal status zero, and process inspection found
+only the current Steam session. Its fresh trace showed 16.7 ms average real
+swap wall time but only 1.7 ms average thread CPU time, while renderer main
+frames remained about 9.0 ms. The earlier 50–55 FPS samples are therefore not
+a sustained performance guarantee. Presentation blocking varies and remains
+the main unresolved target; the exact GPU/compositor dependency is unproven.
