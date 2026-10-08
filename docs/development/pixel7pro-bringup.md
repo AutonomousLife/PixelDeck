@@ -832,3 +832,57 @@ FPS, p95 33.3 ms, max 50.0 ms. Its inspected logs contained no GPU translation
 fault, device loss or failed import. The selected driver retained the tested
 DMA-BUF library and automatic metadata. This is another successful short sample,
 not proof of stable 60 FPS or absence of later stutters.
+
+### Surface lifetime and Steam timing correction (October 7)
+
+Gamescope retained raw Wayland surface pointers in resolved queues and held
+commits after the surface was destroyed. Patch 0119 tags each commit with the
+surface generation, retires its presentation feedback on destruction, and
+checks that generation under the Wayland lock before accessing surface state.
+The ASan regression extracts the actual patched functions: the original code
+reproduces a heap use-after-free; the patched cases pass, including reused
+addresses, queued and held feedback, client-first cleanup and buffer release.
+This fixes a demonstrated lifetime bug; its causal link to the earlier phone
+heap-corruption crash is not established by a backtrace.
+
+Gamescope CI 37702781451 / artifact 11518696743 passed. The installed executable
+matches the APK asset, SHA256
+`ddb1fecdc27d5613d1992dd931790c5ac8a05c9552e3841da7655d03f727efa9`.
+
+Steam's ANGLE EGL layer advertised sync-control timing while native Gamescope
+presentation bypassed Xwayland's Present counters. An observational probe in
+the actual CEF GPU process returned a real 119.86 Hz rate but frozen UST,
+MSC 1 and SBC 0 across almost a second. The original Chromium trace scheduled
+frames at 16,666 microseconds despite Android's 120 Hz output and RandR's
+119.86 Hz mode.
+
+The existing Steam GL constructor now sets Mesa's supported
+`glx_extension_override=-GLX_OML_sync_control` only for `steamwebhelper` with
+the verified PanVK Steam flag and native DMA-BUF option. An explicit user
+override takes precedence. This withdraws unusable timing capabilities so CEF
+uses the real RandR refresh; it does not invent timestamps or skip GPU waits.
+Runtime CI 37704026605 / artifact 11517904388 passed the constructor scope and
+override regression, libdrm forwarding check, and ARM64 build. Its installed
+library matches the APK asset, SHA256
+`9836be53b6fb8988d2d183e329ddd862bfcd79b31ebf52a1d40a85863ae0c667`.
+
+Session 2026-10-07-06-steam used the installed APK with no diagnostic environment
+file. SystemInfo confirmed ANGLE OpenGL on Zink/PanVK, zero GPU-process crashes,
+and absence of both EGL sync-control capabilities. A fresh trace recorded
+8,343-microsecond begin-frame intervals (119.86 Hz), with no SyncControl provider
+calls. Correct physical Steam pixels were verified after scrolling. Two
+15-second displayed-frame samples measured 50.3 and 51.3 FPS, p95 gaps 33.4 ms,
+with maximum gaps about 183 ms. The inspected session log contained no GPU
+translation fault, device loss, failed import or heap-corruption error.
+
+The timing correction is proven; locked 60 or 120 displayed FPS is not. The
+fresh trace still shows about 9 ms per renderer main frame and 9.4 ms average
+wall time inside real swaps. Nested trace spans cannot be summed to claim a
+single frame cost. Swap blocking needs to be distinguished from required GPU
+completion before changing pacing or synchronization.
+
+A recognized `vblank_mode=0` comparison on this installed DMA-BUF path measured
+54.4 and 52.9 displayed FPS, p95 33.3 ms, with a maximum gap of 500 ms in the
+second sample. Correct Steam pixels and the hardware renderer were verified.
+Real swap wall time still averaged 9.0 ms in its fresh trace. This does not
+establish that vsync causes the swap blocking, and the override was removed.
