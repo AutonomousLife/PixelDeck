@@ -10,7 +10,9 @@ import subprocess
 import tarfile
 import zipfile
 
-ROOT = Path(__file__).resolve().parent.parent
+# Not resolve(): that maps a subst drive back to its target, and Java's toRealPath fails on any
+# path whose parent folders the build account cannot list (AgentBox under C:\Users\Silver).
+ROOT = Path(__file__).absolute().parent.parent
 ARTIFACT = "repos/Droid-Deck/DroidDeck/actions/artifacts/11390530317"
 DIGEST = "2400d77fcd27220325ddb69947592270361cb2813be8a49ec95844b176bceb9d"
 CACHE = ROOT / "build/pixel-probe/upstream-ci.zip"

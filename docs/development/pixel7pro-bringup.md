@@ -915,3 +915,56 @@ while renderer main frames stay near 9 ms of CPU. Measure before changing pacing
 
 Done when the swap wait is attributed to a specific child with repeated samples,
 or the attribution is recorded as impossible with the trace that showed why.
+
+### Benchmark correction and full-Steam present attribution (October 8)
+
+**Tested build and configuration.** Installed APK `local dirty · codex/pixel-gpu-probe at 1a03bcf`,
+runtime r9, Steam Big Picture at 1280x720 / 120 Hz, driver `pixel-panvk-csf64` with SHA256
+`dd9773aa81272769bb89d3537978b840aca7c7ff0554b28bf9cb57a4c9b91b8c` (the DMA-BUF candidate),
+no `files/pixeldeck-env` override, thermal status 0. Raw results are in `build/bench/` (not committed).
+
+**Benchmark defects found and fixed.** The untracked `build/panvk/measure-steam-scroll.py` is
+replaced by `tools/pixel-bench/steam_scroll.py` (tests: `tools/tests/test_steam_scroll_bench.py`).
+- It counted frames over the guest helper's whole lifetime, including startup and teardown, not
+  only while the page scrolled. The new tool measures only the scroll window, trimmed by 250 ms.
+- Its sine-wave scroll slows below one pixel per frame near each turnaround, so the page stops
+  changing for ~150-270 ms and no frame is presented. Those gaps landed ~150 ms after every
+  turnaround (1.48, 4.17, 6.87, 9.50, 12.16 s into each run) and are the "158-267 ms stalls" of
+  this and earlier reports. A constant-speed triangle scroll (240 px/s) removes them.
+- Polling SurfaceFlinger through one adb process per poll took 0.3-0.8 s. This phone keeps only
+  ~60 frames of history (about 1.1 s at 55 FPS), so slow polls could drop frames silently. Polling
+  now runs in one on-device loop every ~100 ms, and a run is rejected if a poll does not overlap
+  the previous one. Two runs were correctly rejected this way before the change.
+- A guest error with exit status 0 used to count as success. The tool now also rejects runs when
+  focus or the awake state is lost, when the scroll moves less than 200 px, or when fewer than 60
+  frames appear. Each run records Chromium's requestAnimationFrame cadence, the Mali clock, the app
+  build, session, every installed driver's hash, the env override file and thermal status.
+
+**Corrected baseline** (fresh session 2026-10-08-03-steam, constant-speed scroll, 3 valid runs):
+54.5, 53.4 and 54.0 displayed FPS; median gap 16.67 ms; p95 33.4 ms; p99 41.7 ms; worst 58, 50
+and 67 ms; 17-20 gaps over 34 ms per 14.5 s. Chromium's requestAnimationFrame median is 16.7 ms,
+so the renderer runs at 60 Hz, not 120. The Mali clock (`cur_freq`) had a median of 471-510 MHz
+during runs, with a highest sample of 701 MHz; the frequency table itself is not readable from adb.
+
+**Full-Steam present attribution.** The observation-only `LD_AUDIT` library
+(`build/panvk/libpixel-swap-poll.so`, SHA256 605afe0b...) ran in session 2026-10-08-02-steam.
+Across 12 report windows of 240 presents in Steam's GPU process:
+- Zink's present thread: `vkQueuePresentKHR` median 12.7 ms per present (11.1-13.6 ms).
+- Inside it, `ppoll` at driver offset `0x65b668` took a median 10.7 ms per present (85 %), over
+  ~46 calls per present. Every call returned ready after ~0.25 ms and none timed out: the driver
+  wakes repeatedly while waiting for GPU work to complete.
+- `vkQueueSubmit` cost 0.27 ms; ANGLE's `eglSwapBuffers` on the GPU main thread 9.9 ms median;
+  `vkAcquireNextImageKHR` 3.2 ms median.
+The offset cannot be named: the CI driver is stripped (`.dynsym` only). With the audit loaded,
+two runs measured 55.6 and 56.0 FPS under the old sine scroll, without the turnaround gaps; that
+comparison predates the scroll fix and is not evidence that the audit changes timing.
+
+**Conclusion.** A present waits about 11 ms for GPU completion while the GPU runs at a median of
+roughly 400-510 MHz. Per-frame waiting, not shader throughput, caps the pipeline: an earlier 960x540 run
+did not help either. 120 Hz needs a present under 8.3 ms. The next step is a driver build that
+names the waiting site, then a GPU-side wait for incoming semaphores in the kbase present path.
+Driver builds run in CI (`pixel-panvk.yml`); downloading the artifact needs `gh` authentication.
+
+**Session restored.** `files/pixeldeck-env` was removed and the session restarted READY
+(2026-10-08-03-steam). `droiddeckctl stop` reported `ARTIFACT_TIMEOUT` on both restarts although
+the session stopped; that is an open reliability defect.
