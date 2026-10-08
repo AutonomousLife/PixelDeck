@@ -65,6 +65,9 @@ def stage():
     for component, _, _, expected in PIXEL_COMPONENTS:
         if source_digest(component) != expected:
             raise RuntimeError(f"{component} sources changed: rebuild its Linux CI artifact and update PIXEL_COMPONENTS")
+    # A new pinned APK must replace what an older one staged, or changed scripts never reach the build.
+    stamp = ROOT / "build/pixel-probe/staged-digest"
+    refresh = not stamp.exists() or stamp.read_text().strip() != DIGEST
     with checked_archive(CACHE, ARTIFACT, DIGEST) as z:
         apk_name = next(n for n in z.namelist() if n.endswith(".apk"))
         with zipfile.ZipFile(io.BytesIO(z.read(apk_name))) as apk:
@@ -80,8 +83,8 @@ def stage():
                 destination = destination.resolve()
                 if not destination.is_relative_to((ROOT / "app/src/main").resolve()):
                     raise RuntimeError("Invalid artifact path: " + name)
-                # Only generated/ignored inputs; current checkout scripts are staged by Gradle.
-                if not destination.exists():
+                # Gradle restages checkout scripts at preBuild, so a refresh here cannot leave a stale copy.
+                if refresh or not destination.exists():
                     destination.parent.mkdir(parents=True, exist_ok=True)
                     destination.write_bytes(apk.read(name))
 
@@ -106,6 +109,9 @@ def stage():
             destination.parent.mkdir(parents=True, exist_ok=True)
             if not destination.exists() or destination.read_bytes() != content:
                 destination.write_bytes(content)
+    # Written last, so an interrupted run refreshes again next time.
+    stamp.parent.mkdir(parents=True, exist_ok=True)
+    stamp.write_text(DIGEST + "\n")
 
 
 def main():

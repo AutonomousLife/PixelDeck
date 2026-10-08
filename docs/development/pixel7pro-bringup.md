@@ -896,3 +896,22 @@ swap wall time but only 1.7 ms average thread CPU time, while renderer main
 frames remained about 9.0 ms. The earlier 50–55 FPS samples are therefore not
 a sustained performance guarantee. Presentation blocking varies and remains
 the main unresolved target; the exact GPU/compositor dependency is unproven.
+
+### Next steps for presentation blocking (October 8)
+
+The open target is the unexplained wall time inside real swaps (about 9 to 17 ms)
+while renderer main frames stay near 9 ms of CPU. Measure before changing pacing:
+
+1. Split each real swap into its children in one trace: GPU submit, fence or
+   completion wait, and the Wayland or X11 present call. Record which child carries
+   the wall time. Thread CPU time (1.7 ms) already shows the swap is mostly waiting.
+2. Repeat the same 15-second displayed-frame sample three times in the normal
+   configuration. Report the spread, not a single number. The 34 to 55 FPS range
+   shows that one sample is not enough.
+3. Check whether the waits line up with compositor frame callbacks. If they do,
+   the blocking is downstream of PixelDeck and belongs to the compositor path.
+4. Only after 1 to 3 agree, test one change at a time. Keep the `vblank_mode=0`
+   result as a comparison, not a fix, unless it reproduces with the same sampling.
+
+Done when the swap wait is attributed to a specific child with repeated samples,
+or the attribution is recorded as impossible with the trace that showed why.
