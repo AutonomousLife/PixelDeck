@@ -1,13 +1,13 @@
 # Agent instructions
 
 ## Shared PC control (SilverPC)
-Chas uses this PC too, and several AI agents share it. Human first: Chas always wins.
+Chas uses this PC too, and several AI agents share it. Chas is almost always on it, so **do GUI/game tests in AgentBox via `agentbox` + `pccontrol acquire agentbox`. Use Chas's own desktop only if AgentBox is down, and then the old human-first rules apply.** AgentBox is a hidden second Windows session on the same PC (user `AgentBox`, 1920x1080, real RTX 5070 for D3D and OpenGL). Nothing in it shows on Chas's screen.
 
-- Before any action that uses the mouse, keyboard, screen, window focus, or launches a game/GUI app on SilverPC, run `pccontrol acquire -Agent <you> -Project <project> -Reason "<why>" -Wait`. Use a unique name such as `claude-SonsCraft` or `codex-PixelDeck`.
-- Release with `pccontrol release -Agent <you>` as soon as done.
-- Between GUI steps (before each click/keystroke batch or game launch), run `pccontrol check -Agent <you>`. If it exits non-zero (5 = Chas is using the PC or paused agents), stop GUI actions immediately, release, and go back to code-only work. Do not fight Chas for the mouse.
-- Code edits, builds, and headless tests do not need the lock. Prefer headless tests.
-- Heavy GPU work (launching a game, GPU benchmarks) uses `-Scope gpu`, or `-Scope gui,gpu` if it also needs the screen.
-- You only get a turn after Chas has not touched the mouse/keyboard for 3 minutes, and never while he has paused agents. Exit codes from acquire: 2 = another agent has it, 3 = Chas is active, 4 = paused. `-Wait` waits for you; if your shell times out, just run it again.
-- Holding longer than 30 min? Run acquire again to renew. See who has it: `pccontrol status`.
-- If `pccontrol` is not found, use the full path: `C:\Users\Silver\agent-tools\control-queue\pccontrol.cmd` (cmd/PowerShell) or `/c/Users/Silver/agent-tools/control-queue/pccontrol` (Git Bash). Never type bare `control` - that opens Windows Control Panel.
+- **Take the AgentBox turn:** `pccontrol acquire -Agent <you> -Project <project> -Reason "<why>" -Scope agentbox -Wait` (games/heavy GPU: `-Scope agentbox,gpu`). There's no human-idle wait; agents use it one at a time. Use a unique name such as `claude-SonsCraft` or `codex-PixelDeck`.
+- **Drive it with `agentbox`:** `agentbox status` / `agentbox start` (brings the session + bridge up) · `agentbox run <exe> -Args "<args>" -Cwd <dir>` (add `-Wait -TimeoutSec N` to get exit code + output) · `agentbox screenshot -Path <png>` then view the PNG · `agentbox focus -Title <text>` · `agentbox click X Y` · `agentbox type "text"` · `agentbox key "ctrl+s"` · `agentbox windows` · `agentbox kill <pid>` (only processes it launched).
+- Between steps run `pccontrol check -Agent <you>`: exit 5 = Chas paused agents, so stop and release; exit 7 = AgentBox is down, so run `agentbox start` and, if it stays down, use the fallback below. Release with `pccontrol release -Agent <you>` as soon as you're done.
+- AgentBox is a standard user that can only write to the active project folders (SonsCraft, ASMRROBLOX, OSRSFP, PixelDeck, FateFirstPerson) and `C:\Users\Silver\agent-tools\agentbox\shared` (put screenshots/test output there). It has its own profile, so game launchers and logins are separate from Chas's.
+- **Fallback, only if AgentBox is down:** use Chas's desktop with `-Scope gui` (or `gui,gpu`) `-Wait`. You only get a turn after Chas has been idle 3 minutes; run `pccontrol check` between GUI steps and stop immediately on exit 5. Never fight Chas for the mouse.
+- Code edits, builds, and headless tests do not need any lock. Prefer headless tests.
+- Acquire exit codes: 2 = another agent has it, 3 = Chas is active (gui only), 4 = paused. Holding longer than 30 min? Run acquire again to renew. `pccontrol status` shows who holds what and whether AgentBox is up.
+- If `pccontrol`/`agentbox` are not found, use full paths: `C:\Users\Silver\agent-tools\control-queue\pccontrol.cmd` / `agentbox.cmd` (Git Bash: `/c/Users/Silver/agent-tools/control-queue/pccontrol` / `agentbox`). Never type bare `control` (that opens Windows Control Panel).
