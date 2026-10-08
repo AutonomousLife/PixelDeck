@@ -988,3 +988,31 @@ new `LogRedactorGuardTest` (5) pass. `droiddeckctl stop` now waits for artifacts
 outlasted 180 s (stop took 190 s), so the app-side speed-up is the fix that matters. It is built and
 unit-tested but not installed, because the installed app's signing key is not available here.
 
+### Session reliability defects found during sustained testing (October 8)
+
+**Retry starts a paused session (fixed in source, not yet installed).** "Try again" and the agent
+start finish the ended screen and open a new `SessionActivity`. Android stops the old activity after
+the new one has started, so the old one's hidden report reached `SessionService` after the new one's
+visible report, and the starting session was suspended ("Steam is paused" over "Starting Steam").
+Reproduced twice (sessions 05 and 06). `VisibilityOwner` now lets only the screen shown last report
+hidden; `VisibilityOwnerTest` (4) covers retry, rotation and release.
+
+**Gamescope dies intermittently (open).** Sessions 04 and 05 ended with `GUEST_EXIT` status 1 and
+`gamescopereaper: Parent of gamescopereaper was killed`. Session 04 died after ~6.75 min, at the end
+of a 300 s scroll, with 490 `create_swapchain: Surface already had a gamescope_swapchain!` warnings
+(session 03: 36). Session 05 died 10 s after READY with 8 warnings, right after Steam's usual Proton
+`explorer.exe` created a surface; sessions 01-03 and 06 ran the same `explorer.exe` and survived.
+Android's crash buffer was empty and no low-memory kill was logged. Next step: a Gamescope CI build
+that reports its exit signal and the surface/swapchain owner on that warning.
+
+**Agent start after a failed session does nothing (open).** With the phase FAILED, `droiddeckctl
+start` launched `AgentStartActivity` (06:48, 06:49, 06:51) but logcat shows no `SessionActivity`
+start and no error. The recovery latch it waits on was already released. Not reproduced since; the
+on-screen "Try again" works.
+
+**Sustained-run harness.** A single 300 s DevTools evaluation was closed by Steam ("devtools closed
+the connection"); the benchmark rejected it. Sustained runs should use repeated 30 s segments.
+
+**Unit tests.** 271 JVM tests on Windows: the same 28 fail on a clean worktree at 8605c30 and with
+these changes (symlink privilege, POSIX permissions and similar host limits), so none are new.
+

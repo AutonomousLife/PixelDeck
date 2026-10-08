@@ -1882,6 +1882,7 @@ class SessionActivity : ComponentActivity(), SurfaceHolder.Callback {
         displayManager.registerDisplayListener(displayListener, Handler(Looper.getMainLooper()))
         refreshSecondScreenDisplays()
         if (secondScreenMode != SecondScreenMode.NONE && secondScreenPresentation == null) showSecondScreen(secondScreenMode)
+        com.droiddeck.launcher.session.VisibilityOwner.sessionScreens.shown(this)
         SessionService.setActivityVisible(this, true)
     }
 
@@ -1892,7 +1893,11 @@ class SessionActivity : ComponentActivity(), SurfaceHolder.Callback {
         // Closed while the session is out of sight (sleep, a closed lid, another app), and kept:
         // onStart puts it back.
         closeSecondScreen(reset = false)
-        SessionService.setActivityVisible(this, false)
+        // An older screen stopping after a newer one started (Try again, an agent start) must not
+        // pause the session the newer one is showing.
+        if (com.droiddeck.launcher.session.VisibilityOwner.sessionScreens.hidden(this)) {
+            SessionService.setActivityVisible(this, false)
+        }
         super.onStop()
     }
 
@@ -2016,6 +2021,7 @@ class SessionActivity : ComponentActivity(), SurfaceHolder.Callback {
         if (runtimeRemovalBlocked) { super.onDestroy(); return }
         // Deliberately does NOT end the session: this activity can be destroyed while the user is
         // in another app, and the whole point of the service is that Steam survives that.
+        com.droiddeck.launcher.session.VisibilityOwner.sessionScreens.forget(this)
         watching = false
         releaseDrawerDirection()
         pendingBackAction?.let(uiHandler::removeCallbacks)
