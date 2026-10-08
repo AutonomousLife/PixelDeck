@@ -231,13 +231,13 @@ def execute(args: argparse.Namespace, adb: str, serial: str) -> dict:
     if args.command == "stop":
         current = get_state(adb, serial)
         if current["session"].get("phase") in {"IDLE", "FAILED"}:
-            return add_serial(wait_for_artifacts(adb, serial, current, args.timeout), serial)
+            return add_serial(wait_for_artifacts(adb, serial, current, args.artifact_timeout), serial)
         response = provider_call(adb, serial, "stop")
         if response.get("ok") is False:
             error = response.get("error", {})
             raise ControlError(error.get("message", "stop failed"), error.get("code", "STOP_FAILED"))
         state = wait_for_phase(adb, serial, "IDLE", args.timeout)
-        return add_serial(wait_for_artifacts(adb, serial, state, args.timeout), serial)
+        return add_serial(wait_for_artifacts(adb, serial, state, args.artifact_timeout), serial)
 
     if args.command == "resume":
         response = provider_call(adb, serial, "resume")
@@ -316,14 +316,17 @@ def build_parser() -> argparse.ArgumentParser:
     wait.add_argument("phase", choices=["ready", "idle", "failed"])
     wait.add_argument("--timeout", type=float, default=90)
 
+    # Collecting a session's artifacts (scrubbing ~27 MB of Steam logs) took about two minutes on a
+    # Pixel 7 Pro, so it gets its own wait instead of sharing the stop timeout.
     stop = commands.add_parser("stop", help="stop the session and wait for IDLE")
-    stop.add_argument("--timeout", type=float, default=90)
+    stop.add_argument("--timeout", type=float, default=90, help="seconds to wait for IDLE")
+    stop.add_argument("--artifact-timeout", type=float, default=180, help="seconds to wait for artifact collection")
     commands.add_parser("resume", help="resume a suspended session")
 
     logs = commands.add_parser("logs", help="pull the latest session artifact directory")
     logs.add_argument("which", choices=["latest"])
     logs.add_argument("destination", nargs="?")
-    logs.add_argument("--timeout", type=float, default=90)
+    logs.add_argument("--timeout", type=float, default=180, help="seconds to wait for artifact collection")
 
     screenshot = commands.add_parser("screenshot", help="save a device screenshot")
     screenshot.add_argument("path")

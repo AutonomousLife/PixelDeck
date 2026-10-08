@@ -195,31 +195,58 @@ object LogRedactor {
         src.forEachLine { line -> out.write(redact(line)); out.write("\n") }
     }
 
-    /** [line] with every credential shape replaced. Null- and exception-safe by construction. */
+    private val GUARD_WORDS = listOf("guard", "two", "2fa")
+    private val RESIDUAL_WORDS = listOf("jwt", "token", "ticket", "sessionid", "steamloginsecure", "machineauth")
+    /** One of these is in every key [SECRET_KV] names ("webapikey" and "api_key" share "api"). */
+    private val SECRET_WORDS = listOf("token", "authcode", "ticket", "sessionid", "steamloginsecure", "api",
+        "machine", "passw", "pwd", "secret")
+
+    /** True when [s] holds [n] or more hex digits in a row; a GUID has 12, a WebAPI key 32. */
+    private fun hexRun(s: String, n: Int): Boolean {
+        var run = 0
+        for (c in s) {
+            run = if (c in '0'..'9' || c in 'a'..'f' || c in 'A'..'F') run + 1 else 0
+            if (run >= n) return true
+        }
+        return false
+    }
+
+    /**
+     * [line] with every credential shape replaced. Null- and exception-safe by construction.
+     *
+     * Each pattern runs only when the text so far holds something that pattern cannot match without
+     * (an '@' for an e-mail, "76561" for a SteamID64, ...). The checks are made on the partly redacted
+     * text, in the same order, so the result is identical to running every pattern; they only skip
+     * work. A session's Steam logs are ~27 MB, and running every pattern on every line took about two
+     * minutes on the phone, longer than `droiddeckctl stop` waits. The device's own addresses and
+     * account names stay unguarded: case folding could make a guard miss a real name.
+     */
     fun redact(line: String): String {
         if (line.isEmpty()) return line
         return try {
             var out = line
-            out = GUID.replace(out, "<redacted:guid>")
-            out = JWT_LABELLED.replace(out) { "${it.groupValues[1]}<redacted:jwt>" }
-            out = JWT_BASE64.replace(out, "<redacted:jwt>")
-            out = SECRET_KV.replace(out) { "${it.groupValues[1]}${it.groupValues[2]}<redacted:token>" }
-            out = GUARD_CODE.replace(out) { "${it.groupValues[1]}<redacted:code>" }
-            out = WEBAPI_KEY.replace(out, "<redacted:key>")
+            if (out.indexOf('-') >= 0 && hexRun(out, 12)) out = GUID.replace(out, "<redacted:guid>")
+            if (out.contains("jwt", ignoreCase = true)) out = JWT_LABELLED.replace(out) { "${it.groupValues[1]}<redacted:jwt>" }
+            if (out.contains("ey") && out.indexOf('.') >= 0) out = JWT_BASE64.replace(out, "<redacted:jwt>")
+            if ((out.indexOf('=') >= 0 || out.indexOf(':') >= 0) && SECRET_WORDS.any { out.contains(it, ignoreCase = true) }) {
+                out = SECRET_KV.replace(out) { "${it.groupValues[1]}${it.groupValues[2]}<redacted:token>" }
+            }
+            if (GUARD_WORDS.any { out.contains(it, ignoreCase = true) }) out = GUARD_CODE.replace(out) { "${it.groupValues[1]}<redacted:code>" }
+            if (hexRun(out, 32)) out = WEBAPI_KEY.replace(out, "<redacted:key>")
             // Mask, not delete: the last four digits let a reader correlate lines to one account.
-            out = STEAMID64.replace(out) { "${it.groupValues[1]}********${it.groupValues[3]}" }
-            out = STEAMID3.replace(out) { m ->
+            if (out.contains("76561")) out = STEAMID64.replace(out) { "${it.groupValues[1]}********${it.groupValues[3]}" }
+            if (out.contains("[U:1:")) out = STEAMID3.replace(out) { m ->
                 val id = m.groupValues[1]
                 "[U:1:${if (id.length > 4) "*".repeat(id.length - 4) + id.takeLast(4) else id}]"
             }
-            out = EXTERNAL_ADDR.replace(out) { "${it.groupValues[1]}<redacted:ip>" }
+            if (out.contains("external", ignoreCase = true)) out = EXTERNAL_ADDR.replace(out) { "${it.groupValues[1]}<redacted:ip>" }
             for (r in own) out = r.replace(out, "<redacted:ip>")
-            out = LOGIN_STATE.replace(out) { "${it.groupValues[1]}<redacted:account>" }
-            out = LOGIN_USERS.replace(out) { "${it.groupValues[1]}<redacted:account>" }
+            if (out.contains("OnLoginStateChange ")) out = LOGIN_STATE.replace(out) { "${it.groupValues[1]}<redacted:account>" }
+            if (out.contains("OnLoginUsersChanged ")) out = LOGIN_USERS.replace(out) { "${it.groupValues[1]}<redacted:account>" }
             for (r in accounts) out = r.replace(out, "<redacted:account>")
-            out = EMAIL.replace(out, "<redacted:email>")
-            out = RESIDUAL.replace(out) { "${it.groupValues[1]}=<redacted:token>" }
-            out = LONG_TOKEN.replace(out, "<redacted:token>")
+            if (out.indexOf('@') >= 0) out = EMAIL.replace(out, "<redacted:email>")
+            if (RESIDUAL_WORDS.any { out.contains(it, ignoreCase = true) }) out = RESIDUAL.replace(out) { "${it.groupValues[1]}=<redacted:token>" }
+            if (out.length >= 88) out = LONG_TOKEN.replace(out, "<redacted:token>")
             out
         } catch (t: Throwable) {
             // A log line is never worth crashing a session over, but an unscrubbed one must not

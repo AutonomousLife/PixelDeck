@@ -968,3 +968,23 @@ Driver builds run in CI (`pixel-panvk.yml`); downloading the artifact needs `gh`
 **Session restored.** `files/pixeldeck-env` was removed and the session restarted READY
 (2026-10-08-03-steam). `droiddeckctl stop` reported `ARTIFACT_TIMEOUT` on both restarts although
 the session stopped; that is an open reliability defect.
+
+### Session stop reported a false failure (October 8)
+
+**Problem.** `droiddeckctl stop` returned `ARTIFACT_TIMEOUT` on every restart although the session
+stopped in about 6 s. `events.jsonl` showed artifact collection finishing 117 s (session 02) and
+195 s (session 03) after `session.stopped`, while the CLI waited 90 s for stopping and collection
+together. Collection redacts ~27 MB of Steam logs line by line with 16 regular expressions; the
+redactor managed 2.3 MB/s on the PC and roughly 0.14-0.23 MB/s on the phone after the session ends.
+
+**Change.** `LogRedactor.redact` now runs each pattern only when the partly redacted line contains
+something that pattern cannot match without, checked in the same order as before. The device's own
+addresses and account names stay unguarded. On the PC, 27.4 MB of scrubbed Steam logs (295,784
+lines) went from 11.9 s to 3.4 s (3.5x) with byte-identical output. `LogRedactorTest` (8) and the
+new `LogRedactorGuardTest` (5) pass. `droiddeckctl stop` now waits for artifacts separately
+(`--artifact-timeout`, default 180 s), and `logs` waits 180 s.
+
+**Verification limits.** The CLI change was exercised on the phone: on the old app, collection still
+outlasted 180 s (stop took 190 s), so the app-side speed-up is the fix that matters. It is built and
+unit-tested but not installed, because the installed app's signing key is not available here.
+

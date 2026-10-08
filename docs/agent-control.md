@@ -34,6 +34,8 @@ tools/droiddeckctl screenshot ./screen.png
 
 Every command writes JSON to stdout and reports its resolved ADB serial to stderr. Exit codes are 0 for success, 2 for invalid or rejected commands, 3 for ADB/device errors, 4 for session failures, 5 for timeouts, and 6 for artifact or file errors. Set `ADB` to select an adb executable (or pass `--adb`); pass `--serial` before the command to select a device directly.
 
+`stop` waits up to `--timeout` seconds (90) for `IDLE`, then up to `--artifact-timeout` seconds (180) for the session folder to be finished; `logs` waits up to `--timeout` seconds (180) for the same. Finishing a folder scrubs every Steam log line by line and can take minutes after a long Steam session.
+
 `start` accepts `steam` or `desktop`. Steam starts in Big Picture by default; `--ui desktop` selects the client's desktop UI, and `--url steam://...` passes a client URL. Use `--wait` to wait for `READY` as part of `start`. `run` accepts a program path and optional guest arguments.
 
 The `state` response uses schema 1 and includes the build label, runtime version, session ID and phase, mode, requested program, suspend and first-frame state, output size, guest PID, failure details, and artifact paths. Phases are `IDLE`, `PREPARING`, `INSTALLING_RUNTIME`, `STARTING_COMPOSITOR`, `STARTING_GUEST`, `STARTING_STEAM`, `READY`, `SUSPENDED`, `STOPPING`, and `FAILED`. Each session also writes `events.jsonl` alongside its existing artifacts.
