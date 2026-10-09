@@ -1161,3 +1161,33 @@ cases pass and the pinned old-function negative control fails. The caller still
 accepts only actual queue seqno completion, and KCPU synchronization remains
 opt-in. Full Mesa compilation and device validation of this patch remain open.
 
+### Native prebuilt freshness repair (October 8)
+
+The local build previously checked only the separately replaced ARM64 runtime,
+Gamescope and audio sources. Cached upstream x86/i386 runtime shims could silently
+remain older than this checkout. The cached APK records upstream source revision
+`b44235c495fa6458aa438c9ba3be06562e5d1a3c`; comparing its native input baseline
+confirmed that this fork's x86 preloads were stale. Checkout scripts already stage
+through Gradle and are excluded from the new native guard.
+
+`pixel-runtime.yml` now also builds ARM64 fakeinput and x86/i386 preloads using
+the existing Bullseye/glibc 2.31 build recipe. CI run `37880546577` passed, including
+the timing and local-libdrm forwarding checks. Native artifact `11593949311` has
+archive SHA-256 `150ac357e3a86afeb2455209304233a2d723891d20584cdc08df2104f6ea77a3`
+and input digest `4df061aa716d7057af79dcdea0201454eeb6f1f05220a320a5d179c4922082f2`.
+The source manifest and all output checksums were verified before pinning.
+
+The local builder rejects changed cached native inputs before downloading or
+staging, verifies upstream source provenance and the replacement source manifest,
+and stages only the eight expected native outputs. Nine regression tests pass,
+covering changed/added/deleted inputs, source metadata, replacement bytes and
+ignored arbitrary archive paths. All eight rebuilt libraries match the packaged
+APK. It installed without clearing data as `5f2ccb6 dirty`; session 16 reached
+READY, and guest hashes of ARM64 fakeinput plus x86_64/i386 runtime libraries
+match the verified artifact. The artifact pin is committed as `12030d4`.
+Three valid regular-driver scroll samples in session 16 measured 53.58, 55.44
+and 58.09 displayed FPS; p95 gaps were 33.35, 33.34 and 25.14 ms, with maxima
+50.04, 50.02 and 50.02 ms. Thermal status was 0 in all three. This overlaps earlier
+production variation and does not prove an FPS gain or stable 60 FPS. Private
+raw measurements are retained under `build/bench/steam-scroll-rebuilt-native-session16-*.json`.
+
