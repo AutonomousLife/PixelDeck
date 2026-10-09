@@ -29,11 +29,11 @@ jobs:
           from pathlib import Path
           p = Path('llvm-source/compiler-rt/lib/asan/asan_allocator.h')
           text = p.read_text()
-          old = '#elif defined(__aarch64__) && SANITIZER_ANDROID'
+          old = 'defined(__aarch64__) && SANITIZER_ANDROID'
           assert text.count(old) == 1, 'Allocator source changed; re-audit compact layout'
           # Keep glibc interceptors and shadow mapping. Only select the existing
           # 128 GiB compact allocator that supports AArch64 39-bit address spaces.
-          p.write_text(text.replace(old, '#elif defined(__aarch64__)'))
+          p.write_text(text.replace(old, 'defined(__aarch64__)'))
           PY
           cmake -S llvm-source/compiler-rt -B runtime-build -G Ninja \
             -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=clang-19 -DCMAKE_CXX_COMPILER=clang++-19 \
