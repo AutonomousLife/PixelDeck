@@ -162,8 +162,14 @@ def wait_for_phase(adb: str, serial: str, wanted: str, timeout: float) -> dict:
 
 def wait_for_artifacts(adb: str, serial: str, state: dict, timeout: float) -> dict:
     deadline = time.monotonic() + timeout
+    session_id = state.get("session", {}).get("id")
     while True:
         session = state.get("session", {})
+        if session.get("id") != session_id:
+            raise ControlError(
+                f"Session changed while waiting for artifacts from {session_id}; inspect that session's logs",
+                "SESSION_CHANGED",
+            )
         if session.get("artifactsComplete") or not session.get("artifactsAvailable"):
             return state
         remaining = deadline - time.monotonic()
