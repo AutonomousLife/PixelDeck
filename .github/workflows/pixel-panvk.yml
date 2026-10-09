@@ -4,6 +4,11 @@ on:
     branches: [codex/pixel-gpu-probe]
     paths: [.github/workflows/pixel-panvk.yml, tools/pixel-probe/linux_clear.c, tools/pixel-probe/panvk-kbase-diagnostics.patch, tools/pixel-probe/panvk-csf-address.patch, tools/pixel-probe/panvk-cached-wsi.patch, tools/pixel-probe/panvk-shm-copy.patch, tools/pixel-probe/panvk-wayland-dmabuf.patch, tools/pixel-probe/panvk-present-timing.patch, tools/pixel-probe/check-present-timing.py]
   workflow_dispatch:
+    inputs:
+      fence_status:
+        description: Compile the isolated KCPU sync-file status prerequisite
+        type: boolean
+        default: false
 permissions:
   contents: read
 jobs:
@@ -88,6 +93,10 @@ jobs:
           p.write_text(text.replace(old, 'open(dma_heap, O_RDONLY | O_CLOEXEC)'))
           PY
           python3 tools/pixel-probe/check-present-timing.py --mesa-root mesa
+          if [ "${{ inputs.fence_status }}" = "true" ]; then
+            python3 tools/pixel-probe/check-kcpu-fence-status.py --mesa-root mesa
+            git -C mesa apply ../tools/pixel-probe/panvk-kcpu-fence-status.patch
+          fi
           git -C mesa apply ../tools/pixel-probe/panvk-kbase-diagnostics.patch
           git -C mesa apply ../tools/pixel-probe/panvk-csf-address.patch
           git -C mesa apply ../tools/pixel-probe/panvk-cached-wsi.patch
