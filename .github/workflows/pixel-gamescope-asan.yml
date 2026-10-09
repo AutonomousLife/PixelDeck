@@ -1,5 +1,8 @@
 name: Pixel Gamescope ASan diagnostic
 on:
+  push:
+    branches: [codex/pixel-gpu-probe]
+    paths: [.github/workflows/pixel-gamescope-asan.yml, tools/pixel-probe/gamescope-asan.py, tools/pixel-probe/gamescope-asan-probe.c]
   workflow_dispatch:
 permissions:
   contents: read
