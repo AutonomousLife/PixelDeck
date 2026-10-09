@@ -1106,3 +1106,13 @@ queue wait before sampling. Preserve the current blocking path whenever fence
 creation/import fails, and keep buffer release tied to consumer completion. Merely
 disabling `wait_present_before_queue` would introduce an unsynchronized image race.
 
+Further consumer-side inspection found `vk_present.c` already imports sync-file fences
+into a temporary Vulkan semaphore for destination-buffer reuse. Its CPU fallback had
+two defects: poll errors/error events were accepted as successful completion, and EINTR
+restarted the full 100 ms timeout. It now requires POLLIN without error/hangup/invalid
+events and uses one monotonic deadline across interruptions. The extracted actual
+function passes signaled, timeout, poll-error, error-event and repeated-EINTR cases,
+with descriptor closure checked; substituting the previous error policy fails. This
+check is included in APK CI. Native Android compilation passes. This corrects fallback
+synchronization and does not establish an FPS improvement or producer-fence export.
+
