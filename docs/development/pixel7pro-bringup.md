@@ -1016,3 +1016,38 @@ the connection"); the benchmark rejected it. Sustained runs should use repeated 
 **Unit tests.** 271 JVM tests on Windows: the same 28 fail on a clean worktree at 8605c30 and with
 these changes (symlink privilege, POSIX permissions and similar host limits), so none are new.
 
+### Current app deployment and recovery work (October 8)
+
+The owner's debug key is available from the main account and matches the installed certificate
+(`46ccacc7d0050caba9eb011614854dce4f54cda1184ea8a04cf460dfaad2c332`). The current app at
+`93115c3` built successfully and installed as an update without uninstalling or clearing data.
+Session 07 reached READY without a suspended start. Correct Steam pixels were inspected after
+three valid corrected scroll samples: 54.8, 56.1 and 57.2 displayed FPS, p95 33.3 ms. Maximum
+gaps were 117, 50 and 67 ms. These are short samples, not stable 60 or 120 FPS. The generated
+release manifest excludes both agent control components; the bundled AndroidX profile installer
+still has its own DUMP-protected receiver.
+
+The last failure in session 06 is more specific than the reaper message: its session log ends
+with `malloc(): smallbin double linked list corrupted`. The existing surface lifetime and
+swapchain ownership patches therefore do not establish that all native heap defects are fixed.
+
+AgentStartActivity handled only onCreate, although the earlier failed starts were delivered to
+an existing top activity. It now handles onNewIntent too, and ignores recovery callbacks from
+an older request or a destroyed activity. Four Robolectric lifecycle cases pass; a negative
+control reproduces dropped retries and a destroyed activity launching a session.
+
+The service removed foreground status while its independent log collector was still running.
+Session 07's collection marker appeared roughly 44 minutes after stopping, around a later app
+reopening. That correlation does not prove the historical process was frozen, but the lifecycle
+allowed it. The service now retains foreground status until all its collections complete,
+without allowing an old completion to stop a new running session or unfinished guest teardown.
+Three foreground-service lifecycle regressions pass. The notification reports "Finishing
+session logs" during this work. Device verification of this additional fix is pending.
+
+Opt-in Mesa timings now distinguish throttle, internal submit, separate blit, final completion
+fence, CPU cache invalidation and backend present. `PANVK_KBASE_PRESENT_TIMING=1` enables
+per-thread batches of 240 presents; it is off by default and changes no synchronization. The
+extracted-code regression checks forwarding, errors, errno, counters and zero disabled clock
+calls, and its negative control fails as expected. A native CI build is in progress; no new
+driver performance claim is established by instrumentation alone.
+

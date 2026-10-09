@@ -64,6 +64,7 @@ class SessionService : Service() {
     /** The Steam Deck controller's sysfs binds (SteamDeckPad), when this session has one. */
     private var deckBinds: List<String> = emptyList()
     private val stopLock = Any()
+    private val artifactCollections = java.util.concurrent.atomic.AtomicInteger()
     private var wakeLock: PowerManager.WakeLock? = null
     private var wifiLock: WifiManager.WifiLock? = null
     private var sessionPid = -1
@@ -260,6 +261,18 @@ class SessionService : Service() {
             SessionLogCapture.stopFor(dir)
             SessionPaths.release(this, dir)
         }
+    }
+
+    private fun artifactsCollected() {
+        artifactCollections.decrementAndGet()
+        mainHandler.post { stopServiceWhenArtifactsComplete() }
+    }
+
+    private fun stopServiceWhenArtifactsComplete() {
+        if (SessionState.running || SessionState.phase !in setOf(SessionPhase.IDLE, SessionPhase.FAILED)) return
+        if (artifactCollections.get() != 0) return
+        stopForeground(STOP_FOREGROUND_REMOVE)
+        stopSelf()
     }
 
     private fun extraEnv(): List<String> {
@@ -1348,8 +1361,9 @@ class SessionService : Service() {
                 SessionEvents.fail(code, message, failureStatus)
             }
             SessionState.notifyEnded(status)
-            stopForeground(STOP_FOREGROUND_REMOVE)
-            stopSelf()
+            // Android may freeze a cached process as soon as its ended activity closes.
+            if (artifactCollections.get() != 0) refreshNotification()
+            stopServiceWhenArtifactsComplete()
         }
     }
 
@@ -1416,7 +1430,13 @@ class SessionService : Service() {
         // dump the crash buffer. That was about four and a half seconds of blocked main thread,
         // and Android ANR'd the app for it: the desktop session that would not let go.
         val ended = SessionPaths.take()
-        if (ended != null) Thread({ collectSessionArtifacts(ended) }, "session-collect").start()
+        if (ended != null) {
+            artifactCollections.incrementAndGet()
+            Thread({
+                try { collectSessionArtifacts(ended) }
+                finally { artifactsCollected() }
+            }, "session-collect").start()
+        }
         components.reversed().forEach {
             try {
                 it.stop()
@@ -1553,14 +1573,22 @@ class SessionService : Service() {
         return Notification.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_session)
             .setContentTitle(getString(R.string.app_name))
-            .setContentText(getString(if (SessionState.suspended) R.string.session_notification_paused else R.string.session_notification))
+            .setContentText(getString(when {
+                !SessionState.running -> R.string.session_notification_collecting
+                SessionState.suspended -> R.string.session_notification_paused
+                else -> R.string.session_notification
+            }))
             .setContentIntent(open)
             .apply {
-                if (SessionState.suspended) {
+                if (SessionState.running && SessionState.suspended) {
                     addAction(Notification.Action.Builder(null, getString(R.string.resume_session), resume).build())
                 }
             }
-            .addAction(Notification.Action.Builder(null, getString(R.string.stop_session), stop).build())
+            .apply {
+                if (SessionState.running) {
+                    addAction(Notification.Action.Builder(null, getString(R.string.stop_session), stop).build())
+                }
+            }
             .setOngoing(true)
             .setShowWhen(false)
             .apply { if (Build.VERSION.SDK_INT >= 31) setForegroundServiceBehavior(Notification.FOREGROUND_SERVICE_IMMEDIATE) }

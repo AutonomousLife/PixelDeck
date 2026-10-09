@@ -12,8 +12,21 @@ import org.json.JSONObject
 
 /** Shell-launched trampoline: Android permits the shell to start this protected debug Activity. */
 class AgentStartActivity : Activity() {
+    private var requestGeneration = 0
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        handleRequest(intent)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleRequest(intent)
+    }
+
+    private fun handleRequest(intent: Intent) {
+        val generation = ++requestGeneration
         val request = decodeRequest(intent.getStringExtra(EXTRA_REQUEST))
         if (request == null) {
             finish()
@@ -24,11 +37,14 @@ class AgentStartActivity : Activity() {
             try {
                 AgentBridgeProvider.awaitRecovery()
                 runOnUiThread {
-                    if (!isFinishing) startSession(request)
+                    // Recovery can complete after a newer request or activity destruction.
+                    if (generation == requestGeneration && !isFinishing && !isDestroyed) startSession(request)
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "waiting for agent recovery", e)
-                runOnUiThread { finish() }
+                runOnUiThread {
+                    if (generation == requestGeneration && !isFinishing && !isDestroyed) finish()
+                }
             }
         }, "agent-start-recovery").start()
     }
