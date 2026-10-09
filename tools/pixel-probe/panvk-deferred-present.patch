@@ -40,13 +40,14 @@
     VkResult (*wait_for_present)(struct wsi_swapchain *swap_chain,
                                  uint64_t present_id,
                                  uint64_t timeout);
-@@ -620,3 +624,6 @@
+@@ -619,4 +623,7 @@
+ }
  #endif
  
- #endif /* WSI_COMMON_PRIVATE_H */
-+
 +VkResult wsi_invalidate_cpu_image(const struct wsi_swapchain *chain,
 +                                  const struct wsi_image *image);
++
+ #endif /* WSI_COMMON_PRIVATE_H */
 --- a/src/vulkan/wsi/wsi_common_wayland.c
 +++ b/src/vulkan/wsi/wsi_common_wayland.c
 @@ -41,6 +41,8 @@
@@ -77,11 +78,12 @@
     bool retired;
  
     uint32_t num_drm_modifiers;
-@@ -251,9 +254,12 @@
+@@ -251,9 +254,13 @@
     } color;
  
     struct wsi_image_timing_request timing_request;
 +   struct wsi_deferred_worker deferred;
++   bool deferred_reported;
  
     struct wsi_wl_image images[0];
  };
@@ -90,7 +92,7 @@
  VK_DEFINE_NONDISP_HANDLE_CASTS(wsi_wl_swapchain, base.base, VkSwapchainKHR,
                                 VK_OBJECT_TYPE_SWAPCHAIN_KHR)
  
-@@ -1460,6 +1466,7 @@
+@@ -1460,6 +1467,7 @@
                                    const VkHdrMetadataEXT* pMetadata)
  {
     struct wsi_wl_swapchain *chain = (struct wsi_wl_swapchain *)wsi_chain;
@@ -98,7 +100,7 @@
     chain->color.pending.hdr_metadata = *pMetadata;
     chain->color.pending.has_hdr_metadata = true;
  }
-@@ -2466,7 +2473,7 @@
+@@ -2466,7 +2474,7 @@
                                              u_vector_tail(&f->modifiers),
                                              chain->num_drm_modifiers,
                                              chain->drm_modifiers))
@@ -107,7 +109,7 @@
  }
  
  static const struct zwp_linux_dmabuf_feedback_v1_listener
-@@ -2579,6 +2586,12 @@
+@@ -2579,6 +2587,12 @@
     *pSurface = VkIcdSurfaceBase_to_handle(&surface->base);
  
     return VK_SUCCESS;
@@ -120,7 +122,7 @@
  }
  
  struct wsi_wl_present_id {
-@@ -2616,7 +2629,7 @@
+@@ -2616,7 +2630,7 @@
     struct wsi_wl_swapchain *chain = (struct wsi_wl_swapchain *)wsi_chain;
     for (uint32_t i = 0; i < count; i++) {
        uint32_t index = indices[i];
@@ -129,7 +131,7 @@
     }
     return VK_SUCCESS;
  }
-@@ -2626,6 +2639,7 @@
+@@ -2626,6 +2640,7 @@
                                    VkPresentModeKHR mode)
  {
     struct wsi_wl_swapchain *chain = (struct wsi_wl_swapchain *)wsi_chain;
@@ -137,7 +139,7 @@
     chain->base.present_mode = mode;
  }
  
-@@ -2634,6 +2648,7 @@
+@@ -2634,6 +2649,7 @@
                                      const struct wsi_image_timing_request *request)
  {
     struct wsi_wl_swapchain *chain = (struct wsi_wl_swapchain *)wsi_chain;
@@ -145,7 +147,7 @@
     chain->timing_request = *request;
  
     /* Convert absolute target time from swapchain time domain to whatever Wayland natively expects. */
-@@ -2941,7 +2956,7 @@
+@@ -2941,7 +2957,7 @@
  
     if (result == VK_SUCCESS) {
        loader_wayland_buffer_set_flow(&chain->images[*image_index].wayland_buffer, &flow);
@@ -154,7 +156,7 @@
           result = VK_SUBOPTIMAL_KHR;
     }
  
-@@ -2971,6 +2986,9 @@
+@@ -2971,6 +2987,9 @@
     timespec_add(&end_time, &rel_timeout, &start_time);
  
     while (1) {
@@ -164,7 +166,7 @@
        /* If we can use timestamps, we want to make sure the queue feedback
         * events are in is dispatched so we eventually get a refresh rate
         * and a vsync time to phase lock to. We don't need to wait for it
-@@ -2982,25 +3000,36 @@
+@@ -2982,25 +3001,36 @@
        }
        /* Try to find a free image. */
        for (uint32_t i = 0; i < chain->base.image_count; i++) {
@@ -207,7 +209,7 @@
     }
  }
  
-@@ -3349,11 +3378,15 @@
+@@ -3349,11 +3379,15 @@
     if (present_id > 0 || (mode_fifo && chain->commit_timer) ||
         util_perfetto_is_tracing_enabled() || chain->timing_request.serial) {
        struct wsi_wl_present_id *id =
@@ -225,7 +227,7 @@
        id->timing_serial = chain->timing_request.serial;
        id->img = &chain->images[image_index].base;
        id->user_target_time = chain->timing_request.time != 0;
-@@ -3391,7 +3424,7 @@
+@@ -3391,7 +3425,7 @@
        mtx_unlock(&chain->present_ids.lock);
     }
  
@@ -234,7 +236,7 @@
  
     if (mode_fifo && !chain->fifo) {
        /* If we don't have FIFO protocol, we must fall back to legacy mechanism for throttling. */
-@@ -3489,6 +3522,69 @@
+@@ -3489,6 +3523,73 @@
     return VK_SUCCESS;
  }
  
@@ -297,6 +299,10 @@
 +      wsi_wl_deferred_stop(chain);
 +      return wsi_deferred_error(&chain->deferred);
 +   }
++   if (!chain->deferred_reported) {
++      fprintf(stderr, "pixel-wsi: first deferred mailbox publication queued\n");
++      chain->deferred_reported = true;
++   }
 +   *accepted = true;
 +   return VK_SUCCESS;
 +}
@@ -304,7 +310,7 @@
  static void
  buffer_handle_release(void *data, struct wl_buffer *buffer)
  {
-@@ -3496,7 +3592,7 @@
+@@ -3496,7 +3597,7 @@
  
     assert(image->wayland_buffer.buffer == buffer);
  
@@ -313,7 +319,7 @@
  }
  
  static const struct wl_buffer_listener buffer_listener = {
-@@ -3713,6 +3809,7 @@
+@@ -3713,6 +3814,7 @@
  {
     struct wsi_wl_swapchain *chain = (struct wsi_wl_swapchain *)wsi_chain;
  
@@ -321,7 +327,7 @@
     wsi_wl_swapchain_images_free(chain);
     wsi_wl_swapchain_chain_free(chain, pAllocator);
  
-@@ -3744,6 +3841,7 @@
+@@ -3744,6 +3846,7 @@
        /* oldSwapchain is extern-sync, so it is not possible to call AcquireNextImage or QueuePresent
         * concurrently with this function. Next call to acquire or present will immediately
         * return OUT_OF_DATE. */
@@ -329,7 +335,7 @@
        old_chain->retired = true;
     }
  
-@@ -4030,12 +4128,27 @@
+@@ -4030,12 +4133,29 @@
                                   pCreateInfo, pAllocator);
        if (result != VK_SUCCESS)
           goto fail_free_wl_images;
@@ -352,8 +358,10 @@
 +       !vk_find_struct_const(pCreateInfo->pNext, SWAPCHAIN_PRESENT_MODES_CREATE_INFO_EXT)) {
 +      if (wsi_deferred_init(&chain->deferred, chain->base.image_count, chain,
 +                            wsi_wl_deferred_prepare, wsi_wl_deferred_publish,
-+                            wsi_wl_deferred_finished))
++                            wsi_wl_deferred_finished)) {
 +         chain->base.defer_present = wsi_wl_defer_present;
++         fprintf(stderr, "pixel-wsi: deferred mailbox enabled images=%u\n", chain->base.image_count);
++      }
 +   }
     *swapchain_out = &chain->base;
  
