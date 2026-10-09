@@ -3,6 +3,7 @@
 import argparse
 import hashlib
 import io
+import json
 import os
 from pathlib import Path
 import shutil
@@ -17,6 +18,31 @@ ARTIFACT = "repos/Droid-Deck/DroidDeck/actions/artifacts/11390530317"
 DIGEST = "2400d77fcd27220325ddb69947592270361cb2813be8a49ec95844b176bceb9d"
 CACHE = ROOT / "build/pixel-probe/upstream-ci.zip"
 
+# The verified upstream APK's META-INF/version-control-info.textproto names this revision.
+# Digests come from its Git blobs, not this checkout. These are the native/cache inputs
+# used by build.yml that we still take from that APK. Checkout scripts are restaged by
+# Gradle; arm64 libblsession and Gamescope are replaced by PIXEL_COMPONENTS below.
+UPSTREAM_SOURCE_COMMIT = "b44235c495fa6458aa438c9ba3be06562e5d1a3c"
+UPSTREAM_NATIVE_INPUTS = [
+    ("x86 preloads (and arm64 fakeinput)", ["app/src/main/cpp/fakeinput_steam.cpp",
+      "tools/linuxfs/preload/*.c", "tools/linuxfs/preload/*.h", "tools/linuxfs/preload/*.map",
+      "tools/linuxfs/build-x86-preloads.sh", "tools/linuxfs/fex/*"],
+     "d8b9a7e000f1cd86da200f7205c20662a79b7f8cf2d71601949a4b80c9174d0f"),
+    ("clipboard/fastpath", ["tools/linuxfs/clipboard/*.c", "tools/proot/fastpath/*.c"],
+     "7daff3625719d2d09961fbd9b2a2e653b92e67a402de420622cb19f94c8b8ede"),
+    ("graphics runtime dependencies", ["tools/gamescope/release.env", "tools/wlroots/release.env"],
+     "60283908856cc1859efefaa9962aa548f4b1803d889ff7037b04259013654f12"),
+    ("uruntime", ["tools/linuxfs/uruntime.env", "tools/linuxfs/licenses/*"],
+     "831be2133a78e59bdc7c6139f46b6f3ac200c020d196f26568c78851eb8191bf"),
+    ("mangoapp", ["tools/mangoapp/*"],
+     "573712a80f89b42edeafcedd2b3faf60d6eb4ba987f1cbfb8738ddfe1bd71775"),
+]
+# (artifact ID, archive SHA-256, native input digest). Pin only after the extended
+# pixel-runtime workflow has produced and verified these binaries; None fails closed.
+NATIVE_COMPONENT = None
+NATIVE_INPUT_PATTERNS = tuple(UPSTREAM_NATIVE_INPUTS[0][1])
+NATIVE_INPUT_GROUP = UPSTREAM_NATIVE_INPUTS[0][0]
+
 # Keep these cached: Actions artifacts expire. Source builds live in the matching workflows.
 PIXEL_COMPONENTS = [
     # Runtime 1a03bcf, Gamescope f2fa3a0, audio bcc3cd1; digests detect stale native sources.
@@ -29,7 +55,18 @@ PIXEL_COMPONENTS = [
 ]
 
 
+def input_digest(patterns):
+    digest = hashlib.sha256()
+    paths = {path for pattern in patterns for path in ROOT.glob(pattern) if path.is_file()}
+    for path in sorted(paths):
+        digest.update(path.relative_to(ROOT).as_posix().encode() + b"\0" +
+                      path.read_bytes().replace(b"\r\n", b"\n") + b"\0")
+    return digest.hexdigest()
+
+
 def source_digest(component):
+    if component == "native":
+        return input_digest(NATIVE_INPUT_PATTERNS)
     directories = {"runtime": ["tools/linuxfs/preload"], "gamescope": ["tools/gamescope"],
                    "audio": ["tools/pixel-audio", "tools/aaudio-sink"]}[component]
     digest = hashlib.sha256()
@@ -64,6 +101,18 @@ def checked_archive(path, api, digest):
 
 
 def stage():
+    if NATIVE_COMPONENT is not None:
+        _, _, expected = NATIVE_COMPONENT
+        if source_digest("native") != expected:
+            raise RuntimeError("native sources changed: rebuild pixel-runtime.yml and repin NATIVE_COMPONENT")
+    for component, patterns, expected in UPSTREAM_NATIVE_INPUTS:
+        if component == NATIVE_INPUT_GROUP and NATIVE_COMPONENT is not None:
+            continue  # Every binary from this group is replaced by the verified native artifact.
+        if input_digest(patterns) != expected:
+            raise RuntimeError(
+                f"{component} inputs differ from upstream APK source {UPSTREAM_SOURCE_COMMIT}: "
+                "rebuild the affected Linux prebuilts in CI and pin their verified artifacts "
+                "before building locally; updating a digest alone does not rebuild binaries")
     for component, _, _, expected in PIXEL_COMPONENTS:
         if source_digest(component) != expected:
             raise RuntimeError(f"{component} sources changed: rebuild its Linux CI artifact and update PIXEL_COMPONENTS")
@@ -73,6 +122,13 @@ def stage():
     with checked_archive(CACHE, ARTIFACT, DIGEST) as z:
         apk_name = next(n for n in z.namelist() if n.endswith(".apk"))
         with zipfile.ZipFile(io.BytesIO(z.read(apk_name))) as apk:
+            try:
+                provenance = apk.read("META-INF/version-control-info.textproto").decode("utf-8")
+            except (KeyError, UnicodeDecodeError) as error:
+                raise RuntimeError("Pinned upstream APK has no readable source revision") from error
+            if f'revision: "{UPSTREAM_SOURCE_COMMIT}"' not in provenance:
+                raise RuntimeError("Pinned upstream APK source revision changed: verify and repin "
+                                   "UPSTREAM_SOURCE_COMMIT and UPSTREAM_NATIVE_INPUTS")
             for name in apk.namelist():
                 if name.endswith("/"):
                     continue
@@ -111,6 +167,21 @@ def stage():
             destination.parent.mkdir(parents=True, exist_ok=True)
             if not destination.exists() or destination.read_bytes() != content:
                 destination.write_bytes(content)
+    if NATIVE_COMPONENT is not None:
+        artifact, digest, expected = NATIVE_COMPONENT
+        cache = ROOT / f"build/pixel-components/native-{artifact}.zip"
+        with checked_archive(cache, f"repos/AutonomousLife/PixelDeck/actions/artifacts/{artifact}", digest) as z:
+            if json.loads(z.read("source.json"))["sourceDigest"] != expected:
+                raise RuntimeError("Native artifact source digest disagrees with NATIVE_COMPONENT")
+            # Only these outputs are authoritative; never extract arbitrary archive paths.
+            for relative in ("libfakeinput.so", "x86_64/libblsession.so", "x86_64/libfakeinput.so",
+                             "x86_64/libfaultreport.so", "x86_64/libthunkaudit.so",
+                             "x86_64/libvulkan-thunk.so", "i386/libblsession.so", "i386/libfakeinput.so"):
+                destination = ROOT / "app/src/main/assets/linuxfs" / relative
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                content = z.read(relative)
+                if not destination.exists() or destination.read_bytes() != content:
+                    destination.write_bytes(content)
     # Written last, so an interrupted run refreshes again next time.
     stamp.parent.mkdir(parents=True, exist_ok=True)
     stamp.write_text(DIGEST + "\n")
