@@ -1060,8 +1060,10 @@ Session 11's first valid scroll sample measured 51.17 displayed FPS, p95 33.35 m
 240 presents put average final-fence wait at 6.8–8.1 ms and backend present at 1.6–2.3 ms.
 Internal submit averaged only 6–9 microseconds. This directly contradicts the earlier
 hypothesis that most present latency lived inside the internal submit: in this driver
-and workload it lives primarily in the final fence wait. The wait protects CPU readback
-and cannot simply be removed. Timings establish attribution, not a performance gain.
+and workload it lives primarily in the final fence wait. On the native DMA-BUF path
+the wait protects the receiving process's GPU consumption; CPU fallback also needs
+completion before readback. It cannot simply be removed. Timings establish attribution,
+not a performance gain.
 
 ### Input release and control CLI follow-up (October 8)
 
@@ -1081,4 +1083,26 @@ Session 12 on the regular driver remained READY until an intentional stop roughl
 26 minutes after READY and completed collection. Its final valid scroll sample was
 50.82 displayed FPS, p95 33.35 ms, maximum 116.63 ms at thermal status 0. A successful
 run of this length does not prove the intermittent native heap corruption is fixed.
+
+### Asynchronous presentation prerequisites (October 8)
+
+`take_dmabuf()` imports the native buffer through `vkp_image_from_dmabuf()`; it does
+not turn that transport into a CPU copy. PanVK's kbase implementation explicitly
+does not attach per-buffer GPU fences to exported BOs. Its final WSI wait currently
+provides the producer/consumer ordering. The compositor's AHardwareBuffer layer path
+has DMA-BUF sync-file handling, but that does not establish synchronization for the
+ordinary Vulkan compositor path.
+
+`tools/pixel-probe/dmabuf_sync_probe.py` ran in the phone's app-owned guest context.
+The heap is read-only to apps, so it opens `/dev/dma_heap/system` with `O_RDONLY`,
+then allocates a private 4 KiB buffer. Export, zero-time polling and re-import passed
+for READ, WRITE and READ|WRITE fences. Every exported empty-work fence was signaled;
+all descriptors are closed on success or error. This proves kernel ioctl support,
+not GPU-job completion or an FPS improvement.
+
+The next implementation must export a fence tied to all relevant submitted kbase
+queue targets, transfer it with the buffer, and make the actual receiving Vulkan
+queue wait before sampling. Preserve the current blocking path whenever fence
+creation/import fails, and keep buffer release tied to consumer completion. Merely
+disabling `wait_present_before_queue` would introduce an unsynchronized image race.
 
