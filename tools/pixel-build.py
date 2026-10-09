@@ -39,7 +39,9 @@ UPSTREAM_NATIVE_INPUTS = [
 ]
 # (artifact ID, archive SHA-256, native input digest). Pin only after the extended
 # pixel-runtime workflow has produced and verified these binaries; None fails closed.
-NATIVE_COMPONENT = None
+NATIVE_COMPONENT = (11593949311,
+    "150ac357e3a86afeb2455209304233a2d723891d20584cdc08df2104f6ea77a3",
+    "4df061aa716d7057af79dcdea0201454eeb6f1f05220a320a5d179c4922082f2")
 NATIVE_INPUT_PATTERNS = tuple(UPSTREAM_NATIVE_INPUTS[0][1])
 NATIVE_INPUT_GROUP = UPSTREAM_NATIVE_INPUTS[0][0]
 

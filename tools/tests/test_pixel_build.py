@@ -32,7 +32,7 @@ class PixelBuildTest(unittest.TestCase):
         staged.parent.mkdir(parents=True)
         staged.write_text(existing)
         with patch.dict(GLOBALS, ROOT=root, CACHE=outer, DIGEST=digest, PIXEL_COMPONENTS=[],
-                        UPSTREAM_NATIVE_INPUTS=[]):
+                        UPSTREAM_NATIVE_INPUTS=[], NATIVE_COMPONENT=None):
             MODULE["stage"]()
         return staged, stamp, digest
 
@@ -58,7 +58,7 @@ class PixelBuildTest(unittest.TestCase):
 
     def test_stale_sources_fail_before_artifact_fetch(self):
         with patch.dict(GLOBALS, PIXEL_COMPONENTS=[("runtime", 1, "archive", "wrong")],
-                        UPSTREAM_NATIVE_INPUTS=[]):
+                        UPSTREAM_NATIVE_INPUTS=[], NATIVE_COMPONENT=None):
             with self.assertRaisesRegex(RuntimeError, "runtime sources changed"):
                 MODULE["stage"]()
 
@@ -72,7 +72,7 @@ class PixelBuildTest(unittest.TestCase):
                     source = root / relative
                     source.parent.mkdir(parents=True)
                     source.write_bytes(b"baseline\n")
-                    with patch.dict(GLOBALS, ROOT=root, PIXEL_COMPONENTS=[]):
+                    with patch.dict(GLOBALS, ROOT=root, PIXEL_COMPONENTS=[], NATIVE_COMPONENT=None):
                         expected = MODULE["input_digest"](patterns)
                         if change == "modify":
                             source.write_bytes(b"changed\n")
