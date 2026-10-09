@@ -1,0 +1,65 @@
+"""Compile the actual compositor fallback wait against deterministic poll failures."""
+from pathlib import Path
+import os
+import subprocess
+import tempfile
+
+ROOT = Path(__file__).resolve().parents[2]
+source = (ROOT / "app/src/main/cpp/waylandcomp/src/vk_present.c").read_text(encoding="utf-8")
+start = source.index("static int wait_sync_fd_cpu(")
+opening = source.index("{", start)
+depth, end = 1, opening + 1
+while depth:
+    depth += (source[end] == "{") - (source[end] == "}")
+    end += 1
+function = source[start:end]
+assert "return wait_sync_fd_cpu(fd);" in source
+harness = r'''
+#include <cassert>
+#include <cerrno>
+#include <cstdint>
+enum { POLLIN=1, POLLERR=8, POLLHUP=16, POLLNVAL=32 };
+struct pollfd { int fd; short events, revents; };
+static int64_t now;
+static int calls, closed, result, error;
+static short events;
+static bool interrupt;
+static int64_t perf_now() { return now; }
+static int poll(pollfd *p, unsigned count, int timeout) {
+    assert(count == 1 && p->fd == 42 && p->events == POLLIN);
+    assert(timeout > 0 && timeout <= 100);
+    calls++; now += 25000000;
+    p->revents = events;
+    errno = interrupt ? EINTR : error;
+    return interrupt ? -1 : result;
+}
+static int close(int fd) { assert(fd == 42); closed++; return 0; }
+@FUNCTION@
+static void check(int r, short e, int err, int wanted) {
+    now=0; calls=closed=0; result=r; events=e; error=err; interrupt=false;
+    assert(wait_sync_fd_cpu(42) == wanted);
+    assert(closed == 1 && calls == 1);
+}
+int main() {
+    check(1, POLLIN, 0, 0);
+    check(0, 0, 0, -1);
+    check(-1, 0, EBADF, -1);
+    check(1, POLLERR, 0, -1);
+    check(1, POLLIN|POLLERR, 0, -1);
+    check(1, POLLHUP, 0, -1);
+    check(1, POLLNVAL, 0, -1);
+    now=0; calls=closed=0; interrupt=true;
+    assert(wait_sync_fd_cpu(42) == -1);
+    assert(now == 100000000 && calls == 4 && closed == 1);
+}
+'''
+ROOT.joinpath("build").mkdir(exist_ok=True)
+with tempfile.TemporaryDirectory(dir=ROOT/"build", prefix="sync-fd-check-") as directory:
+    directory = Path(directory)
+    unit, executable = directory/"check.cpp", directory/("check.exe" if os.name == "nt" else "check")
+    unit.write_text(harness.replace("@FUNCTION@", function), encoding="utf-8")
+    command = (["cl", "/nologo", "/std:c++20", "/EHsc", "/W4", "/WX", str(unit), f"/Fe:{executable}"]
+               if os.name == "nt" else ["c++", "-std=c++20", "-Wall", "-Wextra", "-Werror", str(unit), "-o", str(executable)])
+    subprocess.run(command, cwd=directory, check=True)
+    subprocess.run([str(executable)], check=True)
+print("PASS: signaled fence only; errors rejected, EINTR bounded, FD closed")

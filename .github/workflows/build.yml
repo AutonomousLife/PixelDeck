@@ -388,6 +388,9 @@ jobs:
       - name: Steam import and game environment tests
         run: python3 -m unittest discover -s tools/tests -p 'test_*.py'
 
+      - name: Compositor sync-file wait regression
+        run: python3 tools/pixel-probe/check-sync-fd-wait.py
+
       - name: Unit tests
         run: ./gradlew testReleaseUnitTest --console=plain -PndkVersion="$NDK_VERSION"
 

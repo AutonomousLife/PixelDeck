@@ -1447,10 +1447,24 @@ void vkp_perf_take(struct vkp_perf *out) {
 
 int vkp_can_wait_sync_fd(void) { return g_import_sem_fd != NULL && g_wait_sem != VK_NULL_HANDLE; }
 
+static int wait_sync_fd_cpu(int fd) {
+    const int64_t deadline = perf_now() + 100000000LL;
+    struct pollfd p = {.fd = fd, .events = POLLIN, .revents = 0};
+    int r;
+    do {
+        const int64_t remaining = deadline - perf_now();
+        if (remaining <= 0) { r = 0; break; }
+        r = poll(&p, 1, (int)((remaining + 999999LL) / 1000000LL));
+    } while (r < 0 && errno == EINTR);
+    close(fd);
+    return r > 0 && (p.revents & POLLIN) &&
+           !(p.revents & (POLLERR | POLLHUP | POLLNVAL)) ? 0 : -1;
+}
+
 /* Hand a sync_file to the next submit as a GPU wait (temporary import into g_wait_sem; the driver
  * owns the fd from then on). Returns 1 when the submit must wait on g_wait_sem, 0 when there is nothing
  * to wait on - the fd was -1, or it could not be imported and was waited for on the CPU (bounded) and
- * closed instead. -1 = the display is still reading the buffer after 100 ms: do not write it. */
+ * closed instead. -1 = completion was not confirmed within 100 ms: do not write it. */
 static int take_wait_fd(int fd) {
     if (fd < 0) return 0;
     if (vkp_can_wait_sync_fd()) {
@@ -1467,11 +1481,7 @@ static int take_wait_fd(int fd) {
             droiddeck_log("perf", "layer buffers: importing a release fence as a GPU wait failed; waiting for it on the CPU");
         }
     }
-    struct pollfd p = {.fd = fd, .events = POLLIN};
-    int r;
-    do { r = poll(&p, 1, 100); } while (r < 0 && errno == EINTR);
-    close(fd);
-    return r == 0 ? -1 : 0;
+    return wait_sync_fd_cpu(fd);
 }
 
 /* The HDR10 swapchain's metadata: the game's SMPTE 2086 / CTA-861.3 values (its image description) via
