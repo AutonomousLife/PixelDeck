@@ -78,6 +78,22 @@ static int64_t now_ns(void) {
     return (int64_t)ts.tv_sec * 1000000000LL + ts.tv_nsec;
 }
 
+/* DMA-BUF POLLIN confirms that all writers finished. Keep one deadline across
+ * interruptions; the borrowed buffer fd must remain open for later frames. */
+static int wait_dmabuf_writers(int fd) {
+    if (fd < 0) return -1;
+    struct pollfd p = {.fd = fd, .events = POLLIN, .revents = 0};
+    const int64_t deadline = now_ns() + 100000000LL;
+    int r;
+    do {
+        const int64_t remaining = deadline - now_ns();
+        if (remaining <= 0) return -1;
+        r = poll(&p, 1, (int)((remaining + 999999LL) / 1000000LL));
+    } while (r < 0 && errno == EINTR);
+    return r > 0 && (p.revents & POLLIN) &&
+           !(p.revents & (POLLERR | POLLHUP | POLLNVAL)) ? 0 : -1;
+}
+
 static struct ahb_buf *find_buf(uint64_t id) {
     struct ahb_buf *ab;
     wl_list_for_each(ab, &g_bufs, link)
@@ -209,15 +225,13 @@ int ahb_swapchain_present(struct dmabuf_buffer *b, struct surface *s, int scene_
     struct droiddeck_dma_buf_sync_file exp = {.flags = DROIDDECK_DMA_BUF_SYNC_READ, .fd = -1};
     if (dmabuf_fd >= 0 && ioctl(dmabuf_fd, DROIDDECK_DMA_BUF_IOCTL_EXPORT_SYNC_FILE, &exp) == 0 && exp.fd >= 0) {
         acquire = exp.fd;
-    } else if (dmabuf_fd >= 0) {
+    } else {
         if (!g_export_failed_logged) {
             g_export_failed_logged = 1;
             droiddeck_log("layer", "zero-copy: DMA_BUF_IOCTL_EXPORT_SYNC_FILE failed (%s): waiting for each frame on the CPU instead",
                        strerror(errno));
         }
-        struct pollfd p = {.fd = dmabuf_fd, .events = POLLIN}; /* readable = the writers are done */
-        int r;
-        do { r = poll(&p, 1, 100); } while (r < 0 && errno == EINTR);
+        if (wait_dmabuf_writers(dmabuf_fd) != 0) return -1;
     }
     int r = sc_layer_present_ahb(ab->ahb, ab->w, ab->h, acquire, (void *)(uintptr_t)ab->id, scene_w, scene_h,
                                  s ? droiddeck_surface_color(s) : NULL, ab->format);

@@ -389,7 +389,9 @@ jobs:
         run: python3 -m unittest discover -s tools/tests -p 'test_*.py'
 
       - name: Compositor sync-file wait regression
-        run: python3 tools/pixel-probe/check-sync-fd-wait.py
+        run: |
+          python3 tools/pixel-probe/check-sync-fd-wait.py
+          python3 tools/pixel-probe/check-dmabuf-writer-wait.py
 
       - name: Unit tests
         run: ./gradlew testReleaseUnitTest --console=plain -PndkVersion="$NDK_VERSION"
