@@ -1,0 +1,46 @@
+--- a/src/wlserver.cpp
++++ b/src/wlserver.cpp
+@@ -769,7 +769,12 @@
+ 	if ( co->surface )
+ 	{
+ 		wlserver_wl_surface_info *wl_surface_info = get_wl_surface_info( co->surface );
+-		if ( wl_surface_info )
++		auto *owner = lookup_x11_surface_info_from_xid( this, co->x11_window );
++		if ( owner && owner->override_surface == co->surface )
++			owner->override_surface = nullptr;
++		// A surface can also remain the main surface after its override retires.
++		if ( wl_surface_info && wl_surface_info->x11_surface == owner &&
++		     owner && owner->main_surface != co->surface )
+ 			wl_surface_info->x11_surface = nullptr;
+ 	}
+ 
+@@ -3474,7 +3479,8 @@
+ 		if ( surf->override_surface )
+ 		{
+ 			wlserver_wl_surface_info *wl_info = get_wl_surface_info(surf->override_surface);
+-			if (wl_info)
++			if (wl_info && wl_info->x11_surface == surf &&
++			    surf->override_surface != surf->main_surface)
+ 				wl_info->x11_surface = nullptr;
+ 		}
+ 
+@@ -3485,11 +3491,18 @@
+ 		if ( surf->main_surface )
+ 		{
+ 			wlserver_wl_surface_info *wl_info = get_wl_surface_info(surf->main_surface);
+-			if (wl_info)
++			if (wl_info && wl_info->x11_surface == surf &&
++			    surf->main_surface != surf->override_surface)
+ 				wl_info->x11_surface = nullptr;
+ 		}
+ 
+ 		surf->main_surface = wlr_surf;
++	}
++	// Keep the forward pointers and the destruction callback's owner consistent.
++	if ( auto *previous = wl_surf_info->x11_surface; previous && previous != surf )
++	{
++		if ( previous->main_surface == wlr_surf ) previous->main_surface = nullptr;
++		if ( previous->override_surface == wlr_surf ) previous->override_surface = nullptr;
+ 	}
+ 	wl_surf_info->x11_surface = surf;
+ 

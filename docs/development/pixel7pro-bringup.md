@@ -1256,3 +1256,24 @@ Gamescope normally requests FIFO, so comparison requires the same MAILBOX
 override in both control and experiment. CI `37887936155` adds one-time
 messages proving worker creation and actual enqueue, to distinguish activation
 from unsupported synchronous fallback. No experimental FPS gain is proven.
+
+### Captured native surface read after destruction (October 9)
+
+Session 19's longer scroll workload aborts with an ASan heap-use-after-free:
+8-byte read on thread T9, 840 bytes into a freed 968-byte wlroots surface.
+The exact binary (BuildId `d4fb46d2ec3266a18511f566f39eec876934db32`)
+symbolizes `0x33c454` to `get_wl_surface_info` at wlserver.cpp:625 and its
+caller to `handle_presented_for_window` at steamcompmgr.cpp:8301. Thread T0
+allocated the surface in `surface_create` and freed it through Wayland server
+dispatch. Complete private artifacts are in `build/bench/session19-asan-failure`.
+This establishes one real crash mechanism, not that every earlier corruption
+message has the same cause.
+
+Patch 0120 repairs asymmetric X11 surface associations: retiring an override
+must keep the destruction owner when the surface remains the main surface,
+while removing its matching forward override pointer. Replacement preserves
+any remaining main/override association; transfer detaches the old owner's
+matching forward pointers. The exact routines compile and pass these cases;
+the original code fails the negative control. Patches 0117, 0119 and 0120
+apply to the pinned source without fuzz. Full build and phone retest remain
+required before calling the crash fixed.

@@ -63,3 +63,14 @@ app's Wayland-hosted gamescope never reaches, or need a newer gamescope than the
   bug; it has not been established as the cause of the observed heap-corruption exit.
   Run `python tools/gamescope/check-surface-lifetime.py --source-dir PATH_TO_3.16.29_CHECKOUT`
   for exact-source patch checks and the actual-function AddressSanitizer regression.
+
+- `0120-keep-x11-surface-associations-consistent.patch` - preserve the Wayland
+  destruction owner while a surface remains an X11 main surface; clear retired
+  override forward pointers and detach previous owners during reassociation.
+  Session 19 ASan captured a freed `wlr_surface` read from
+  `handle_presented_for_window` / `get_wl_surface_info`. The actual association
+  routines reproduce the lost-owner condition and pass after this patch;
+  the original routines fail. Phone stability after this change is unverified.
+  Run `python tools/pixel-probe/check-x11-surface-associations.py --source
+  PATCHED_WLSERVER_CPP --old-source PRE_PATCH_WLSERVER_CPP` to test retirement,
+  shared main/override ownership, replacement and transfer.
