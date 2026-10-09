@@ -1,0 +1,64 @@
+name: Pixel ASan runtime for 39-bit guest
+on:
+  push:
+    branches: [codex/pixel-gpu-probe]
+    paths: [.github/workflows/pixel-asan-runtime.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  runtime:
+    runs-on: ubuntu-24.04-arm
+    container: debian:13
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build pinned glibc ASan with compact AArch64 allocator
+        shell: bash
+        run: |
+          set -euo pipefail
+          apt-get update -qq
+          apt-get install -y -qq --no-install-recommends git ca-certificates clang-19 llvm-19-dev cmake ninja-build python3 build-essential
+          git init llvm-source
+          git -C llvm-source remote add origin https://github.com/llvm/llvm-project.git
+          git -C llvm-source sparse-checkout init --cone
+          git -C llvm-source sparse-checkout set compiler-rt cmake llvm/cmake llvm/include
+          git -C llvm-source fetch --depth=1 --filter=blob:none origin cd708029e0b2869e80abe31ddb175f7c35361f90
+          git -C llvm-source checkout --detach FETCH_HEAD
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('llvm-source/compiler-rt/lib/asan/asan_allocator.h')
+          text = p.read_text()
+          old = '#elif defined(__aarch64__) && SANITIZER_ANDROID'
+          assert text.count(old) == 1, 'Allocator source changed; re-audit compact layout'
+          # Keep glibc interceptors and shadow mapping. Only select the existing
+          # 128 GiB compact allocator that supports AArch64 39-bit address spaces.
+          p.write_text(text.replace(old, '#elif defined(__aarch64__)'))
+          PY
+          cmake -S llvm-source/compiler-rt -B runtime-build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=clang-19 -DCMAKE_CXX_COMPILER=clang++-19 \
+            -DLLVM_CONFIG_PATH=/usr/bin/llvm-config-19 \
+            -DCOMPILER_RT_BUILD_BUILTINS=OFF -DCOMPILER_RT_BUILD_SANITIZERS=ON \
+            -DCOMPILER_RT_SANITIZERS_TO_BUILD=asan -DCOMPILER_RT_DEFAULT_TARGET_ONLY=ON \
+            -DCOMPILER_RT_BUILD_XRAY=OFF -DCOMPILER_RT_BUILD_LIBFUZZER=OFF \
+            -DCOMPILER_RT_BUILD_PROFILE=OFF
+          cmake --build runtime-build --target asan --parallel "$(nproc)"
+          mkdir runtime-artifact
+          cp runtime-build/lib/linux/libclang_rt.asan-aarch64.so runtime-artifact/libasan.so.8
+          git -C llvm-source diff > runtime-artifact/compact-allocator.patch
+          printf '%s\n' cd708029e0b2869e80abe31ddb175f7c35361f90 > runtime-artifact/SOURCE_COMMIT
+          readelf -dVW runtime-artifact/libasan.so.8 > runtime-artifact/ELF.txt
+          gcc -O1 -g -fsanitize=address -fno-omit-frame-pointer tools/pixel-probe/gamescope-asan-probe.c -o runtime-artifact/gcc-probe
+          set +e
+          LD_PRELOAD="$PWD/runtime-artifact/libasan.so.8" ASAN_OPTIONS=detect_leaks=0:abort_on_error=1:symbolize=0 runtime-artifact/gcc-probe > runtime-artifact/probe.log 2>&1
+          result=$?
+          set -e
+          test "$result" -ne 0
+          grep -q 'AddressSanitizer: heap-use-after-free' runtime-artifact/probe.log
+          (cd runtime-artifact && sha256sum libasan.so.8 gcc-probe compact-allocator.patch SOURCE_COMMIT ELF.txt probe.log > SHA256SUMS)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pixel-asan-compact-runtime
+          path: runtime-artifact/
+          if-no-files-found: error
+          retention-days: 14
