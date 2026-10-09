@@ -18,6 +18,10 @@ harness = r'''
 #include <cassert>
 #include <cerrno>
 #include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#undef assert
+#define assert(condition) do { if (!(condition)) { std::fputs("check failed\n", stderr); std::exit(2); } } while (0)
 enum { POLLIN=1, POLLERR=8, POLLHUP=16, POLLNVAL=32 };
 struct pollfd { int fd; short events, revents; };
 static int64_t now;
@@ -62,4 +66,9 @@ with tempfile.TemporaryDirectory(dir=ROOT/"build", prefix="sync-fd-check-") as d
                if os.name == "nt" else ["c++", "-std=c++20", "-Wall", "-Wextra", "-Werror", str(unit), "-o", str(executable)])
     subprocess.run(command, cwd=directory, check=True)
     subprocess.run([str(executable)], check=True)
+    incorrect = function[:function.index("    return r > 0")] + "    return r == 0 ? -1 : 0;\n}"
+    unit.write_text(harness.replace("@FUNCTION@", incorrect), encoding="utf-8")
+    subprocess.run(command, cwd=directory, check=True)
+    negative = subprocess.run([str(executable)], capture_output=True)
+    assert negative.returncode == 2, "Old error policy unexpectedly passed"
 print("PASS: signaled fence only; errors rejected, EINTR bounded, FD closed")
