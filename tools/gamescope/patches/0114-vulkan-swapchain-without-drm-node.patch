@@ -1,0 +1,71 @@
+--- a/src/rendervulkan.cpp
++++ b/src/rendervulkan.cpp
+@@ -478,34 +478,40 @@
+ 		};
+ 		vk.GetPhysicalDeviceProperties2( physDev(), &props2 );
+ 
+-		if ( !GetBackend()->UsesVulkanSwapchain() && !drmProps.hasPrimary ) {
+-			vk_log.errorf( "physical device has no primary node" );
+-			return false;
+-		}
+-		if ( !drmProps.hasRender ) {
+-			vk_log.errorf( "physical device has no render node" );
+-			return false;
+-		}
+-
+-		dev_t renderDevId = makedev( drmProps.renderMajor, drmProps.renderMinor );
+-		drmDevice *drmDev = nullptr;
+-		if (drmGetDeviceFromDevId(renderDevId, 0, &drmDev) != 0) {
+-			vk_log.errorf( "drmGetDeviceFromDevId() failed" );
+-			return false;
+-		}
+-		assert(drmDev->available_nodes & (1 << DRM_NODE_RENDER));
+-		const char *drmRenderName = drmDev->nodes[DRM_NODE_RENDER];
+-
+-		m_drmRendererFd = open( drmRenderName, O_RDWR | O_CLOEXEC );
+-		drmFreeDevice(&drmDev);
+-		if ( m_drmRendererFd < 0 ) {
+-			vk_log.errorf_errno( "failed to open DRM render node" );
+-			return false;
+-		}
+-
+-		if ( drmProps.hasPrimary ) {
+-			m_bHasDrmPrimaryDevId = true;
+-			m_drmPrimaryDevId = makedev( drmProps.primaryMajor, drmProps.primaryMinor );
++		// A Vulkan WSI backend can present on non-DRM GPUs such as Android kbase.
++		// Keep the DRM path when available, for dma-buf clients and direct backends.
++		if ( !drmProps.hasRender && GetBackend()->UsesVulkanSwapchain() ) {
++			vk_log.infof( "Using Vulkan swapchain without a DRM render node" );
++		} else {
++			if ( !GetBackend()->UsesVulkanSwapchain() && !drmProps.hasPrimary ) {
++				vk_log.errorf( "physical device has no primary node" );
++				return false;
++			}
++			if ( !drmProps.hasRender ) {
++				vk_log.errorf( "physical device has no render node" );
++				return false;
++			}
++
++			dev_t renderDevId = makedev( drmProps.renderMajor, drmProps.renderMinor );
++			drmDevice *drmDev = nullptr;
++			if (drmGetDeviceFromDevId(renderDevId, 0, &drmDev) != 0) {
++				vk_log.errorf( "drmGetDeviceFromDevId() failed" );
++				return false;
++			}
++			assert(drmDev->available_nodes & (1 << DRM_NODE_RENDER));
++			const char *drmRenderName = drmDev->nodes[DRM_NODE_RENDER];
++
++			m_drmRendererFd = open( drmRenderName, O_RDWR | O_CLOEXEC );
++			drmFreeDevice(&drmDev);
++			if ( m_drmRendererFd < 0 ) {
++				vk_log.errorf_errno( "failed to open DRM render node" );
++				return false;
++			}
++
++			if ( drmProps.hasPrimary ) {
++				m_bHasDrmPrimaryDevId = true;
++				m_drmPrimaryDevId = makedev( drmProps.primaryMajor, drmProps.primaryMinor );
++			}
+ 		}
+ #else
+ 		vk_log.warnf( "built without DRM support" );

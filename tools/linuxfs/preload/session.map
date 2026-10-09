@@ -1,0 +1,1 @@
+SDL3_0.0.0 { global: SDL_GL_CreateContext; };

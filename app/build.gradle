@@ -73,7 +73,7 @@ android {
     ndkVersion project.findProperty('ndkVersion') ?: '27.3.13750724'
 
     defaultConfig {
-        applicationId "com.droiddeck.launcher"
+        applicationId "dev.pixeldeck.launcher"
         minSdkVersion 26
         // 28 is not a leftover. An app on targetSdk 29+ runs in a domain that may not execute a
         // file out of its own data directory, and this app's entire job is to exec a rootfs:
@@ -126,7 +126,8 @@ android {
     buildTypes {
         debug {
             minifyEnabled false
-            signingConfig signingConfigs.testkey
+            // Local development uses Gradle's private debug key, preserved across iterations.
+            signingConfig signingConfigs.debug
         }
         release {
             minifyEnabled false
@@ -181,6 +182,24 @@ android {
 def stageSessionScripts = tasks.register('stageSessionScripts', Copy) {
     from(rootProject.file('tools/linuxfs/overlay')) {
         include 'usr/local/bin/droiddeck-*', 'usr/local/bin/steam-compatibility', 'usr/bin/**'
+    }
+    // The desktop files CI installs into the runtime rootfs (.github/workflows/build.yml), at the same paths.
+    from(rootProject.file('tools/linuxfs/desktop')) {
+        include 'droiddeck-desktop', 'droiddeck-gpu', 'droiddeck-desktop-gpu'
+        into 'usr/local/bin'
+    }
+    from(rootProject.file('tools/linuxfs/desktop')) {
+        include 'autostart', 'rc.xml'
+        into 'etc/xdg/labwc'
+    }
+    from(rootProject.file('tools/linuxfs/desktop')) {
+        include 'panel.conf'
+        into 'etc/xdg/lxqt'
+    }
+    from(rootProject.file('tools/linuxfs/desktop')) {
+        include 'firefox-droiddeck.js'
+        rename { 'droiddeck.js' }
+        into 'usr/lib/firefox/defaults/pref'
     }
     into(layout.projectDirectory.dir('src/main/assets/linuxfs'))
 }

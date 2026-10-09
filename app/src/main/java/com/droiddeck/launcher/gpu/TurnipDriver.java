@@ -24,7 +24,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 /**
- * The Vulkan driver the in-app compositor runs on. It has to be Turnip: the system Adreno driver
+ * The Vulkan driver the in-app compositor runs on. Adreno needs Turnip: the system Adreno driver
  * does not implement VK_EXT_image_drm_format_modifier, so importing the dma-bufs gamescope hands
  * over fails and the session renders nothing. Two builds ship in the apk, one per Adreno
  * generation, and the GPU decides which is unpacked - unless the user has imported an AdrenoTools
@@ -228,7 +228,7 @@ public final class TurnipDriver {
         }
         String id = uniqueId(LinuxVulkanDriverManager.sanitizeId(name));
         File dir = new File(contentDir, id);
-        if (!tmpDir.renameTo(dir)) throw new IOException("cannot move into " + dir);
+        FileUtils.moveDirectory(tmpDir, dir);
         Log.i(TAG, "imported AdrenoTools driver " + id + " (" + (meta != null ? meta.optString("libraryName", "") : "?") + ") -> " + dir);
         return id;
     }
@@ -336,6 +336,10 @@ public final class TurnipDriver {
             if (forced.startsWith("system")) return null;
             if (forced.startsWith("a8")) return DRIVER_A8XX;
             if (forced.startsWith("a7")) return DRIVER_A7XX;
+        }
+        if (GpuInfo.Companion.detect().getFamily() == GpuInfo.Family.NOT_ADRENO) {
+            Log.i(TAG, "non-Adreno GPU: using system Vulkan for the compositor");
+            return null;
         }
         String model = gpuModel();
         Log.i(TAG, "gpu model: " + (model == null ? "unknown" : model));

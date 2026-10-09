@@ -64,6 +64,7 @@ class SessionService : Service() {
     /** The Steam Deck controller's sysfs binds (SteamDeckPad), when this session has one. */
     private var deckBinds: List<String> = emptyList()
     private val stopLock = Any()
+    private val artifactCollections = java.util.concurrent.atomic.AtomicInteger()
     private var wakeLock: PowerManager.WakeLock? = null
     private var wifiLock: WifiManager.WifiLock? = null
     private var sessionPid = -1
@@ -262,12 +263,26 @@ class SessionService : Service() {
         }
     }
 
+    private fun artifactsCollected() {
+        artifactCollections.decrementAndGet()
+        mainHandler.post { stopServiceWhenArtifactsComplete() }
+    }
+
+    private fun stopServiceWhenArtifactsComplete() {
+        if (SessionState.running || SessionState.phase !in setOf(SessionPhase.IDLE, SessionPhase.FAILED)) return
+        if (artifactCollections.get() != 0) return
+        stopForeground(STOP_FOREGROUND_REMOVE)
+        stopSelf()
+    }
+
     private fun extraEnv(): List<String> {
-        val file = File(Environment.getExternalStorageDirectory(), ENV_SWITCH).takeIf { it.isFile } ?: return emptyList()
+        val file = File(filesDir, "pixeldeck-env").takeIf { com.droiddeck.launcher.BuildConfig.DEBUG && it.isFile }
+            ?: File(Environment.getExternalStorageDirectory(), ENV_SWITCH).takeIf { it.isFile }
+            ?: return emptyList()
         val lines = FileUtils.readString(file)?.lines().orEmpty()
             .map { it.trim() }
             .filter { it.isNotEmpty() && !it.startsWith("#") && it.contains('=') && !it.startsWith("=") }
-        if (lines.isNotEmpty()) Log.i(TAG, "extra environment from $ENV_SWITCH: $lines")
+        if (lines.isNotEmpty()) Log.i(TAG, "extra environment from ${file.name}: $lines")
         return lines
     }
 
@@ -562,6 +577,27 @@ class SessionService : Service() {
         // import falls back to. One driver for every session: the driver's shader cache is keyed on
         // its build, and with one per mode every emulator compiled its shaders twice.
         val linuxDriverId = SessionPrefs.linuxDriver(this)
+        if (LinuxVulkanDriverManager(this).isPanvk(linuxDriverId)) {
+            // kbase has no DRM render node. PanVK presents through Vulkan WSI instead.
+            guest.add("BL_PANVK=1")
+            guest.add("BL_GAMESCOPE_BACKEND=sdl")
+            guest.add("PANVK_KBASE_DVFS=none")
+            if (steamHere && LinuxVulkanDriverManager(this).supportsSteamGl(linuxDriverId)) {
+                guest.add("BL_PANVK_STEAM_GL=1")
+                guest.add("LIBGL_ALWAYS_SOFTWARE=0")
+            } else if (steamHere) {
+                // Older PanVK imports still fault on Steam's CSF helper CALL.
+                guest.add("MESA_LOADER_DRIVER_OVERRIDE=swrast")
+                guest.add("GALLIUM_DRIVER=llvmpipe")
+                guest.add("LIBGL_ALWAYS_SOFTWARE=1")
+            }
+            if (steamHere && LinuxVulkanDriverManager(this).supportsCachedWsi(linuxDriverId)) {
+                guest.add("PANVK_KBASE_CACHED_WSI=1")
+            }
+            if (SessionState.mode == MODE_STEAM && LinuxVulkanDriverManager(this).supportsWaylandDmabuf(linuxDriverId)) {
+                guest.add("PANVK_KBASE_WAYLAND_DMABUF=1")
+            }
+        }
         LinuxVulkanDriver.resolveIcdPath(this, linuxDriverId)
             ?.let { guest.add(LinuxVulkanDriver.ENV + "=" + it) }
         // Turnip's own debug switches, for the runtime's driver and everything on it. The file in
@@ -1325,8 +1361,9 @@ class SessionService : Service() {
                 SessionEvents.fail(code, message, failureStatus)
             }
             SessionState.notifyEnded(status)
-            stopForeground(STOP_FOREGROUND_REMOVE)
-            stopSelf()
+            // Android may freeze a cached process as soon as its ended activity closes.
+            if (artifactCollections.get() != 0) refreshNotification()
+            stopServiceWhenArtifactsComplete()
         }
     }
 
@@ -1393,7 +1430,13 @@ class SessionService : Service() {
         // dump the crash buffer. That was about four and a half seconds of blocked main thread,
         // and Android ANR'd the app for it: the desktop session that would not let go.
         val ended = SessionPaths.take()
-        if (ended != null) Thread({ collectSessionArtifacts(ended) }, "session-collect").start()
+        if (ended != null) {
+            artifactCollections.incrementAndGet()
+            Thread({
+                try { collectSessionArtifacts(ended) }
+                finally { artifactsCollected() }
+            }, "session-collect").start()
+        }
         components.reversed().forEach {
             try {
                 it.stop()
@@ -1530,14 +1573,22 @@ class SessionService : Service() {
         return Notification.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_session)
             .setContentTitle(getString(R.string.app_name))
-            .setContentText(getString(if (SessionState.suspended) R.string.session_notification_paused else R.string.session_notification))
+            .setContentText(getString(when {
+                !SessionState.running -> R.string.session_notification_collecting
+                SessionState.suspended -> R.string.session_notification_paused
+                else -> R.string.session_notification
+            }))
             .setContentIntent(open)
             .apply {
-                if (SessionState.suspended) {
+                if (SessionState.running && SessionState.suspended) {
                     addAction(Notification.Action.Builder(null, getString(R.string.resume_session), resume).build())
                 }
             }
-            .addAction(Notification.Action.Builder(null, getString(R.string.stop_session), stop).build())
+            .apply {
+                if (SessionState.running) {
+                    addAction(Notification.Action.Builder(null, getString(R.string.stop_session), stop).build())
+                }
+            }
             .setOngoing(true)
             .setShowWhen(false)
             .apply { if (Build.VERSION.SDK_INT >= 31) setForegroundServiceBehavior(Notification.FOREGROUND_SERVICE_IMMEDIATE) }

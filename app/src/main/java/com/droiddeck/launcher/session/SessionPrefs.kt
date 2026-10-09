@@ -3,6 +3,7 @@ package com.droiddeck.launcher.session
 import android.content.Context
 import com.droiddeck.launcher.core.TextureFiltering
 import com.droiddeck.launcher.gpu.ScreenEffects
+import com.droiddeck.launcher.gpu.LinuxVulkanDriverManager
 import org.json.JSONObject
 
 /** The in-session switches: the HUD and how the on-screen controls decide to appear. */
@@ -440,7 +441,9 @@ object SessionPrefs {
      * Deck mode's performance overlay (mangoapp, beside gamescope): the QAM's Overlay Level draws
      * through it. Off is the way out where Valve's mangoapp crashes (one Turnip build did).
      */
-    fun mangoapp(context: Context): Boolean = prefs(context).getBoolean("mangoapp", true)
+    fun mangoapp(context: Context): Boolean = prefs(context).getBoolean("mangoapp",
+        // Valve's overlay throws on this Pixel's inaccessible /sys/class/thermal.
+        !LinuxVulkanDriverManager(context).isPanvk(linuxDriver(context)))
     fun setMangoapp(context: Context, on: Boolean) { prefs(context).edit().putBoolean("mangoapp", on).apply() }
 
     /**

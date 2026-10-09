@@ -1,0 +1,10 @@
+#!/bin/sh
+# Private diagnostic entry point; SessionFiles keeps production Gamescope intact.
+directory=/root/pixeldeck-asan
+exec /usr/bin/env \
+  "PIXEL_ASAN_CHILD_PRELOAD=${LD_PRELOAD-}" \
+  "PIXEL_ASAN_CHILD_LIBRARY_PATH=${LD_LIBRARY_PATH-}" \
+  "LD_PRELOAD=$directory/lib/libasan.so.8:$directory/lib/libpixel_asan_env.so${LD_PRELOAD:+:$LD_PRELOAD}" \
+  "LD_LIBRARY_PATH=$directory/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
+  ASAN_OPTIONS=detect_leaks=0:detect_odr_violation=0:abort_on_error=1:symbolize=0 \
+  "$directory/bin/gamescope" "$@"

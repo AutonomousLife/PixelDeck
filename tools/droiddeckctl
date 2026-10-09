@@ -5,18 +5,22 @@ from __future__ import annotations
 
 import argparse
 import base64
+import io
 import json
 import os
 import shutil
+import shlex
 import subprocess
 import sys
+import tarfile
 import time
 from pathlib import Path
 
 from adb_device import DeviceResolutionError, resolve_serial
 
 
-AUTHORITY = "content://com.droiddeck.launcher.agent"
+PACKAGE = "com.droiddeck.launcher"
+AUTHORITY = "content://" + PACKAGE + ".agent"
 
 
 class ControlError(RuntimeError):
@@ -96,7 +100,7 @@ def start_agent_activity(adb: str, serial: str, request: dict) -> None:
         "start",
         "-W",
         "-n",
-        "com.droiddeck.launcher/.agent.AgentStartActivity",
+        PACKAGE + "/com.droiddeck.launcher.agent.AgentStartActivity",
         "--es",
         "request",
         encoded,
@@ -114,7 +118,7 @@ def confirm_start(adb: str, serial: str, request: dict, previous: dict) -> dict:
         state = get_state(adb, serial)
         session = state.get("session", {})
         phase = session.get("phase")
-        if session.get("mode") == expected_mode and session.get("id") != previous.get("id"):
+        if session.get("mode") == expected_mode and session.get("id") and session.get("id") != previous.get("id"):
             return state
         remaining = deadline - time.monotonic()
         if remaining <= 0:
@@ -158,8 +162,14 @@ def wait_for_phase(adb: str, serial: str, wanted: str, timeout: float) -> dict:
 
 def wait_for_artifacts(adb: str, serial: str, state: dict, timeout: float) -> dict:
     deadline = time.monotonic() + timeout
+    session_id = state.get("session", {}).get("id")
     while True:
         session = state.get("session", {})
+        if session.get("id") != session_id:
+            raise ControlError(
+                f"Session changed while waiting for artifacts from {session_id}; inspect that session's logs",
+                "SESSION_CHANGED",
+            )
         if session.get("artifactsComplete") or not session.get("artifactsAvailable"):
             return state
         remaining = deadline - time.monotonic()
@@ -227,13 +237,13 @@ def execute(args: argparse.Namespace, adb: str, serial: str) -> dict:
     if args.command == "stop":
         current = get_state(adb, serial)
         if current["session"].get("phase") in {"IDLE", "FAILED"}:
-            return add_serial(wait_for_artifacts(adb, serial, current, args.timeout), serial)
+            return add_serial(wait_for_artifacts(adb, serial, current, args.artifact_timeout), serial)
         response = provider_call(adb, serial, "stop")
         if response.get("ok") is False:
             error = response.get("error", {})
             raise ControlError(error.get("message", "stop failed"), error.get("code", "STOP_FAILED"))
         state = wait_for_phase(adb, serial, "IDLE", args.timeout)
-        return add_serial(wait_for_artifacts(adb, serial, state, args.timeout), serial)
+        return add_serial(wait_for_artifacts(adb, serial, state, args.artifact_timeout), serial)
 
     if args.command == "resume":
         response = provider_call(adb, serial, "resume")
@@ -253,6 +263,19 @@ def execute(args: argparse.Namespace, adb: str, serial: str) -> dict:
             raise ControlError("No session artifact directory is available", "NO_SESSION_LOGS")
         destination = Path(args.destination or session["id"]).expanduser().resolve()
         result = run_adb(adb, serial, "pull", remote_dir, str(destination), timeout=120)
+        if result.returncode != 0 and remote_dir.startswith((
+            f"/data/user/0/{PACKAGE}/files/logs/", f"/data/data/{PACKAGE}/files/logs/"
+        )):
+            # Debug builds keep session artifacts private; adb pull cannot read them.
+            result = run_adb(adb, serial, "exec-out",
+                f"run-as {shlex.quote(PACKAGE)} tar -C {shlex.quote(remote_dir)} -cf - .", timeout=120)
+            if result.returncode == 0:
+                try:
+                    destination.mkdir(parents=True, exist_ok=True)
+                    with tarfile.open(fileobj=io.BytesIO(result.stdout)) as archive:
+                        archive.extractall(destination, filter="data")
+                except (OSError, tarfile.TarError) as exc:
+                    raise ControlError(str(exc), "LOG_PULL_FAILED") from exc
         if result.returncode != 0:
             detail = (result.stderr or result.stdout).decode(errors="replace").strip()
             raise ControlError(detail or "adb pull failed", "LOG_PULL_FAILED")
@@ -278,6 +301,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--adb", help="adb executable (defaults to ADB, PATH, or the Android SDK)")
     parser.add_argument("--serial", help="ADB serial; defaults to ADB_SERIAL or ANDROID_SERIAL")
+    parser.add_argument("--package", default=PACKAGE, help="App ID (PixelDeck: dev.pixeldeck.launcher)")
     commands = parser.add_subparsers(dest="command", required=True)
 
     state = commands.add_parser("state", help="print machine-readable session state")
@@ -298,14 +322,17 @@ def build_parser() -> argparse.ArgumentParser:
     wait.add_argument("phase", choices=["ready", "idle", "failed"])
     wait.add_argument("--timeout", type=float, default=90)
 
+    # Collecting a session's artifacts (scrubbing ~27 MB of Steam logs) took about two minutes on a
+    # Pixel 7 Pro, so it gets its own wait instead of sharing the stop timeout.
     stop = commands.add_parser("stop", help="stop the session and wait for IDLE")
-    stop.add_argument("--timeout", type=float, default=90)
+    stop.add_argument("--timeout", type=float, default=90, help="seconds to wait for IDLE")
+    stop.add_argument("--artifact-timeout", type=float, default=180, help="seconds to wait for artifact collection")
     commands.add_parser("resume", help="resume a suspended session")
 
     logs = commands.add_parser("logs", help="pull the latest session artifact directory")
     logs.add_argument("which", choices=["latest"])
     logs.add_argument("destination", nargs="?")
-    logs.add_argument("--timeout", type=float, default=90)
+    logs.add_argument("--timeout", type=float, default=180, help="seconds to wait for artifact collection")
 
     screenshot = commands.add_parser("screenshot", help="save a device screenshot")
     screenshot.add_argument("path")
@@ -330,7 +357,10 @@ def exit_code(exc: Exception) -> int:
 
 
 def main() -> int:
+    global PACKAGE, AUTHORITY
     args = build_parser().parse_args()
+    PACKAGE = args.package
+    AUTHORITY = "content://" + PACKAGE + ".agent"
     serial = None
     try:
         adb = adb_path(args.adb)

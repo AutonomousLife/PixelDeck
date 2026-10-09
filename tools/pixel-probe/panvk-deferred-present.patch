@@ -1,0 +1,516 @@
+--- a/src/vulkan/wsi/wsi_common.c
++++ b/src/vulkan/wsi/wsi_common.c
+@@ -2524,7 +2524,7 @@
+ /* Called only after the present fence completes, before the window-system
+  * backend copies CPU pixels or returns the image to the acquire queue.
+  */
+-static VkResult
++VkResult
+ wsi_invalidate_cpu_image(const struct wsi_swapchain *chain,
+                          const struct wsi_image *image)
+ {
+@@ -2997,6 +2997,17 @@
+ #else
+          UNREACHABLE("We shouldn't have a dma-buf semaphore without libdrm");
+ #endif
++      }
++
++      const VkPresentRegionKHR *deferred_region =
++         regions && regions->pRegions ? &regions->pRegions[i] : NULL;
++      if (swapchain->defer_present) {
++         bool deferred = false;
++         results[i] = swapchain->defer_present(swapchain, image_index,
++                                               image_signal_infos[i].present_id,
++                                               deferred_region, &deferred);
++         if (results[i] != VK_SUCCESS || deferred)
++            continue;
+       }
+ 
+       if (wsi->sw || wsi->wait_present_before_queue) {
+--- a/src/vulkan/wsi/wsi_common_private.h
++++ b/src/vulkan/wsi/wsi_common_private.h
+@@ -311,6 +311,10 @@
+                              uint32_t image_index,
+                              uint64_t present_id,
+                              const VkPresentRegionKHR *damage);
++   /* Internal CPU-complete presentation; accepted jobs own publication. */
++   VkResult (*defer_present)(struct wsi_swapchain *chain, uint32_t image,
++                             uint64_t present_id, const VkPresentRegionKHR *damage,
++                             bool *accepted);
+    VkResult (*wait_for_present)(struct wsi_swapchain *swap_chain,
+                                 uint64_t present_id,
+                                 uint64_t timeout);
+@@ -619,4 +623,7 @@
+ }
+ #endif
+ 
++VkResult wsi_invalidate_cpu_image(const struct wsi_swapchain *chain,
++                                  const struct wsi_image *image);
++
+ #endif /* WSI_COMMON_PRIVATE_H */
+--- a/src/vulkan/wsi/wsi_common_wayland.c
++++ b/src/vulkan/wsi/wsi_common_wayland.c
+@@ -41,6 +41,8 @@
+ #include "vk_util.h"
+ #include "wsi_common_entrypoints.h"
+ #include "wsi_common_private.h"
++#include "wsi_deferred_present.h"
++#include "util/u_atomic.h"
+ #include "fifo-v1-client-protocol.h"
+ #include "commit-timing-v1-client-protocol.h"
+ #include "linux-dmabuf-unstable-v1-client-protocol.h"
+@@ -161,7 +163,8 @@
+ struct wsi_wl_image {
+    struct wsi_image base;
+    struct loader_wayland_buffer wayland_buffer;
+-   bool busy;
++   uint32_t busy;
++   uint32_t deferred_pending;
+    int shm_fd;
+    void *shm_ptr;
+    unsigned shm_size;
+@@ -206,7 +209,7 @@
+    uint32_t drm_format;
+    enum wl_shm_format shm_format;
+ 
+-   bool suboptimal;
++   uint32_t suboptimal;
+    bool retired;
+ 
+    uint32_t num_drm_modifiers;
+@@ -251,9 +254,13 @@
+    } color;
+ 
+    struct wsi_image_timing_request timing_request;
++   struct wsi_deferred_worker deferred;
++   bool deferred_reported;
+ 
+    struct wsi_wl_image images[0];
+ };
++static void wsi_wl_deferred_stop(struct wsi_wl_swapchain *chain);
++
+ VK_DEFINE_NONDISP_HANDLE_CASTS(wsi_wl_swapchain, base.base, VkSwapchainKHR,
+                                VK_OBJECT_TYPE_SWAPCHAIN_KHR)
+ 
+@@ -1460,6 +1467,7 @@
+                                   const VkHdrMetadataEXT* pMetadata)
+ {
+    struct wsi_wl_swapchain *chain = (struct wsi_wl_swapchain *)wsi_chain;
++   wsi_wl_deferred_stop(chain);
+    chain->color.pending.hdr_metadata = *pMetadata;
+    chain->color.pending.has_hdr_metadata = true;
+ }
+@@ -2466,7 +2474,7 @@
+                                             u_vector_tail(&f->modifiers),
+                                             chain->num_drm_modifiers,
+                                             chain->drm_modifiers))
+-      wsi_wl_surface->chain->suboptimal = true;
++      p_atomic_set(&wsi_wl_surface->chain->suboptimal, true);
+ }
+ 
+ static const struct zwp_linux_dmabuf_feedback_v1_listener
+@@ -2579,6 +2587,12 @@
+    *pSurface = VkIcdSurfaceBase_to_handle(&surface->base);
+ 
+    return VK_SUCCESS;
++}
++
++static void
++wsi_wl_deferred_stop(struct wsi_wl_swapchain *chain)
++{
++   wsi_deferred_finish(&chain->deferred);
+ }
+ 
+ struct wsi_wl_present_id {
+@@ -2616,7 +2630,7 @@
+    struct wsi_wl_swapchain *chain = (struct wsi_wl_swapchain *)wsi_chain;
+    for (uint32_t i = 0; i < count; i++) {
+       uint32_t index = indices[i];
+-      chain->images[index].busy = false;
++      p_atomic_set(&chain->images[index].busy, false);
+    }
+    return VK_SUCCESS;
+ }
+@@ -2626,6 +2640,7 @@
+                                   VkPresentModeKHR mode)
+ {
+    struct wsi_wl_swapchain *chain = (struct wsi_wl_swapchain *)wsi_chain;
++   wsi_wl_deferred_stop(chain);
+    chain->base.present_mode = mode;
+ }
+ 
+@@ -2634,6 +2649,7 @@
+                                     const struct wsi_image_timing_request *request)
+ {
+    struct wsi_wl_swapchain *chain = (struct wsi_wl_swapchain *)wsi_chain;
++   wsi_wl_deferred_stop(chain);
+    chain->timing_request = *request;
+ 
+    /* Convert absolute target time from swapchain time domain to whatever Wayland natively expects. */
+@@ -2941,7 +2957,7 @@
+ 
+    if (result == VK_SUCCESS) {
+       loader_wayland_buffer_set_flow(&chain->images[*image_index].wayland_buffer, &flow);
+-      if (chain->suboptimal)
++      if (p_atomic_read(&chain->suboptimal))
+          result = VK_SUBOPTIMAL_KHR;
+    }
+ 
+@@ -2971,6 +2987,9 @@
+    timespec_add(&end_time, &rel_timeout, &start_time);
+ 
+    while (1) {
++      VkResult worker_error = wsi_deferred_error(&chain->deferred);
++      if (worker_error != VK_SUCCESS)
++         return worker_error;
+       /* If we can use timestamps, we want to make sure the queue feedback
+        * events are in is dispatched so we eventually get a refresh rate
+        * and a vsync time to phase lock to. We don't need to wait for it
+@@ -2982,25 +3001,36 @@
+       }
+       /* Try to find a free image. */
+       for (uint32_t i = 0; i < chain->base.image_count; i++) {
+-         if (!chain->images[i].busy) {
++         if (!p_atomic_read(&chain->images[i].busy) &&
++             !p_atomic_read(&chain->images[i].deferred_pending)) {
+             /* We found a non-busy image */
+             *image_index = i;
+-            chain->images[i].busy = true;
++            p_atomic_set(&chain->images[i].busy, true);
+             loader_wayland_buffer_set_flow(&chain->images[i].wayland_buffer, &flow);
+-            return (chain->suboptimal ? VK_SUBOPTIMAL_KHR : VK_SUCCESS);
++            return (p_atomic_read(&chain->suboptimal) ? VK_SUBOPTIMAL_KHR : VK_SUCCESS);
+          }
+       }
+ 
+       /* Try to dispatch potential events. */
++      struct timespec slice_end, current, slice = { .tv_nsec = 20000000 };
++      clock_gettime(CLOCK_MONOTONIC, &current);
++      timespec_add(&slice_end, &current, &slice);
++      if (!chain->deferred.initialized || slice_end.tv_sec > end_time.tv_sec ||
++          (slice_end.tv_sec == end_time.tv_sec && slice_end.tv_nsec > end_time.tv_nsec))
++         slice_end = end_time;
+       int ret = loader_wayland_dispatch(wsi_wl_surface->display->wl_display,
+                                         wsi_wl_surface->display->queue,
+-                                        &end_time);
++                                        &slice_end);
+       if (ret == -1)
+          return VK_ERROR_OUT_OF_DATE_KHR;
+ 
+       /* Check for timeout. */
+-      if (ret == 0)
+-         return (info->timeout ? VK_TIMEOUT : VK_NOT_READY);
++      if (ret == 0) {
++         clock_gettime(CLOCK_MONOTONIC, &current);
++         if (current.tv_sec > end_time.tv_sec ||
++             (current.tv_sec == end_time.tv_sec && current.tv_nsec >= end_time.tv_nsec))
++            return (info->timeout ? VK_TIMEOUT : VK_NOT_READY);
++      }
+    }
+ }
+ 
+@@ -3349,11 +3379,15 @@
+    if (present_id > 0 || (mode_fifo && chain->commit_timer) ||
+        util_perfetto_is_tracing_enabled() || chain->timing_request.serial) {
+       struct wsi_wl_present_id *id =
+-         vk_zalloc(chain->wsi_wl_surface->display->wsi_wl->alloc, sizeof(*id), sizeof(uintptr_t),
++         vk_zalloc(chain->deferred.initialized ? vk_default_allocator() :
++                   chain->wsi_wl_surface->display->wsi_wl->alloc, sizeof(*id), sizeof(uintptr_t),
+                    VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
++      if (!id)
++         return VK_ERROR_OUT_OF_HOST_MEMORY;
+       id->chain = chain;
+       id->present_id = present_id;
+-      id->alloc = chain->wsi_wl_surface->display->wsi_wl->alloc;
++      id->alloc = chain->deferred.initialized ? vk_default_allocator() :
++                  chain->wsi_wl_surface->display->wsi_wl->alloc;
+       id->timing_serial = chain->timing_request.serial;
+       id->img = &chain->images[image_index].base;
+       id->user_target_time = chain->timing_request.time != 0;
+@@ -3391,7 +3425,7 @@
+       mtx_unlock(&chain->present_ids.lock);
+    }
+ 
+-   chain->images[image_index].busy = true;
++   p_atomic_set(&chain->images[image_index].busy, true);
+ 
+    if (mode_fifo && !chain->fifo) {
+       /* If we don't have FIFO protocol, we must fall back to legacy mechanism for throttling. */
+@@ -3489,6 +3523,73 @@
+    return VK_SUCCESS;
+ }
+ 
++/* Default-off worker: GPU completion precedes every Wayland publication. */
++static VkResult
++wsi_wl_deferred_prepare(void *data, uint32_t index)
++{
++   struct wsi_wl_swapchain *chain = data;
++   VkResult result = chain->base.wsi->WaitForFences(
++      chain->base.device, 1, &chain->base.fences[index], true, UINT64_MAX);
++   if (result != VK_SUCCESS)
++      return result;
++   return wsi_invalidate_cpu_image(&chain->base, &chain->images[index].base);
++}
++static VkResult
++wsi_wl_deferred_publish(void *data, uint32_t index,
++                         const VkPresentRegionKHR *damage)
++{
++   struct wsi_wl_swapchain *chain = data;
++   VkResult result = wsi_wl_swapchain_queue_present(&chain->base, index, 0, damage);
++   if ((result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR) &&
++       chain->base.wsi->set_memory_ownership)
++      chain->base.wsi->set_memory_ownership(chain->base.device,
++                                            chain->images[index].base.memory, false);
++   return result;
++}
++static void
++wsi_wl_deferred_finished(void *data, uint32_t index)
++{
++   struct wsi_wl_swapchain *chain = data;
++   /* The compositor can release before queue_present returns. Both release
++    * and this worker completion are required before the image/fence is reused. */
++   p_atomic_set(&chain->images[index].deferred_pending, false);
++}
++static VkResult
++wsi_wl_defer_present(struct wsi_swapchain *base, uint32_t index,
++                      uint64_t present_id, const VkPresentRegionKHR *damage,
++                      bool *accepted)
++{
++   struct wsi_wl_swapchain *chain = (struct wsi_wl_swapchain *)base;
++   *accepted = false;
++   VkResult error = wsi_deferred_error(&chain->deferred);
++   if (error != VK_SUCCESS)
++      return error;
++   if (!chain->deferred.initialized)
++      return VK_SUCCESS;
++   if (present_id || base->present_timing.active || base->present_wait_enabled ||
++       base->present_mode != VK_PRESENT_MODE_MAILBOX_KHR ||
++       chain->buffer_type != WSI_WL_BUFFER_NATIVE || base->image_info.explicit_sync ||
++       chain->retired || chain->timing_request.serial) {
++      wsi_wl_deferred_stop(chain);
++      return wsi_deferred_error(&chain->deferred);
++   }
++   assert(index < base->image_count);
++   assert(!p_atomic_read(&chain->images[index].deferred_pending));
++   p_atomic_set(&chain->images[index].deferred_pending, true);
++   if (!wsi_deferred_enqueue(&chain->deferred, index, damage)) {
++      p_atomic_set(&chain->images[index].deferred_pending, false);
++      /* Drain earlier publications before synchronous fallback preserves order. */
++      wsi_wl_deferred_stop(chain);
++      return wsi_deferred_error(&chain->deferred);
++   }
++   if (!chain->deferred_reported) {
++      fprintf(stderr, "pixel-wsi: first deferred mailbox publication queued\n");
++      chain->deferred_reported = true;
++   }
++   *accepted = true;
++   return VK_SUCCESS;
++}
++
+ static void
+ buffer_handle_release(void *data, struct wl_buffer *buffer)
+ {
+@@ -3496,7 +3597,7 @@
+ 
+    assert(image->wayland_buffer.buffer == buffer);
+ 
+-   image->busy = false;
++   p_atomic_set(&image->busy, false);
+ }
+ 
+ static const struct wl_buffer_listener buffer_listener = {
+@@ -3713,6 +3814,7 @@
+ {
+    struct wsi_wl_swapchain *chain = (struct wsi_wl_swapchain *)wsi_chain;
+ 
++   wsi_wl_deferred_stop(chain);
+    wsi_wl_swapchain_images_free(chain);
+    wsi_wl_swapchain_chain_free(chain, pAllocator);
+ 
+@@ -3744,6 +3846,7 @@
+       /* oldSwapchain is extern-sync, so it is not possible to call AcquireNextImage or QueuePresent
+        * concurrently with this function. Next call to acquire or present will immediately
+        * return OUT_OF_DATE. */
++      wsi_wl_deferred_stop(old_chain);
+       old_chain->retired = true;
+    }
+ 
+@@ -4030,12 +4133,29 @@
+                                  pCreateInfo, pAllocator);
+       if (result != VK_SUCCESS)
+          goto fail_free_wl_images;
+-      chain->images[i].busy = false;
++      p_atomic_set(&chain->images[i].busy, false);
+    }
+ 
+    chain->present_ids.valid_refresh_nsec = false;
+    chain->present_ids.refresh_nsec = 0;
+ 
++   const char *deferred_option = getenv("PANVK_KBASE_DEFERRED_PRESENT");
++   VK_FROM_HANDLE(vk_device, deferred_device, device);
++   if (deferred_option && !strcmp(deferred_option, "1") &&
++       wsi_device->wayland.use_dmabuf &&
++       chain->buffer_type == WSI_WL_BUFFER_NATIVE &&
++       present_mode == VK_PRESENT_MODE_MAILBOX_KHR &&
++       !chain->base.image_info.explicit_sync &&
++       !chain->base.present_timing.active && !chain->base.present_wait_enabled &&
++       !deferred_device->enabled_extensions.GOOGLE_display_timing &&
++       !vk_find_struct_const(pCreateInfo->pNext, SWAPCHAIN_PRESENT_MODES_CREATE_INFO_EXT)) {
++      if (wsi_deferred_init(&chain->deferred, chain->base.image_count, chain,
++                            wsi_wl_deferred_prepare, wsi_wl_deferred_publish,
++                            wsi_wl_deferred_finished)) {
++         chain->base.defer_present = wsi_wl_defer_present;
++         fprintf(stderr, "pixel-wsi: deferred mailbox enabled images=%u\n", chain->base.image_count);
++      }
++   }
+    *swapchain_out = &chain->base;
+ 
+    return VK_SUCCESS;
+--- /dev/null
++++ b/src/vulkan/wsi/wsi_deferred_present.h
+@@ -0,0 +1,145 @@
++/* Experimental CPU-complete publication worker. No external fence export. */
++#ifndef WSI_DEFERRED_PRESENT_H
++#define WSI_DEFERRED_PRESENT_H
++#include "c11/threads.h"
++#include <stdlib.h>
++#include <string.h>
++struct wsi_deferred_job {
++   uint32_t image;
++   VkPresentRegionKHR damage;
++   VkRectLayerKHR *rectangles;
++};
++struct wsi_deferred_worker {
++   mtx_t lock;
++   cnd_t changed;
++   thrd_t thread;
++   bool initialized, stopping;
++   unsigned head, count, capacity;
++   VkResult error;
++   void *data;
++   struct wsi_deferred_job *jobs;
++   VkResult (*prepare)(void *, uint32_t);
++   VkResult (*publish)(void *, uint32_t, const VkPresentRegionKHR *);
++   void (*finished)(void *, uint32_t);
++};
++static int
++wsi_deferred_run(void *arg)
++{
++   struct wsi_deferred_worker *w = arg;
++   for (;;) {
++      mtx_lock(&w->lock);
++      while (!w->count && !w->stopping)
++         cnd_wait(&w->changed, &w->lock);
++      if (!w->count) {
++         mtx_unlock(&w->lock);
++         return 0;
++      }
++      struct wsi_deferred_job job = w->jobs[w->head];
++      w->head = (w->head + 1) % w->capacity;
++      w->count--;
++      VkResult earlier_error = w->error;
++      mtx_unlock(&w->lock);
++      /* Drain real GPU waits even following an earlier publication error. */
++      VkResult result = w->prepare(w->data, job.image);
++      if (result == VK_SUCCESS && earlier_error == VK_SUCCESS)
++         result = w->publish(w->data, job.image,
++                             job.rectangles ? &job.damage : NULL);
++      free(job.rectangles);
++      mtx_lock(&w->lock);
++      if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR &&
++          w->error == VK_SUCCESS)
++         w->error = result;
++      mtx_unlock(&w->lock);
++      w->finished(w->data, job.image);
++   }
++}
++static bool
++wsi_deferred_init(struct wsi_deferred_worker *w, unsigned capacity, void *data,
++                  VkResult (*prepare)(void *, uint32_t),
++                  VkResult (*publish)(void *, uint32_t, const VkPresentRegionKHR *),
++                  void (*finished)(void *, uint32_t))
++{
++   if (!capacity)
++      return false;
++   w->jobs = calloc(capacity, sizeof(*w->jobs));
++   if (!w->jobs)
++      return false;
++   if (mtx_init(&w->lock, mtx_plain) != thrd_success)
++      goto fail_jobs;
++   if (cnd_init(&w->changed) != thrd_success)
++      goto fail_lock;
++   w->capacity = capacity;
++   w->data = data;
++   w->prepare = prepare;
++   w->publish = publish;
++   w->finished = finished;
++   w->error = VK_SUCCESS;
++   if (thrd_create(&w->thread, wsi_deferred_run, w) != thrd_success)
++      goto fail_cond;
++   w->initialized = true;
++   return true;
++fail_cond:
++   cnd_destroy(&w->changed);
++fail_lock:
++   mtx_destroy(&w->lock);
++fail_jobs:
++   free(w->jobs);
++   w->jobs = NULL;
++   return false;
++}
++static VkResult
++wsi_deferred_error(struct wsi_deferred_worker *w)
++{
++   if (!w->initialized)
++      return w->error;
++   mtx_lock(&w->lock);
++   VkResult result = w->error;
++   mtx_unlock(&w->lock);
++   return result;
++}
++static void
++wsi_deferred_finish(struct wsi_deferred_worker *w)
++{
++   if (!w->initialized)
++      return;
++   mtx_lock(&w->lock);
++   w->stopping = true;
++   cnd_broadcast(&w->changed);
++   mtx_unlock(&w->lock);
++   thrd_join(w->thread, NULL);
++   w->initialized = false;
++   cnd_destroy(&w->changed);
++   mtx_destroy(&w->lock);
++   free(w->jobs);
++   w->jobs = NULL;
++}
++static bool
++wsi_deferred_enqueue(struct wsi_deferred_worker *w, uint32_t image,
++                     const VkPresentRegionKHR *damage)
++{
++   struct wsi_deferred_job job = {0};
++   job.image = image;
++   if (damage && damage->rectangleCount && damage->pRectangles) {
++      size_t bytes = (size_t)damage->rectangleCount * sizeof(VkRectLayerKHR);
++      if (bytes / sizeof(VkRectLayerKHR) != damage->rectangleCount)
++         return false;
++      job.rectangles = malloc(bytes);
++      if (!job.rectangles)
++         return false;
++      memcpy(job.rectangles, damage->pRectangles, bytes);
++      job.damage.rectangleCount = damage->rectangleCount;
++      job.damage.pRectangles = job.rectangles;
++   }
++   mtx_lock(&w->lock);
++   if (w->stopping || w->error != VK_SUCCESS || w->count == w->capacity) {
++      mtx_unlock(&w->lock);
++      free(job.rectangles);
++      return false;
++   }
++   w->jobs[(w->head + w->count) % w->capacity] = job;
++   w->count++;
++   cnd_signal(&w->changed);
++   mtx_unlock(&w->lock);
++   return true;
++}
++#endif

@@ -42,6 +42,7 @@ build_one() {
   # PulseAudio 13's own headers (pulsecore/atomic.h) predate clang's int-conversion error; that
   # one is downgraded for them, the modules themselves compile clean.
   "$CC" -O2 -shared -fPIC -Wall -Wno-unused-parameter -Wno-error=int-conversion -Wno-visibility -DHAVE_CONFIG_H \
+      -Wl,-z,max-page-size=16384 -Wl,-z,common-page-size=16384 \
       -I"$INC" -I"$PA_SRC/src" -I"$HERE" \
       -o "$OUT" "$HERE/$src" \
       -L"$LIBS" -l:libpulsecore-13.0.so -l:libpulsecommon-13.0.so -l:libpulse.so $extra

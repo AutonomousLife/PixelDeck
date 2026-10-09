@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "DroidDeck"
+rootProject.name = "PixelDeck"
 include ':app'

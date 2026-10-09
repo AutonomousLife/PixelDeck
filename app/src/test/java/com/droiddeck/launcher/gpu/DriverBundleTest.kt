@@ -34,6 +34,14 @@ class DriverBundleTest {
         SessionPrefs.setLinuxDriver(context, "")
     }
 
+    @Test fun nonAdrenoAutoUsesSystemWithoutUnpackingTurnip() {
+        assertEquals(GpuInfo.Family.NOT_ADRENO, GpuInfo.detect().family)
+        val display = TurnipDriver(context)
+        assertEquals("system", display.autoId())
+        assertNull(display.install())
+        assertFalse(File(context.filesDir, "graphics_driver").exists())
+    }
+
     /** Enough of an AArch64 ELF for the importers: the header they read, then the libc they look for. */
     private fun library(libc: String) = ByteArray(64).also {
         byteArrayOf(0x7f, 'E'.code.toByte(), 'L'.code.toByte(), 'F'.code.toByte(), 2, 1).copyInto(it)
@@ -77,6 +85,45 @@ class DriverBundleTest {
         val legacy = zip(mapOf("meta.json" to "{}".toByteArray(), "libvulkan_freedreno.so" to library("libc.so")))
         assertFalse(DriverBundle.isBundle(context, legacy))
         assertTrue(DriverBundle.isBundle(context, bundle()))
+    }
+
+    @Test fun importsPanvkAndStillRecognizesLegacyTurnipStorage() {
+        val manager = LinuxVulkanDriverManager(context)
+        val id = manager.installDriver(zip(mapOf(
+            "lib/libvulkan_panfrost_kbase.so" to library("libc.so.6"),
+        )), "Pixel PanVK")
+        assertTrue(manager.isInstalled(id))
+        assertTrue(manager.isPanvk(id))
+        assertFalse(manager.supportsSteamGl(id))
+        assertFalse(manager.supportsCachedWsi(id))
+        assertFalse(manager.supportsWaylandDmabuf(id))
+        val fixed = manager.installDriver(zip(mapOf(
+            "libvulkan_panfrost_kbase.so" to library("libc.so.6"),
+            "meta.json" to "{\"pixelSteamGl33\":true,\"pixelCachedWsi\":true,\"pixelWaylandDmabuf\":true}".toByteArray(),
+        )), "Pixel PanVK fixed")
+        assertTrue(manager.supportsSteamGl(fixed))
+        assertTrue(manager.supportsCachedWsi(fixed))
+        assertTrue(manager.supportsWaylandDmabuf(fixed))
+        SessionPrefs.setLinuxDriver(context, id)
+        assertFalse(SessionPrefs.mangoapp(context))
+        SessionPrefs.setMangoapp(context, true)
+        assertTrue(SessionPrefs.mangoapp(context))
+        context.getSharedPreferences("session", Context.MODE_PRIVATE).edit().remove("mangoapp").apply()
+        SessionPrefs.setLinuxDriver(context, "")
+        assertTrue(SessionPrefs.mangoapp(context))
+        val dir = manager.getDriverDir(id)
+        val icd = JSONObject(File(dir, LinuxVulkanDriverManager.ICD_NAME).readText()).getJSONObject("ICD")
+        assertEquals(File(dir, LinuxVulkanDriverManager.LIB_NAME).absolutePath, icd.getString("library_path"))
+        assertEquals("1.4.0", icd.getString("api_version"))
+
+        val legacy = manager.getDriverDir("legacy-turnip").apply { mkdirs() }
+        File(legacy, "libvulkan_freedreno.so").writeBytes(library("libc.so.6"))
+        File(legacy, LinuxVulkanDriverManager.ICD_NAME).writeText("{}")
+        File(legacy, LinuxVulkanDriverManager.META_NAME).writeText("{\"sourceLibraryName\":\"libvulkan_freedreno.so\",\"pixelCachedWsi\":true,\"pixelWaylandDmabuf\":true}")
+        assertTrue(manager.isInstalled("legacy-turnip"))
+        assertFalse(manager.isPanvk("legacy-turnip"))
+        assertFalse(manager.supportsCachedWsi("legacy-turnip"))
+        assertFalse(manager.supportsWaylandDmabuf("legacy-turnip"))
     }
 
     @Test fun installsBothHalvesAndPicksAndDeletesThemTogether() {

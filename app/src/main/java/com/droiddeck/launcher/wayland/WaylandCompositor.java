@@ -43,8 +43,10 @@ public final class WaylandCompositor {
         /** A window started presenting GPU frames ({@code window} describes it; {@code gpuName} is the
          *  compositor's GPU), or {@code window == null} when that window closed. Compositor thread. */
         void onGameSurface(String window, String gpuName);
-        /** One GPU frame from that window. Compositor thread - keep it cheap. */
+        /** One frame from that GPU window. Compositor thread - keep it cheap. */
         void onGameFrame();
+        /** A copied display frame when no dmabuf window exists; separate from game timing. */
+        default void onDisplayFrame() {}
         /** The program behind that window, right after {@link #onGameSurface}: its Linux pid (the
          *  Wayland client's credentials) and executable name ({@code ""} when unknown). The app arms its
          *  launch-time CPU affinity on it - on X11 that comes from window events, which a Wayland session
@@ -93,6 +95,12 @@ public final class WaylandCompositor {
         }
         GameListener l = gameListener;
         if (l != null) l.onGameFrame();
+    }
+
+    @SuppressWarnings("unused")
+    static void onDisplayFrame() {
+        GameListener l = gameListener;
+        if (l != null) l.onDisplayFrame();
     }
 
     /** Invoked from native (droiddeck_on_game_program) once per game window that starts presenting. */

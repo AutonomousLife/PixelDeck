@@ -754,6 +754,7 @@ static int64_t g_hud_last_ns;
 static int g_hud_fresh;
 extern void droiddeck_on_game_surface(const char *window, const char *gpu); /* window NULL = gone */
 extern void droiddeck_on_game_frame(void);
+extern void droiddeck_on_display_frame(void);
 /* The program behind that window: its Linux pid (the Wayland client's credentials) and executable name
  * ("" when /proc gave none) - the app arms its CPU affinity on it (X11 does that from window events). */
 extern void droiddeck_on_game_program(int pid, const char *program);
@@ -993,6 +994,20 @@ static void send_toplevel_configure(struct surface *s);
 /* The pointer image from a cursor surface's buffer: wl_shm is copied, a dma-buf (labwc on a GPU
  * renderer) is read back once the client's render into it is done - its implicit fence, as the
  * zero-copy path waits for it (ahb_swapchain_present). */
+static int cursor_wait_writers(int fd) {
+    if (fd < 0) return -1;
+    struct pollfd p = {.fd = fd, .events = POLLIN, .revents = 0};
+    const int64_t deadline = now_ns() + 100000000LL;
+    int r;
+    do {
+        const int64_t remaining = deadline - now_ns();
+        if (remaining <= 0) return -1;
+        r = poll(&p, 1, (int)((remaining + 999999LL) / 1000000LL));
+    } while (r < 0 && errno == EINTR);
+    return r > 0 && (p.revents & POLLIN) &&
+           !(p.revents & (POLLERR | POLLHUP | POLLNVAL)) ? 0 : -1;
+}
+
 static void cursor_publish_buffer(struct surface *s, struct wl_resource *buffer) {
     struct dmabuf_buffer *db = get_dmabuf(buffer);
     struct wl_shm_buffer *shm = db ? NULL : wl_shm_buffer_get(buffer);
@@ -1006,9 +1021,8 @@ static void cursor_publish_buffer(struct surface *s, struct wl_resource *buffer)
             if (!db->img) db->import_failed = 1;
         }
         if (!db->img) return;
-        struct pollfd p = {.fd = db->fd[0], .events = POLLIN};
-        int r;
-        do { r = poll(&p, 1, 100); } while (r < 0 && errno == EINTR);
+        /* The borrowed buffer remains owned by the caller on every outcome. */
+        if (cursor_wait_writers(db->fd[0]) != 0) return;
         if (vkp_image_readback(db->img, g_cursor_rb, CURSOR_MAX_PX) != 0) return;
         cursor_publish_pixels((const uint8_t *)g_cursor_rb, db->width, db->height,
                               (size_t)db->width * 4, g_cursor_hx, g_cursor_hy);
@@ -2192,6 +2206,8 @@ static void render_scene(void) {
     if (rendered) {
         int64_t t = now_ns();
         g_stat_frames++;
+        /* Keep copied display frames separate from game timing and frame generation. */
+        if (!g_hud_surface) droiddeck_on_display_frame();
         /* A surface outside the scene (role-less, not placed yet, a hidden helper window such
          * as wined3d's device window) was not shown, so its feedback is discarded rather than
          * left pending: a FIFO present waits on it, and a client blocked there never commits

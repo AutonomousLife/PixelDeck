@@ -1,0 +1,194 @@
+From: PixelDeck contributors
+Subject: [PATCH] wsi: opt-in per-thread presentation stage timings
+
+Default off; no synchronization or result changes. Apply after cached WSI
+and native DMA-BUF patches. Counters describe calls, not displayed frames;
+total includes the nested stage times. Log one batch per 240 presents.
+
+--- a/src/vulkan/wsi/wsi_common.c
++++ b/src/vulkan/wsi/wsi_common.c
+@@ -41,6 +41,8 @@
+ #include "vk_util.h"
+ 
+ #include <assert.h>
++#include <errno.h>
++#include "c11/threads.h"
+ #include <time.h>
+ #include <stdlib.h>
+ #include <stdio.h>
+@@ -50,6 +52,91 @@
+ #endif
+ 
+ uint64_t WSI_DEBUG;
++
++/* Pixel presentation diagnostics: aggregate on the presenting thread only. */
++DEBUG_GET_ONCE_BOOL_OPTION(pixel_present_timing, "PANVK_KBASE_PRESENT_TIMING", false)
++
++enum pixel_present_stage {
++   PIXEL_PRESENT_THROTTLE,
++   PIXEL_PRESENT_SUBMIT,
++   PIXEL_PRESENT_BLIT,
++   PIXEL_PRESENT_FENCE,
++   PIXEL_PRESENT_INVALIDATE,
++   PIXEL_PRESENT_BACKEND,
++   PIXEL_PRESENT_TOTAL,
++   PIXEL_PRESENT_STAGE_COUNT,
++};
++
++static thread_local struct {
++   struct {
++      uint64_t count, ns, max_ns, errors;
++   } stages[PIXEL_PRESENT_STAGE_COUNT];
++   unsigned batch;
++} pixel_present_stats;
++
++static bool
++pixel_present_enabled(void)
++{
++   int saved_errno = errno;
++   bool enabled = debug_get_option_pixel_present_timing();
++   errno = saved_errno;
++   return enabled;
++}
++
++static uint64_t
++pixel_present_begin(bool enabled)
++{
++   if (!enabled)
++      return 0;
++   int saved_errno = errno;
++   uint64_t now = os_time_get_nano();
++   errno = saved_errno;
++   return now;
++}
++
++static void
++pixel_present_end(enum pixel_present_stage stage, uint64_t start, VkResult result)
++{
++   if (!start)
++      return;
++   int saved_errno = errno;
++   uint64_t ns = os_time_get_nano() - start;
++   pixel_present_stats.stages[stage].count++;
++   pixel_present_stats.stages[stage].ns += ns;
++   pixel_present_stats.stages[stage].max_ns =
++      MAX2(pixel_present_stats.stages[stage].max_ns, ns);
++   pixel_present_stats.stages[stage].errors += result < 0;
++
++   if (stage == PIXEL_PRESENT_TOTAL &&
++       pixel_present_stats.stages[stage].count == 240) {
++      static const char *names[] = {
++         "throttle", "submit", "blit", "fence", "invalidate", "backend", "total",
++      };
++      /* One write keeps concurrent threads' batch records together. */
++      char line[1536];
++      long pid = 0;
++#ifndef _WIN32
++      pid = (long)getpid();
++#endif
++      int used = snprintf(line, sizeof(line),
++                          "PIXEL_PRESENT pid=%ld thread=%p batch=%u",
++                          pid, (void *)&pixel_present_stats,
++                          ++pixel_present_stats.batch);
++      for (unsigned i = 0; i < PIXEL_PRESENT_STAGE_COUNT; i++) {
++         used += snprintf(line + used, sizeof(line) - used,
++                          " %s=%llu/%llu/%llu/%llu", names[i],
++                          (unsigned long long)pixel_present_stats.stages[i].count,
++                          (unsigned long long)(pixel_present_stats.stages[i].ns / 1000),
++                          (unsigned long long)(pixel_present_stats.stages[i].max_ns / 1000),
++                          (unsigned long long)pixel_present_stats.stages[i].errors);
++      }
++      fprintf(stderr, "%s units=count/us/max_us/errors\n", line);
++      memset(pixel_present_stats.stages, 0, sizeof(pixel_present_stats.stages));
++   }
++   errno = saved_errno;
++}
++/* End Pixel presentation diagnostics. */
++
+ 
+ static const struct debug_control debug_control[] = {
+    { "buffer",       WSI_DEBUG_BUFFER },
+@@ -2459,6 +2546,8 @@
+                          struct vk_queue *queue,
+                          const VkPresentInfoKHR *pPresentInfo)
+ {
++   const bool pixel_timing = pixel_present_enabled();
++   const uint64_t pixel_total_start = pixel_present_begin(pixel_timing);
+    struct vk_device *dev = queue->base.device;
+    uint32_t current_frame = p_atomic_fetch_add(&dev->current_frame, 1);
+    VkResult final_result = handle_trace(queue, dev, current_frame);
+@@ -2484,9 +2573,11 @@
+             continue;
+       } else {
+          MESA_TRACE_SCOPE("throttle");
++         uint64_t pixel_start = pixel_present_begin(pixel_timing);
+          results[i] = wsi->WaitForFences(vk_device_to_handle(dev),
+                                          1, &swapchain->fences[image_index],
+                                          true, ~0ull);
++         pixel_present_end(PIXEL_PRESENT_THROTTLE, pixel_start, results[i]);
+          if (results[i] != VK_SUCCESS)
+             continue;
+ 
+@@ -2793,8 +2884,10 @@
+          .signalSemaphoreInfoCount = signal_semaphore_count,
+          .pSignalSemaphoreInfos = signal_semaphore_infos,
+       };
++      uint64_t pixel_start = pixel_present_begin(pixel_timing);
+       VkResult result = wsi_queue_submit2_unordered(wsi, queue, &submit_info,
+                                                     fence_count, fences);
++      pixel_present_end(PIXEL_PRESENT_SUBMIT, pixel_start, result);
+       if (result != VK_SUCCESS) {
+          /* If this failed, everything failed */
+          for (uint32_t i = 0; i < pPresentInfo->swapchainCount; i++) {
+@@ -2854,10 +2947,12 @@
+          .signalSemaphoreInfoCount = image_signal_infos[i].semaphore_count,
+          .pSignalSemaphoreInfos = image_signal_infos[i].semaphore_infos,
+       };
++      uint64_t pixel_start = pixel_present_begin(pixel_timing);
+       results[i] = wsi_queue_submit2_unordered(wsi, swapchain->blit.queue,
+                                                &submit_info,
+                                                image_signal_infos[i].fence_count,
+                                                image_signal_infos[i].fences);
++      pixel_present_end(PIXEL_PRESENT_BLIT, pixel_start, results[i]);
+    }
+ 
+    /* Finally, we can present */
+@@ -2905,14 +3000,18 @@
+       }
+ 
+       if (wsi->sw || wsi->wait_present_before_queue) {
++         uint64_t pixel_start = pixel_present_begin(pixel_timing);
+          results[i] = wsi->WaitForFences(
+             vk_device_to_handle(dev), 1, &swapchain->fences[image_index],
+             true, ~0ull);
++         pixel_present_end(PIXEL_PRESENT_FENCE, pixel_start, results[i]);
+          if (results[i] != VK_SUCCESS)
+             continue;
+       }
+ 
++      uint64_t pixel_invalidate_start = pixel_present_begin(pixel_timing);
+       results[i] = wsi_invalidate_cpu_image(swapchain, image);
++      pixel_present_end(PIXEL_PRESENT_INVALIDATE, pixel_invalidate_start, results[i]);
+       if (results[i] != VK_SUCCESS)
+          continue;
+ 
+@@ -2920,9 +3019,11 @@
+       if (regions && regions->pRegions)
+          region = &regions->pRegions[i];
+ 
++      uint64_t pixel_start = pixel_present_begin(pixel_timing);
+       results[i] = swapchain->queue_present(swapchain, image_index,
+                                             image_signal_infos[i].present_id,
+                                             region);
++      pixel_present_end(PIXEL_PRESENT_BACKEND, pixel_start, results[i]);
+       if (results[i] != VK_SUCCESS && results[i] != VK_SUBOPTIMAL_KHR)
+          continue;
+ 
+@@ -2945,6 +3046,7 @@
+    STACK_ARRAY_FINISH(semaphore_wait_infos);
+    STACK_ARRAY_FINISH(results);
+ 
++   pixel_present_end(PIXEL_PRESENT_TOTAL, pixel_total_start, final_result);
+    return final_result;
+ }
+ 

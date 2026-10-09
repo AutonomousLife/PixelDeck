@@ -102,18 +102,22 @@ public final class PadBridge {
 
     public synchronized void stop() {
         activeControllerId = NO_CONTROLLER;
+        clearInputState();
+        if (open) {
+            writer.writePad(state);
+            writer.close();
+            open = false;
+        }
+    }
+
+    private void clearInputState() {
+        state.clear();
         systemGuidePressed = false;
         systemQamPressed = false;
         qamChordActive = false;
         qamSyntheticAPressed = false;
         qamTapPressed = false;
         qamChordGeneration++;
-        if (open) {
-            state.clear();
-            writer.writePad(state);
-            writer.close();
-            open = false;
-        }
     }
 
     /** True when the device this event came from is a gamepad or joystick, not the touchscreen. */
@@ -253,7 +257,7 @@ public final class PadBridge {
      * session drawer opened), so a button or stick held at that moment is not left down in it.
      */
     public synchronized void releaseAll() {
-        state.clear();
+        clearInputState();
         publish();
     }
 

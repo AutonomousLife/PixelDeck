@@ -1,0 +1,75 @@
+name: Pixel runtime shim
+on:
+  push:
+    branches: [codex/pixel-gpu-probe]
+    paths: [.github/workflows/pixel-runtime.yml, tools/pixel-build.py, 'tools/linuxfs/preload/**', app/src/main/cpp/fakeinput_steam.cpp, tools/linuxfs/build-x86-preloads.sh, 'tools/linuxfs/fex/**']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  preload:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check Steam timing scope and user overrides
+        run: |
+          mkdir -p build/steam-timing
+          gcc -O2 -Wall -Wextra -Werror -Wl,--version-script=tools/linuxfs/preload/session.map tools/linuxfs/preload/tests/steam-timing.c -ldl -o build/steam-timing/check
+          build/steam-timing/check
+      - name: Check forwarding to a locally loaded libdrm
+        run: |
+          mkdir -p build/drm-local
+          gcc -shared -fPIC -O2 -DDRM_TEST_LIBRARY tools/linuxfs/preload/tests/drm-local.c -o build/drm-local/libdrm.so.2
+          gcc -shared -fPIC -O2 -Wall -pthread tools/linuxfs/preload/drm.c -ldl -o build/drm-local/shim.so
+          gcc -O2 -Wall tools/linuxfs/preload/tests/drm-local.c -ldl -o build/drm-local/check
+          LD_LIBRARY_PATH="$PWD/build/drm-local" LD_PRELOAD="$PWD/build/drm-local/shim.so" build/drm-local/check
+      - name: Build the ARM64 runtime preload
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq gcc-aarch64-linux-gnu
+          aarch64-linux-gnu-gcc -shared -fPIC -O2 -Wall -pthread -Wl,--version-script=tools/linuxfs/preload/session.map tools/linuxfs/preload/*.c -ldl -o build/libblsession.so
+          aarch64-linux-gnu-strip --strip-unneeded build/libblsession.so
+          cd build
+          sha256sum libblsession.so > SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pixel-runtime-aarch64
+          path: |
+            build/libblsession.so
+            build/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 14
+      - name: Build ARM64 fakeinput and x86 guest preloads
+        run: |
+          set -euo pipefail
+          sudo apt-get install -y -qq g++-aarch64-linux-gnu
+          mkdir -p build/pixel-native
+          aarch64-linux-gnu-g++ -shared -fPIC -O2 -Wall -Wno-attributes -Wno-nonnull-compare \
+            -pthread -std=c++17 -static-libstdc++ -static-libgcc -Wl,--exclude-libs,ALL \
+            -o build/pixel-native/libfakeinput.so app/src/main/cpp/fakeinput_steam.cpp -ldl
+          aarch64-linux-gnu-strip --strip-unneeded build/pixel-native/libfakeinput.so
+          docker run --rm -v "$PWD:/src" -w /src debian:bullseye bash -c '
+            set -euo pipefail
+            printf "deb http://archive.debian.org/debian bullseye main\ndeb http://archive.debian.org/debian-security bullseye-security main\n" > /etc/apt/sources.list
+            apt-get -o Acquire::Check-Valid-Until=false update -qq
+            DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends gcc g++ gcc-multilib g++-multilib binutils >/dev/null
+            tools/linuxfs/build-x86-preloads.sh build/pixel-native
+          '
+          sudo chown -R "$(id -u):$(id -g)" build/pixel-native
+          python3 - <<'PY'
+          import json, os, runpy
+          from pathlib import Path
+          build = runpy.run_path('tools/pixel-build.py')
+          Path('build/pixel-native/source.json').write_text(json.dumps({
+              'sourceCommit': os.environ['GITHUB_SHA'],
+              'sourceDigest': build['source_digest']('native'),
+          }) + '\n')
+          PY
+          (cd build/pixel-native && sha256sum libfakeinput.so x86_64/*.so i386/*.so source.json > SHA256SUMS)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pixel-native-preloads
+          path: build/pixel-native/
+          if-no-files-found: error
+          retention-days: 14

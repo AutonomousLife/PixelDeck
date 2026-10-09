@@ -1,0 +1,37 @@
+From: PixelDeck contributors
+Subject: [PATCH] vulkan: treat sampled SHM XRGB textures as opaque
+
+Software Xwayland uses SHM buffers. Their XRGB alpha bytes are unused, but
+BInit previously preserved those bytes because the buffer was not a dma-buf.
+Use the format's alpha flag for sampled non-storage textures. Keep storage
+views' identity components and preserve the existing imported-buffer path.
+Log the first SHM import at debug level to distinguish this path on device.
+
+--- a/src/rendervulkan.cpp
++++ b/src/rendervulkan.cpp
+@@ -2553,7 +2553,10 @@
+ 		m_pBackendFb = GetBackend()->ImportDmabufToBackend( &m_dmabuf );
+ 	}
+ 
+-	bool bHasAlpha = pDMA ? DRMFormatHasAlpha( pDMA->format ) : true;
++	// SHM XRGB buffers have an unused alpha byte, just like imported XRGB dma-bufs.
++	// Storage image views cannot swizzle components, so keep their identity mapping.
++	bool bHasAlpha = pDMA ? DRMFormatHasAlpha( pDMA->format ) :
++		( flags.bStorage || DRMFormatHasAlpha( drmFormat ) );
+ 
+ 	if (!bHasAlpha )
+ 	{
+@@ -4813,6 +4816,13 @@
+ 	texCreateFlags.bSampled = true;
+ 	texCreateFlags.bTransferDst = true;
+ 	texCreateFlags.bFlippable = true;
++	static bool s_loggedShmImport = false;
++	if ( !s_loggedShmImport )
++	{
++		s_loggedShmImport = true;
++		vk_log.debugf( "First SHM texture: DRM format 0x%08" PRIX32 ", alpha %s",
++			drmFormat, DRMFormatHasAlpha( drmFormat ) ? "preserved" : "opaque" );
++	}
+ 	if ( pTex->BInit( width, height, 1u, drmFormat, texCreateFlags, nullptr, 0, 0, nullptr, pBackendFb ) == false )
+ 		return nullptr;
+ 

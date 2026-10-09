@@ -1,3 +1,65 @@
+# PixelDeck (experimental)
+
+PixelDeck is a Tensor-device port of [DroidDeck](https://github.com/Droid-Deck/DroidDeck).
+On a locked Pixel 7 Pro running Android 17, stock GLES and Vulkan hardware-buffer
+import/render/readback/presentation have passed. Linux PanVK GPU readback and
+a 600-frame cube test inside patched Gamescope have also passed. Native ARM64
+vkQuake with free LibreQuake data completed a Vulkan benchmark at 44.4 engine FPS
+at 1280×720 with moving 3D output; the copied display path showed about 33–35 FPS. Steam has
+rendered its Big Picture sign-in screen on the phone using software OpenGL after
+fixing Gamescope's copied XRGB alpha handling. The x64 Windows vkQuake build also
+shows a moving Vulkan demo through ARM64 Proton with built-in DXGI for display
+discovery. A Windows Direct3D 9 demo also advances through its 3D level using
+WineD3D and hardware Zink. Its Direct3D 11 backend also renders a moving demo
+at feature level 10_1; this does not establish feature level 11_0 or D3D12 support.
+Steam login has succeeded; Steam game launches and general game compatibility remain
+untested. The upstream requirements below do not yet
+describe Pixel support. See [bring-up results](docs/development/pixel7pro-bringup.md).
+Reused copied buffers now refresh each frame, and the Vulkan game demo visibly
+advances through its 3D level on the phone at about 33 display FPS. Input still
+needs a device check.
+
+For the Windows development loop, install JDK 21, Python 3.14+, GitHub CLI,
+Android SDK platform 34
+and build-tools 35.0.0, then run:
+
+```powershell
+python tools/pixel-probe/bootstrap_sdk.py
+python tools/pixel-build.py --serial YOUR_DEVICE_SERIAL
+python tools/droiddeckctl --package dev.pixeldeck.launcher --serial YOUR_DEVICE_SERIAL state
+```
+
+The full-app helper stages checksum-pinned upstream Linux prebuilts and the fixed
+Pixel runtime/Gamescope components, then uses incremental Gradle/NDK builds.
+Keep `build/pixel-probe/upstream-ci.zip` and `build/pixel-components/*.zip`:
+Actions artifacts expire. Changed Linux native components need their matching
+Linux CI build; this helper rebuilds Android native/Java/Kotlin code and scripts.
+PanVK remains an explicit experimental driver import. When selected, it uses
+Gamescope's SDL backend. The fixed CSF64 bundle enables hardware Zink for Steam's
+GL 3.3 client; legacy bundles retain software OpenGL. Bundles advertising
+`pixelCachedWsi` and `pixelWaylandDmabuf` enable the tested Steam readback and GPU
+buffer-sharing paths. On Pixel 7 Pro, controlled scrolling measured 50.9–53.0
+displayed FPS with sharing versus 42.3–42.5 with it disabled on the same binary;
+stable 60 FPS remains unachieved. Standalone Linux
+programs use hardware Zink OpenGL (3.3 in the verified test). Proton game
+launches automatically select WineD3D and hardware Zink; explicit game profiles
+can override those defaults. Vulkan remains on the Mali GPU. One game's D3D9
+and D3D11 (feature level 10_1) renderers have passed; general D3D11/12 compatibility
+has not been established. The helper
+refuses changed Pixel native sources until their CI artifacts and pins are rebuilt. Other Linux native components
+still come from the pinned upstream APK.
+
+Steam requires Developer options → **Restrict child processes** to be off.
+The connected test phone uses `settings_enable_monitor_phantom_procs=false`;
+the default process monitor killed Steam sessions. The bundled audio stack has
+been rebuilt with 16 KB alignment, including matching modules; all 22 APK native
+libraries pass the alignment check. An old Android warning dialog can survive an
+update and need dismissal once. This is an experimental debug build.
+
+The original DroidDeck README follows, with its upstream credits and instructions.
+
+---
+
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="artwork/droiddeck-banner-dark.svg">
@@ -25,7 +87,7 @@ Join the [DroidDeck Discord](https://discord.gg/JRGAvawjsm) for help, Preview bu
 
 ## Build
 
-Run `tools/build_local.sh` with Docker, Java 17, the Android SDK/NDK, and `zstd` installed. It builds the ARM64 audio sinks from PulseAudio 13.0 and packages them into the APK at `app/build/outputs/apk/release/app-release.apk`. Set `DROIDDECK_PA13_SOURCE_DIR` to an existing PulseAudio 13.0 source directory to skip downloading it. To install the APK on an attached device, run `tools/deploy_local.sh`.
+Run `tools/build_local.sh` with Docker, JDK 17 (the project compiles to Java 17 bytecode; the Windows loop above uses JDK 21, which also builds it), the Android SDK/NDK, and `zstd` installed. It builds the ARM64 audio sinks from PulseAudio 13.0 and packages them into the APK at `app/build/outputs/apk/release/app-release.apk`. Set `DROIDDECK_PA13_SOURCE_DIR` to an existing PulseAudio 13.0 source directory to skip downloading it. To install the APK on an attached device, run `tools/deploy_local.sh`.
 
 ## Limits
 

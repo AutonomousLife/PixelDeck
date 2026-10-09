@@ -47,6 +47,7 @@ static jclass g_compositor_cls;      /* global ref */
 static jmethodID g_on_first_frame;   /* static void onFirstFramePresented() */
 static jmethodID g_on_game_surface;  /* static void onGameSurface(String, String) */
 static jmethodID g_on_game_frame;    /* static void onGameFrame() */
+static jmethodID g_on_display_frame; /* static void onDisplayFrame() */
 static jmethodID g_on_game_program;  /* static void onGameProgram(int, String) */
 static jmethodID g_on_pointer_lock;  /* static void onPointerLock(boolean, int, int) */
 static jmethodID g_on_clipboard;     /* static void onClipboardText(byte[]) */
@@ -65,6 +66,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved) {
             g_on_game_surface = (*env)->GetStaticMethodID(env, g_compositor_cls, "onGameSurface",
                                                           "(Ljava/lang/String;Ljava/lang/String;)V");
             g_on_game_frame = (*env)->GetStaticMethodID(env, g_compositor_cls, "onGameFrame", "()V");
+            g_on_display_frame = (*env)->GetStaticMethodID(env, g_compositor_cls, "onDisplayFrame", "()V");
             g_on_game_program = (*env)->GetStaticMethodID(env, g_compositor_cls, "onGameProgram",
                                                           "(ILjava/lang/String;)V");
             if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); g_on_game_program = NULL; }
@@ -138,6 +140,14 @@ void droiddeck_on_game_frame(void) {
     JNIEnv *env;
     if (!g_compositor_cls || !g_on_game_frame || !(env = thread_env())) return;
     (*env)->CallStaticVoidMethod(env, g_compositor_cls, g_on_game_frame);
+    if ((*env)->ExceptionCheck(env)) (*env)->ExceptionClear(env);
+}
+
+/* A composed display frame when no dmabuf game window is being tracked. */
+void droiddeck_on_display_frame(void) {
+    JNIEnv *env;
+    if (!g_compositor_cls || !g_on_display_frame || !(env = thread_env())) return;
+    (*env)->CallStaticVoidMethod(env, g_compositor_cls, g_on_display_frame);
     if ((*env)->ExceptionCheck(env)) (*env)->ExceptionClear(env);
 }
 

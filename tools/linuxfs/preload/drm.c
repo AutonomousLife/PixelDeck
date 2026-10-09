@@ -43,6 +43,15 @@ static int is_kgsl(int fd) {
 
 static void *real(const char *name) {
   void *fn = dlsym(RTLD_NEXT, name);
+  /* Vulkan ICDs load their libdrm dependency in a local dlopen scope. It is
+   * invisible to RTLD_NEXT from this global preload, but visible by handle. */
+  if (!fn) {
+    void *drm = dlopen("libdrm.so.2", RTLD_LAZY | RTLD_NOLOAD);
+    if (drm) {
+      fn = dlsym(drm, name);
+      dlclose(drm);
+    }
+  }
   if (!fn) {
     errno = ENOSYS;
   }

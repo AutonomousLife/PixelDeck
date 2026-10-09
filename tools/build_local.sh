@@ -121,6 +121,7 @@ docker run --rm --platform linux/amd64 \
             -o "$d/libfakeinput.so" app/src/main/cpp/fakeinput_steam.cpp -ldl
         aarch64-linux-gnu-strip --strip-unneeded "$d/libfakeinput.so"
         aarch64-linux-gnu-gcc -shared -fPIC -O2 -Wall -pthread \
+            -Wl,--version-script=tools/linuxfs/preload/session.map \
             -o "$d/libblsession.so" tools/linuxfs/preload/*.c -ldl
         aarch64-linux-gnu-strip --strip-unneeded "$d/libblsession.so"
         aarch64-linux-gnu-gcc -shared -fPIC -O2 -Wall -pthread \

@@ -198,7 +198,8 @@ internal fun SetupPanel(
                                 if (gpuOk) CheckState.OK else CheckState.WARN,
                                 when (gpu.support) {
                                     com.droiddeck.launcher.gpu.GpuInfo.Support.TESTED -> stringResource(R.string.setup_gpu_supported)
-                                    com.droiddeck.launcher.gpu.GpuInfo.Support.UNTESTED -> stringResource(R.string.setup_gpu_untested)
+                                    com.droiddeck.launcher.gpu.GpuInfo.Support.UNTESTED -> stringResource(
+                                        if (gpu.experimentalPixel7Pro) R.string.setup_gpu_experimental else R.string.setup_gpu_untested)
                                     else -> stringResource(R.string.setup_gpu_unsupported)
                                 },
                                 when (gpu.support) {

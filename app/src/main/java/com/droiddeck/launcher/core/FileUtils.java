@@ -12,6 +12,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.AccessDeniedException;
 
 public final class FileUtils {
     private static final String TAG = "FileUtils";
@@ -42,6 +43,24 @@ public final class FileUtils {
         if (dir == null || !dir.isDirectory()) return;
         File[] children = dir.listFiles();
         if (children != null) for (File child : children) delete(child);
+    }
+
+    /** Adopt a staged directory. Windows test hosts can briefly deny a rename after file writes. */
+    public static void moveDirectory(File from, File to) throws IOException {
+        for (int attempt = 0; ; attempt++) {
+            try {
+                Files.move(from.toPath(), to.toPath());
+                return;
+            } catch (AccessDeniedException e) {
+                if (File.separatorChar != '\\' || attempt == 4) throw e;
+                try {
+                    Thread.sleep(25);
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                    throw new IOException("Interrupted moving " + from, interrupted);
+                }
+            }
+        }
     }
 
     public static boolean writeString(File file, String content) {

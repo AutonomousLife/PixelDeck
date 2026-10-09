@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 BIN = Path(__file__).resolve().parents[1] / "linuxfs/overlay/usr/local/bin"
 MODULE = runpy.run_path(str(BIN / "droiddeck-game-env"))
@@ -23,6 +24,79 @@ def mapping_of(text):
 def config_text(entries):
     mapping = "".join('"%s" { "name" "%s" "config" "" "priority" "%s" }' % (app, name, "75" if app == "0" else "250") for app, name in entries)
     return '"InstallConfigStore" { "Software" { "Valve" { "Steam" { "CompatToolMapping" { %s } } } } }' % mapping
+
+
+class PanvkGameLaunchTest(unittest.TestCase):
+    ENV = {"BL_PANVK": "1", "STEAM_COMPAT_DATA_PATH": "/compatdata/42",
+           "MESA_LOADER_DRIVER_OVERRIDE": "swrast", "GALLIUM_DRIVER": "llvmpipe",
+           "LIBGL_ALWAYS_SOFTWARE": "1", "SDL_VIDEODRIVER": "x11"}
+
+    def launch(self, env, command, config=None):
+        with tempfile.TemporaryDirectory() as tmp:
+            if config is not None:
+                path = Path(tmp) / ".config/droiddeck/game-environment.json"
+                path.parent.mkdir(parents=True)
+                path.write_text(json.dumps(config))
+            with mock.patch.dict(os.environ, env, clear=True), \
+                    mock.patch.object(sys, "argv", ["droiddeck-game-env", *command]), \
+                    mock.patch.object(Path, "home", return_value=Path(tmp)), \
+                    mock.patch.dict(MODULE["main"].__globals__, {"load_sync": lambda: None}), \
+                    mock.patch.object(os, "execvpe") as execute:
+                MODULE["main"]()
+                execute.assert_called_once()
+                self.assertEqual(execute.call_args.args[1], command)
+                return execute.call_args.args[2]
+
+    def test_games_use_wined3d_and_hardware_zink(self):
+        result = self.launch(self.ENV, ["proton", "waitforexitandrun", r"Z:\game\GAME.EXE"])
+        self.assertEqual(result["PROTON_USE_WINED3D"], "1")
+        self.assertEqual(result["MESA_LOADER_DRIVER_OVERRIDE"], "zink")
+        self.assertEqual(result["GALLIUM_DRIVER"], "zink")
+        self.assertEqual(result["LIBGL_KOPPER_DRI2"], "true")
+        self.assertNotIn("LIBGL_ALWAYS_SOFTWARE", result)
+        self.assertNotIn("SDL_VIDEODRIVER", result)
+
+    def test_probes_and_other_drivers_keep_their_environment(self):
+        command = ["proton", "waitforexitandrun", "game.exe"]
+        for changes, argv in (({"BL_PANVK": "0"}, command),
+                              ({"STEAM_COMPAT_DATA_PATH": "/compatdata/0"}, command),
+                              ({"STEAM_COMPAT_DATA_PATH": "/compatdata/probe"}, command),
+                              ({"STEAM_COMPAT_DATA_PATH": ""}, command),
+                              ({}, ["proton", "getcompatpath", "game.exe"]),
+                              ({}, ["proton", "run", "game.exe"]),
+                              ({}, ["proton", "waitforexitandrun"]), ({}, ["steam"])):
+            with self.subTest(changes=changes, command=argv):
+                env = {**self.ENV, **changes}
+                self.assertEqual(self.launch(env, argv), env)
+
+    def test_windows_sdl_default_only_removes_inherited_x11(self):
+        for target, sdl in (("game.com", "x11"), ("game", "x11"), ("game.exe", "windows")):
+            with self.subTest(target=target, sdl=sdl):
+                result = self.launch({**self.ENV, "SDL_VIDEODRIVER": sdl}, ["proton", "waitforexitandrun", target])
+                if target.endswith(".com"):
+                    self.assertNotIn("SDL_VIDEODRIVER", result)
+                else:
+                    self.assertEqual(result["SDL_VIDEODRIVER"], sdl)
+
+    def test_inherited_wined3d_choice_is_preserved(self):
+        result = self.launch({**self.ENV, "PROTON_USE_WINED3D": "0"}, ["proton", "waitforexitandrun", "game.exe"])
+        self.assertEqual(result["PROTON_USE_WINED3D"], "0")
+
+    def test_run_smoke_still_ignores_full_game_profiles(self):
+        config = {"version": 1, "shared": {"PROTON_USE_WINED3D": "1", "SDL_VIDEODRIVER": "windows"}}
+        self.assertEqual(self.launch(self.ENV, ["proton", "run", "game.exe"], config), self.ENV)
+
+    def test_shared_and_game_profiles_override_platform_defaults(self):
+        choices = {"PROTON_USE_WINED3D": "0", "MESA_LOADER_DRIVER_OVERRIDE": "swrast",
+                   "GALLIUM_DRIVER": "llvmpipe", "LIBGL_ALWAYS_SOFTWARE": "1",
+                   "LIBGL_KOPPER_DRI2": "false", "SDL_VIDEODRIVER": "windows"}
+        for scope in ("shared", "game"):
+            with self.subTest(scope=scope):
+                config = {"version": 1, "shared": choices if scope == "shared" else {"PROTON_USE_WINED3D": "1"},
+                          "games": {"42": choices} if scope == "game" else {}}
+                result = self.launch(self.ENV, ["proton", "waitforexitandrun", "game.exe"], config)
+                for name, value in choices.items():
+                    self.assertEqual(result[name], value)
 
 
 class GameEnvironmentTest(unittest.TestCase):

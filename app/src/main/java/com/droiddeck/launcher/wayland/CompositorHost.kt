@@ -1,5 +1,6 @@
 package com.droiddeck.launcher.wayland
 
+import android.os.Build
 import android.view.Choreographer
 import android.view.Surface
 
@@ -34,7 +35,7 @@ object CompositorHost {
         refreshHz: Float,
         fpsLimit: Int,
     ): Boolean {
-        pace(refreshHz, fpsLimit)
+        pace(surface, refreshHz, fpsLimit)
         if (started) {
             attached = surface
             WaylandCompositor.nativeSetSurface(surface)
@@ -60,9 +61,24 @@ object CompositorHost {
      * clocks from that a session that has been slowed reads as one that wants to be. (WinNative,
      * WaylandSession.)
      */
-    private fun pace(refreshHz: Float, fpsLimit: Int) {
+    private fun pace(surface: Surface, refreshHz: Float, fpsLimit: Int) {
+        val hz = if (fpsLimit > 0) fpsLimit.toFloat() else refreshHz
+        // The mode preference alone leaves Android 15+ games at 60 Hz. Vote on the
+        // actual output surface too, including when an existing compositor reattaches.
+        if (Build.VERSION.SDK_INT >= 30) {
+            try {
+                if (Build.VERSION.SDK_INT >= 31) {
+                    surface.setFrameRate(hz, Surface.FRAME_RATE_COMPATIBILITY_DEFAULT, Surface.CHANGE_FRAME_RATE_ALWAYS)
+                } else {
+                    surface.setFrameRate(hz, Surface.FRAME_RATE_COMPATIBILITY_DEFAULT)
+                }
+                WaylandCompositor.nativeLog("screen", "output surface requests $hz Hz")
+            } catch (e: IllegalArgumentException) {
+                WaylandCompositor.nativeLog("screen", "output frame-rate request failed: ${e.message}")
+            }
+        }
         WaylandCompositor.nativeSetFpsLimit(fpsLimit)
-        WaylandCompositor.nativeSetLayerFrameRate(if (fpsLimit > 0) fpsLimit.toFloat() else refreshHz)
+        WaylandCompositor.nativeSetLayerFrameRate(hz)
     }
 
     /**

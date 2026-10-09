@@ -24,6 +24,8 @@ data class GpuInfo(
     val kgslName: String = "",
     /** Where [model] came from: "kernel", "vulkan" or "platform", "" when unknown. */
     val modelSource: String = "",
+    /** The Pixel 7 Pro bring-up has rendered with PanVK; full game compatibility is untested. */
+    val experimentalPixel7Pro: Boolean = false,
 ) {
     enum class Family(val label: String) {
         A8XX("Adreno 8xx"),
@@ -40,6 +42,7 @@ data class GpuInfo(
 
     val support: Support
         get() = when {
+            experimentalPixel7Pro -> Support.UNTESTED
             family == Family.NOT_ADRENO -> Support.UNSUPPORTED
             family == Family.A8XX -> Support.TESTED
             family == Family.A7XX && model >= 725 -> Support.TESTED
@@ -50,7 +53,8 @@ data class GpuInfo(
     val supportText: String
         get() = when (support) {
             Support.TESTED -> "Supported"
-            Support.UNTESTED -> if (family == Family.A7XX_LOW) "Experimental: its drivers are test builds"
+            Support.UNTESTED -> if (experimentalPixel7Pro) "Experimental Pixel 7 Pro: requires an imported PanVK driver"
+                else if (family == Family.A7XX_LOW) "Experimental: its drivers are test builds"
                 else "Below tested hardware (Adreno 725 and newer): it may not run"
             Support.UNSUPPORTED -> "Not supported: DroidDeck needs an Adreno (Snapdragon) GPU"
         }
@@ -77,11 +81,13 @@ data class GpuInfo(
             }
             val family = familyOf(adreno, model)
             val samsung = Build.MANUFACTURER.equals("samsung", ignoreCase = true)
+            val pixel7Pro = !adreno && Build.MANUFACTURER.equals("Google", ignoreCase = true) && Build.DEVICE == "cheetah"
             return GpuInfo(
-                name = if (!adreno) Build.HARDWARE.ifBlank { "this GPU" } else if (model > 0) "Adreno $model" else "Adreno",
+                name = if (pixel7Pro) "Mali-G710" else if (!adreno) Build.HARDWARE.ifBlank { "this GPU" } else if (model > 0) "Adreno $model" else "Adreno",
                 model = model, family = family, soc = soc,
                 oneUi8Gen2 = samsung && model == 740,
                 kgslName = raw.orEmpty(), modelSource = source,
+                experimentalPixel7Pro = pixel7Pro,
             )
         }
 
