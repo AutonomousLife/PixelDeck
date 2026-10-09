@@ -1063,3 +1063,22 @@ hypothesis that most present latency lived inside the internal submit: in this d
 and workload it lives primarily in the final fence wait. The wait protects CPU readback
 and cannot simply be removed. Timings establish attribution, not a performance gain.
 
+### Input release and control CLI follow-up (October 8)
+
+`PadBridge.releaseAll()` previously cleared only the physical/touch pad state. Synthetic
+Steam/QAM holds and delayed Guide–A chord callbacks remained active when the drawer,
+keyboard or ended screen took input. It now clears all synthetic holds and increments
+the callback generation, using the same reset as stop. Three Robolectric regressions
+cover held buttons, a cancelled chord and an old tap callback interfering with a new tap.
+All three fail with the old release method and pass with the fix. Build `0b56bef`
+installed without clearing data; session 13 reached READY. Physical-controller and
+on-device menu-transition verification remain open.
+
+The CLI's artifact wait now rejects a replacement session instead of following its
+state and either timing out or reporting the wrong session's collection as success.
+Three Python regressions cover original completion, replacement and timeout.
+Session 12 on the regular driver remained READY until an intentional stop roughly
+26 minutes after READY and completed collection. Its final valid scroll sample was
+50.82 displayed FPS, p95 33.35 ms, maximum 116.63 ms at thermal status 0. A successful
+run of this length does not prove the intermittent native heap corruption is fixed.
+
