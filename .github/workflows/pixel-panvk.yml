@@ -2,7 +2,7 @@ name: Pixel PanVK experiment
 on:
   push:
     branches: [codex/pixel-gpu-probe]
-    paths: [.github/workflows/pixel-panvk.yml, tools/pixel-probe/linux_clear.c, tools/pixel-probe/panvk-kbase-diagnostics.patch, tools/pixel-probe/panvk-csf-address.patch, tools/pixel-probe/panvk-cached-wsi.patch, tools/pixel-probe/panvk-shm-copy.patch, tools/pixel-probe/panvk-wayland-dmabuf.patch]
+    paths: [.github/workflows/pixel-panvk.yml, tools/pixel-probe/linux_clear.c, tools/pixel-probe/panvk-kbase-diagnostics.patch, tools/pixel-probe/panvk-csf-address.patch, tools/pixel-probe/panvk-cached-wsi.patch, tools/pixel-probe/panvk-shm-copy.patch, tools/pixel-probe/panvk-wayland-dmabuf.patch, tools/pixel-probe/panvk-present-timing.patch, tools/pixel-probe/check-present-timing.py]
   workflow_dispatch:
 permissions:
   contents: read
@@ -87,11 +87,13 @@ jobs:
           assert text.count(old) == 1
           p.write_text(text.replace(old, 'open(dma_heap, O_RDONLY | O_CLOEXEC)'))
           PY
+          python3 tools/pixel-probe/check-present-timing.py --mesa-root mesa
           git -C mesa apply ../tools/pixel-probe/panvk-kbase-diagnostics.patch
           git -C mesa apply ../tools/pixel-probe/panvk-csf-address.patch
           git -C mesa apply ../tools/pixel-probe/panvk-cached-wsi.patch
           git -C mesa apply ../tools/pixel-probe/panvk-shm-copy.patch
           git -C mesa apply ../tools/pixel-probe/panvk-wayland-dmabuf.patch
+          git -C mesa apply ../tools/pixel-probe/panvk-present-timing.patch
       - name: Configure Wayland and X11 driver
 
         working-directory: mesa
