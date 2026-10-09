@@ -1100,11 +1100,12 @@ for READ, WRITE and READ|WRITE fences. Every exported empty-work fence was signa
 all descriptors are closed on success or error. This proves kernel ioctl support,
 not GPU-job completion or an FPS improvement.
 
-The next implementation must export a fence tied to all relevant submitted kbase
-queue targets, transfer it with the buffer, and make the actual receiving Vulkan
-queue wait before sampling. Preserve the current blocking path whenever fence
-creation/import fails, and keep buffer release tied to consumer completion. Merely
-disabling `wait_present_before_queue` would introduce an unsynchronized image race.
+An implementation that publishes before GPU completion must export a fence tied
+to all relevant submitted kbase queue targets, transfer it with the buffer, and
+make the actual receiving Vulkan queue wait before sampling. Preserve the current
+blocking path whenever fence creation/import fails, and keep buffer release tied
+to consumer completion. Merely disabling `wait_present_before_queue` would
+introduce an unsynchronized image race.
 
 Further consumer-side inspection found `vk_present.c` already imports sync-file fences
 into a temporary Vulkan semaphore for destination-buffer reuse. Its CPU fallback had
@@ -1115,4 +1116,36 @@ function passes signaled, timeout, poll-error, error-event and repeated-EINTR ca
 with descriptor closure checked; substituting the previous error policy fails. This
 check is included in APK CI. Native Android compilation passes. This corrects fallback
 synchronization and does not establish an FPS improvement or producer-fence export.
+
+The AHardwareBuffer zero-copy fallback had the same false-success policy when
+sync-file export failed. It now checks the borrowed DMA-BUF descriptor against a
+single monotonic deadline, rejects invalid/error events, and presents only after
+confirmed writer completion. The extracted helper and old-policy negative control
+pass locally, and Android native compilation passes. Session 15 reached READY with
+this fix in the APK labeled `046d5ba dirty`; its source was committed as `86f99de`.
+This is startup verification, not proof of sustained performance improvement.
+
+### KCPU fence cancellation constraint (October 8)
+
+Read-only inspection of Google's GPU module at commit
+[`5a8eb10d6878d2394555c14626cdf86293afbe56`](https://android.googlesource.com/kernel/google-modules/gpu/+/5a8eb10d6878d2394555c14626cdf86293afbe56)
+found that successful KCPU queue deletion drains commands and synchronously
+retires its workers, but skips unfinished CQS waits and executes ordinary
+`FENCE_SIGNAL` without setting a cancellation error. Deleting an unfinished,
+published producer request can therefore report successful completion prematurely.
+The timeout path explicitly sets `-ETIMEDOUT`; poll readiness alone does not prove
+successful GPU completion. BO retention does not resolve this signaling defect.
+
+The inspected public branch is `android-gs-pantah-6.1-android15-qpr2`. The phone
+reports kernel `6.1.157-android14-11-gbd23337e42e7-ab14791245`; an exact shipping
+GPU-module source match is not established. No direct KCPU producer exporter was
+implemented or enabled. Such a path needs an error-capable fence or a proven
+termination/consumer-cancellation contract before destructive retirement.
+
+An alternative under source review is to retain the real completion wait and
+cache maintenance, but defer them and Wayland publication to a worker. This could
+let the producer thread continue while publication still waits for completion.
+Wayland currently has no such worker; acquisition, per-image fence reuse, copied
+presentation data, asynchronous errors and destruction joins must be handled
+before trying it. No performance benefit has been measured for that alternative.
 
