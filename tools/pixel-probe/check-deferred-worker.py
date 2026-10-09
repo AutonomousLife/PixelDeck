@@ -37,6 +37,7 @@ HARNESS = r'''
 #include <cstdio>
 #include <cstdlib>
 #include <cstdint>
+#include <initializer_list>
 using VkResult = int;
 enum { VK_SUCCESS=0, VK_SUBOPTIMAL_KHR=1, VK_ERROR_DEVICE_LOST=-4 };
 struct VkRectLayerKHR { int x,y; uint32_t width,height,layer; };
@@ -122,6 +123,8 @@ def main():
                               'w->jobs = static_cast<wsi_deferred_job*>(calloc(capacity, sizeof(*w->jobs)));')
         header=header.replace('job.rectangles = malloc(bytes);',
                               'job.rectangles = static_cast<VkRectLayerKHR*>(malloc(bytes));')
+        header=header.replace('struct wsi_deferred_job job = {0};',
+                              'struct wsi_deferred_job job = {};')
         (path/'worker.h').write_text(header)
         (path/'check.cpp').write_text(HARNESS)
         exe=path/('check.exe' if module.os.name=='nt' else 'check')
