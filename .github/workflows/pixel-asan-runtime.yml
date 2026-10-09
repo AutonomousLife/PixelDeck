@@ -37,6 +37,7 @@ jobs:
           PY
           cmake -S llvm-source/compiler-rt -B runtime-build -G Ninja \
             -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=clang-19 -DCMAKE_CXX_COMPILER=clang++-19 \
+            -DCMAKE_C_COMPILER_TARGET=aarch64-linux-gnu -DCMAKE_CXX_COMPILER_TARGET=aarch64-linux-gnu \
             -DLLVM_CONFIG_PATH=/usr/bin/llvm-config-19 \
             -DCOMPILER_RT_BUILD_BUILTINS=OFF -DCOMPILER_RT_BUILD_SANITIZERS=ON \
             -DCOMPILER_RT_SANITIZERS_TO_BUILD=asan -DCOMPILER_RT_DEFAULT_TARGET_ONLY=ON \
