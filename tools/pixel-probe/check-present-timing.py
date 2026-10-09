@@ -150,10 +150,10 @@ with tempfile.TemporaryDirectory(prefix='wsi-timing-', dir=ROOT/'build') as name
     relative = 'src/vulkan/wsi/wsi_common.c'
     target = tmp/relative
     target.parent.mkdir(parents=True)
-    original = (args.mesa_root/relative).read_text()
+    original = (args.mesa_root/relative).read_text(encoding='utf-8')
     # Exact unpatched input makes already-patched or different revisions fail loudly.
-    assert hashlib.sha256(original.encode()).hexdigest() == '2beb2cbfba303567f9c076a9251a4e9ca9bfafd6ffcf9c0a3d7930e431b43787', 'Unexpected pinned WSI source'
-    target.write_text(original)
+    assert hashlib.sha256(original.encode()).hexdigest() == '74557f485e57025db9afa5e87ca8f14c44849dd46e6552fa20d236737c375673', 'Unexpected pinned WSI source'
+    target.write_text(original, encoding='utf-8')
     directory = tmp.relative_to(ROOT).as_posix()
     workflow = (ROOT/'.github/workflows/pixel-panvk.yml').read_text()
     patches = re.findall(r'git -C mesa apply ../(tools/pixel-probe/\S+\.patch)', workflow)
@@ -163,12 +163,12 @@ with tempfile.TemporaryDirectory(prefix='wsi-timing-', dir=ROOT/'build') as name
             continue
         subprocess.run(['git', 'apply', '--unsafe-paths', f'--directory={directory}',
             f'--include={directory}/{relative}', str(ROOT/patch)], cwd=ROOT, check=True)
-    before = target.read_text()
+    before = target.read_text(encoding='utf-8')
     patch_text = own_patch.read_text()
     assert not any(line.startswith('-') and not line.startswith('--- ') for line in patch_text.splitlines()), 'Timing patch must not remove original statements'
     assert re.findall(r'^\+\+\+ b/(.+)$', patch_text, re.M) == [relative]
     subprocess.run(['git', 'apply', '--unsafe-paths', f'--directory={directory}', str(own_patch)], cwd=ROOT, check=True)
-    after = target.read_text()
+    after = target.read_text(encoding='utf-8')
     helper = re.search(r'/\* Pixel presentation diagnostics:.*?/\* End Pixel presentation diagnostics\. \*/', after, re.S).group()
     sites = re.findall(r'      +uint64_t pixel_(?:invalidate_)?start = pixel_present_begin\(pixel_timing\);\n.*?pixel_present_end\(PIXEL_PRESENT_\w+, pixel_(?:invalidate_)?start, (?:result|results\[i\])\);', after, re.S)
     assert len(sites) == 6
