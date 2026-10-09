@@ -1191,3 +1191,35 @@ and 58.09 displayed FPS; p95 gaps were 33.35, 33.34 and 25.14 ms, with maxima
 production variation and does not prove an FPS gain or stable 60 FPS. Private
 raw measurements are retained under `build/bench/steam-scroll-rebuilt-native-session16-*.json`.
 
+### Further synchronization checks and recurring heap crash (October 8)
+
+Session 16 exited with status 1 approximately 9.2 minutes after READY. Its collected
+guest log ends with `malloc(): unaligned tcache chunk detected`, followed by the
+Gamescope reaper reporting its parent was killed. This establishes recurring guest
+allocator corruption, not its originating write. Private artifacts are preserved
+under `build/bench/session16-failure`; the Android compositor uses bionic and cannot
+be directly blamed for this glibc diagnostic without further evidence.
+
+Cursor DMA-BUF readback previously ignored poll timeout/error results and reset its
+100 ms timeout across EINTR. It now requires confirmed writer completion before
+readback, preserves the borrowed descriptor, and shares one monotonic deadline.
+The actual helper and cursor publication routine pass an extracted MSVC regression;
+the old error policy fails its negative control. Android native compilation passes.
+The APK labeled `397b0cb dirty` installed without clearing data and session 17 reached
+READY. This does not establish a heap-crash fix or FPS improvement.
+
+Opt-in full Mesa builds passed for the fence-status prerequisite (`37881295071`)
+and both fence-status/concurrent-wait prerequisites (`37881660590`). The latter
+removes an unused ring-drain acceptance option whose five callers all disabled it,
+and timeout diagnostics that read concurrently mutable CPU emission metadata.
+Actual GPU seqno completion remains required. Neither patch is enabled in normal
+driver builds or deployed to the phone.
+
+A separate ASan Gamescope diagnostic build is running as CI `37882078529`. It uses
+the production source preparation and patch series through an isolated generated
+recipe, requires instrumented Gamescope and static wlroots compile commands,
+preserves debug information, and packages its compiler-matched ASan runtime plus
+an intentional fault probe. Four generator/checker tests pass. Successful CI,
+guest runtime compatibility, probe interception and crash reproduction remain
+unverified. It is a crash diagnostic, not a performance-comparison driver.
+
