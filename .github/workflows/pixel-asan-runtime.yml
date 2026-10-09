@@ -50,7 +50,7 @@ jobs:
           readelf -dVW runtime-artifact/libasan.so.8 > runtime-artifact/ELF.txt
           gcc -O1 -g -fsanitize=address -fno-omit-frame-pointer tools/pixel-probe/gamescope-asan-probe.c -o runtime-artifact/gcc-probe
           set +e
-          LD_PRELOAD="$PWD/runtime-artifact/libasan.so.8" ASAN_OPTIONS=detect_leaks=0:abort_on_error=1:symbolize=0 runtime-artifact/gcc-probe > runtime-artifact/probe.log 2>&1
+          LD_LIBRARY_PATH="$PWD/runtime-artifact" LD_PRELOAD="$PWD/runtime-artifact/libasan.so.8" ASAN_OPTIONS=detect_leaks=0:abort_on_error=1:symbolize=0 runtime-artifact/gcc-probe > runtime-artifact/probe.log 2>&1
           result=$?
           set -e
           test "$result" -ne 0
