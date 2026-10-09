@@ -1124,6 +1124,10 @@ confirmed writer completion. The extracted helper and old-policy negative contro
 pass locally, and Android native compilation passes. Session 15 reached READY with
 this fix in the APK labeled `046d5ba dirty`; its source was committed as `86f99de`.
 This is startup verification, not proof of sustained performance improvement.
+Later in the same session, a valid 15-second scroll sample measured 51.72 displayed
+FPS, p95 33.34 ms and maximum 58.45 ms at thermal status 0, with the regular driver
+and no environment override. Session 15 remained READY. The result remains below
+stable 60 FPS and does not establish a gain from the fallback repair.
 
 ### KCPU fence cancellation constraint (October 8)
 
@@ -1148,4 +1152,12 @@ let the producer thread continue while publication still waits for completion.
 Wayland currently has no such worker; acquisition, per-image fence reuse, copied
 presentation data, asynchronous errors and destruction joins must be handled
 before trying it. No performance benefit has been measured for that alternative.
+
+`tools/pixel-probe/panvk-kcpu-fence-status.patch` is an isolated prerequisite,
+not part of the production Mesa patch series. It checks sync-file status after
+readiness so an errored fence takes the existing CSF notification fallback.
+`check-kcpu-fence-status.py` compiles the extracted patched function: 15 local
+cases pass and the pinned old-function negative control fails. The caller still
+accepts only actual queue seqno completion, and KCPU synchronization remains
+opt-in. Full Mesa compilation and device validation of this patch remain open.
 

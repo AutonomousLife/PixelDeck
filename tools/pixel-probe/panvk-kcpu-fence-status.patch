@@ -1,0 +1,50 @@
+--- a/src/panfrost/lib/kmod/kbase_kmod.c
++++ b/src/panfrost/lib/kmod/kbase_kmod.c
+@@ -51,6 +51,7 @@
+ #include "util/log.h"
+ 
+ #include "drm-uapi/mali_kbase_ioctl.h"
++#include "drm-uapi/sync_file.h"
+ /* Only used as the interchange format for CSF interface information; no
+  * panthor functionality is required. */
+ #include "drm-uapi/panthor_drm.h"
+@@ -815,6 +816,7 @@
+    struct pollfd pfd = {
+       .fd = fd,
+       .events = POLLIN,
++      .revents = 0,
+    };
+    struct timespec ts = {
+       .tv_sec = timeout_ns / 1000000000,
+@@ -829,10 +831,27 @@
+    if (ret <= 0)
+       return ret;
+ 
+-   /* sync_file reports a signalled fence through POLLIN.  POLLERR/HUP also
+-    * retires the KCPU command; the caller reads the adjacent CQS error word
+-    * before accepting queue completion. */
+-   return pfd.revents & (POLLIN | POLLERR | POLLHUP) ? 1 : -1;
++   /* Readiness is not successful GPU completion: kbase can force-signal
++    * a timed-out fence with a negative status.  Keep the CSF/seqno fallback
++    * available instead of accepting that fence as a successful CQS wait.
++    * This is an internal wait only, not an external synchronization export.
++    */
++   if (!(pfd.revents & POLLIN) || (pfd.revents & (POLLNVAL | POLLHUP))) {
++      errno = EIO;
++      return -1;
++   }
++
++   struct sync_file_info info = {0};
++   do {
++      ret = ioctl(fd, SYNC_IOC_FILE_INFO, &info);
++   } while (ret < 0 && errno == EINTR);
++   if (ret < 0)
++      return -1;
++   if (info.status < 0) {
++      errno = EIO;
++      return -1;
++   }
++   return info.status > 0 ? 1 : 0;
+ }
+ 
+ int
