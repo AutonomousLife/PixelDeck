@@ -1,0 +1,33 @@
+name: Pixel Gamescope ASan diagnostic
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  diagnostic:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate an isolated diagnostic recipe
+        run: |
+          set -euo pipefail
+          mkdir -p build/gamescope-asan-work
+          cp -a tools build/gamescope-asan-work/
+          python3 tools/pixel-probe/gamescope-asan.py generate tools/gamescope/build-in-arch.sh > build/gamescope-asan-work/asan-build.sh
+          bash -n build/gamescope-asan-work/asan-build.sh
+      - name: Build and verify instrumented Gamescope and wlroots
+        run: |
+          set -euo pipefail
+          docker run --rm -e GITHUB_SHA -v "$PWD/build/gamescope-asan-work:/work" -w /work menci/archlinuxarm:base-devel bash asan-build.sh
+          sudo chown -R "$(id -u):$(id -g)" build/gamescope-asan-work
+          tar --use-compress-program='zstd -19' -cf build/gamescope-asan-diagnostic.tzst -C build/gamescope-asan-work diagnostic
+          sha256sum build/gamescope-asan-diagnostic.tzst > build/gamescope-asan-diagnostic.tzst.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pixel-gamescope-asan-diagnostic
+          path: |
+            build/gamescope-asan-diagnostic.tzst
+            build/gamescope-asan-diagnostic.tzst.sha256
+          if-no-files-found: error
+          retention-days: 14
