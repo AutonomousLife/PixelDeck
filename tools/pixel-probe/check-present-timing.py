@@ -144,6 +144,7 @@ int main() {
 '''
 
 
+(ROOT/'build').mkdir(exist_ok=True)
 with tempfile.TemporaryDirectory(prefix='wsi-timing-', dir=ROOT/'build') as name:
     tmp = Path(name)
     relative = 'src/vulkan/wsi/wsi_common.c'
