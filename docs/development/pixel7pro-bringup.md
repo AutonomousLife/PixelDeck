@@ -1223,3 +1223,36 @@ an intentional fault probe. Four generator/checker tests pass. Successful CI,
 guest runtime compatibility, probe interception and crash reproduction remain
 unverified. It is a crash diagnostic, not a performance-comparison driver.
 
+
+### Phone-validated heap diagnostic (October 9)
+
+The Gamescope/static-wlroots ASan artifact from CI `37884523517` compiled,
+but its GCC allocator tried to reserve 4 TiB in the phone's 39-bit address
+space. The isolated LLVM 19.1.7 runtime from `37885583351` selects LLVM's
+existing 128 GiB very-compact AArch64 allocator while retaining glibc
+interceptors. Its intentional probe detects heap use-after-free on the phone.
+
+The private `gamescope-asan-launch` wrapper and `gamescope-asan-env.c` helper
+initialize ASan before restoring the production child environment. The helper
+is built with NDK clang using `--target=aarch64-linux-gnu -shared -fPIC
+-nostdlib -Wall -Wextra -Werror`, SONAME `libpixel_asan_env.so` and a 65536-byte
+maximum page size. Its libc symbols resolve from the guest. On-phone checks
+prove child-environment restoration and intentional heap fault detection
+with the helper loaded. Leak checking and the startup ODR checker are disabled
+for this heap experiment; heap access checking remains enabled.
+
+Session 19 reaches READY. Process maps confirm the private instrumented
+compositor and compact ASan runtime are loaded. A valid 60-second scroll
+completed without a sanitizer report. Instrumented FPS is not a production
+performance result, and the intermittent native heap crash remains unresolved.
+
+The default-off deferred presentation experiment and its synchronization
+prerequisites compiled as full Mesa in `37885479295`; the packaged driver SHA256
+is `520c9df1041662437fc9384e150d481cc6f8bf5ce8a3523ac7443558fc3d6153`.
+Real-thread worker checks and their early-publication negative control pass.
+Complete Vulkan/Wayland integration remains unverified. This path requires
+native Wayland DMA-BUF MAILBOX without explicit sync or present timing/wait.
+Gamescope normally requests FIFO, so comparison requires the same MAILBOX
+override in both control and experiment. CI `37887936155` adds one-time
+messages proving worker creation and actual enqueue, to distinguish activation
+from unsupported synchronous fallback. No experimental FPS gain is proven.
