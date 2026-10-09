@@ -115,7 +115,8 @@ def verify(work):
     # Preserve the prepared source identity, compiler, and actual flags for offline diagnosis.
     manifest = {"sourceCommit": os.environ.get("GITHUB_SHA", ""), "compiler": run("gcc", "--version"),
                 "instrumentedCommands": counts,
-                "gamescopeCommit": run("git", "-C", str(source), "rev-parse", "HEAD").strip(),
+                "gamescopeCommit": run("git", "-c", "safe.directory=" + str(source),
+                                       "-C", str(source), "rev-parse", "HEAD").strip(),
                 "preparedSourceHashes": {str(p.relative_to(source)): hashlib.sha256(p.read_bytes()).hexdigest()
                     for p in sorted(source.rglob("*")) if p.is_file() and ".git" not in p.parts and
                     (p.suffix in (".c", ".cpp", ".h", ".hpp") or p.name in ("meson.build", "meson_options.txt"))},
