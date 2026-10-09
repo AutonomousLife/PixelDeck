@@ -994,6 +994,20 @@ static void send_toplevel_configure(struct surface *s);
 /* The pointer image from a cursor surface's buffer: wl_shm is copied, a dma-buf (labwc on a GPU
  * renderer) is read back once the client's render into it is done - its implicit fence, as the
  * zero-copy path waits for it (ahb_swapchain_present). */
+static int cursor_wait_writers(int fd) {
+    if (fd < 0) return -1;
+    struct pollfd p = {.fd = fd, .events = POLLIN, .revents = 0};
+    const int64_t deadline = now_ns() + 100000000LL;
+    int r;
+    do {
+        const int64_t remaining = deadline - now_ns();
+        if (remaining <= 0) return -1;
+        r = poll(&p, 1, (int)((remaining + 999999LL) / 1000000LL));
+    } while (r < 0 && errno == EINTR);
+    return r > 0 && (p.revents & POLLIN) &&
+           !(p.revents & (POLLERR | POLLHUP | POLLNVAL)) ? 0 : -1;
+}
+
 static void cursor_publish_buffer(struct surface *s, struct wl_resource *buffer) {
     struct dmabuf_buffer *db = get_dmabuf(buffer);
     struct wl_shm_buffer *shm = db ? NULL : wl_shm_buffer_get(buffer);
@@ -1007,9 +1021,8 @@ static void cursor_publish_buffer(struct surface *s, struct wl_resource *buffer)
             if (!db->img) db->import_failed = 1;
         }
         if (!db->img) return;
-        struct pollfd p = {.fd = db->fd[0], .events = POLLIN};
-        int r;
-        do { r = poll(&p, 1, 100); } while (r < 0 && errno == EINTR);
+        /* The borrowed buffer remains owned by the caller on every outcome. */
+        if (cursor_wait_writers(db->fd[0]) != 0) return;
         if (vkp_image_readback(db->img, g_cursor_rb, CURSOR_MAX_PX) != 0) return;
         cursor_publish_pixels((const uint8_t *)g_cursor_rb, db->width, db->height,
                               (size_t)db->width * 4, g_cursor_hx, g_cursor_hy);

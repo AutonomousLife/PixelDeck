@@ -9,6 +9,10 @@ on:
         description: Compile the isolated KCPU sync-file status prerequisite
         type: boolean
         default: false
+      concurrent_wait:
+        description: Compile the isolated concurrent CPU fence-wait prerequisite
+        type: boolean
+        default: false
 permissions:
   contents: read
 jobs:
@@ -96,6 +100,10 @@ jobs:
           if [ "${{ inputs.fence_status }}" = "true" ]; then
             python3 tools/pixel-probe/check-kcpu-fence-status.py --mesa-root mesa
             git -C mesa apply ../tools/pixel-probe/panvk-kcpu-fence-status.patch
+          fi
+          if [ "${{ inputs.concurrent_wait }}" = "true" ]; then
+            python3 tools/pixel-probe/check-concurrent-fence-wait.py --mesa-root mesa
+            git -C mesa apply ../tools/pixel-probe/panvk-concurrent-fence-wait.patch
           fi
           git -C mesa apply ../tools/pixel-probe/panvk-kbase-diagnostics.patch
           git -C mesa apply ../tools/pixel-probe/panvk-csf-address.patch

@@ -392,6 +392,7 @@ jobs:
         run: |
           python3 tools/pixel-probe/check-sync-fd-wait.py
           python3 tools/pixel-probe/check-dmabuf-writer-wait.py
+          python3 tools/pixel-probe/check-cursor-writer-wait.py
 
       - name: Unit tests
         run: ./gradlew testReleaseUnitTest --console=plain -PndkVersion="$NDK_VERSION"
