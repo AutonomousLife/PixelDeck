@@ -13,6 +13,10 @@ on:
         description: Compile the isolated concurrent CPU fence-wait prerequisite
         type: boolean
         default: false
+      deferred_present:
+        description: Compile the default-off deferred Wayland presentation experiment
+        type: boolean
+        default: false
 permissions:
   contents: read
 jobs:
@@ -97,11 +101,11 @@ jobs:
           p.write_text(text.replace(old, 'open(dma_heap, O_RDONLY | O_CLOEXEC)'))
           PY
           python3 tools/pixel-probe/check-present-timing.py --mesa-root mesa
-          if [ "${{ inputs.fence_status }}" = "true" ]; then
+          if [ "${{ inputs.fence_status }}" = "true" ] || [ "${{ inputs.deferred_present }}" = "true" ]; then
             python3 tools/pixel-probe/check-kcpu-fence-status.py --mesa-root mesa
             git -C mesa apply ../tools/pixel-probe/panvk-kcpu-fence-status.patch
           fi
-          if [ "${{ inputs.concurrent_wait }}" = "true" ]; then
+          if [ "${{ inputs.concurrent_wait }}" = "true" ] || [ "${{ inputs.deferred_present }}" = "true" ]; then
             python3 tools/pixel-probe/check-concurrent-fence-wait.py --mesa-root mesa
             git -C mesa apply ../tools/pixel-probe/panvk-concurrent-fence-wait.patch
           fi
@@ -111,6 +115,10 @@ jobs:
           git -C mesa apply ../tools/pixel-probe/panvk-shm-copy.patch
           git -C mesa apply ../tools/pixel-probe/panvk-wayland-dmabuf.patch
           git -C mesa apply ../tools/pixel-probe/panvk-present-timing.patch
+          if [ "${{ inputs.deferred_present }}" = "true" ]; then
+            git -C mesa apply ../tools/pixel-probe/panvk-deferred-present.patch
+            python3 tools/pixel-probe/check-deferred-worker.py --header mesa/src/vulkan/wsi/wsi_deferred_present.h
+          fi
       - name: Configure Wayland and X11 driver
 
         working-directory: mesa
