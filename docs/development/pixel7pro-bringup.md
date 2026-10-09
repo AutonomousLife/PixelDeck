@@ -1042,12 +1042,24 @@ reopening. That correlation does not prove the historical process was frozen, bu
 allowed it. The service now retains foreground status until all its collections complete,
 without allowing an old completion to stop a new running session or unfinished guest teardown.
 Three foreground-service lifecycle regressions pass. The notification reports "Finishing
-session logs" during this work. Device verification of this additional fix is pending.
+session logs" during this work. Build `1e4cc7c` installed without clearing data. Session 10
+reached READY, stopped normally, and collected its artifacts about 46 seconds after guest
+teardown without reopening the app. The foreground service was gone after collection.
+This is one successful cycle, not sustained lifecycle verification.
 
 Opt-in Mesa timings now distinguish throttle, internal submit, separate blit, final completion
 fence, CPU cache invalidation and backend present. `PANVK_KBASE_PRESENT_TIMING=1` enables
 per-thread batches of 240 presents; it is off by default and changes no synchronization. The
 extracted-code regression checks forwarding, errors, errno, counters and zero disabled clock
-calls, and its negative control fails as expected. A native CI build is in progress; no new
-driver performance claim is established by instrumentation alone.
+calls, and its negative control fails as expected. Native CI run `37874841197` passed.
+Its driver SHA-256 is `aa70f6243b5b1d8efdef4e304d264b17ddb58f1c8762e4bab2500ff986883958`;
+the phone experiment uses a separate `pixel-panvk-present-timing` directory.
+
+Session 11's first valid scroll sample measured 51.17 displayed FPS, p95 33.35 ms, maximum
+141.64 ms; thermal status was 1, unlike the earlier status-0 samples. Initial batches of
+240 presents put average final-fence wait at 6.8–8.1 ms and backend present at 1.6–2.3 ms.
+Internal submit averaged only 6–9 microseconds. This directly contradicts the earlier
+hypothesis that most present latency lived inside the internal submit: in this driver
+and workload it lives primarily in the final fence wait. The wait protects CPU readback
+and cannot simply be removed. Timings establish attribution, not a performance gain.
 
